@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经济模拟游戏</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Press Start 2P', monospace; /* 使用像素字体 */
+            background-color: #111;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden; /* 阻止水平滚动条 */
+        }
+        #gameCanvas {
+            background-color: #222;
+            border: 2px solid #555;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            width: 95vw; /* 最大宽度为视口宽度的 95% */
+            height: auto; /* 高度根据宽度和单元格大小自动调整 */
+            max-height: 80vh; /* 最大高度为视口高度的 80% */
+            aspect-ratio: 1 / 1;
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            width: 95vw; /* 控制器宽度与画布相同 */
+            max-width: 800px; /* 最大宽度限制 */
+        }
+        .controls-button {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-family: 'Press Start 2P', monospace;
+             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 0px #386641;
+        }
+        .controls-button:hover {
+            background-color: #367c39;
+        }
+        .controls-button:active{
+             box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+              transform: translateY(1px);
+        }
+        #infoDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #333;
+            border: 1px solid #666;
+            border-radius: 5px;
+            text-align: center;
+            width: 95vw; /* 信息显示宽度与画布相同 */
+            max-width: 800px; /* 最大宽度限制 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            font-size: 0.9em;
+        }
+        #chartCanvas {
+            margin-top: 20px;
+            background-color: #222;
+            border: 2px solid #555;
+            border-radius: 5px;
+             width: 95vw; /* 图表宽度与画布相同 */
+            height: 40vh; /* 限制图表高度 */
+            max-width: 800px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        @media (max-width: 600px) {
+            .controls-button {
+                font-size: 0.7em; /* 在小屏幕上缩小字体 */
+                padding: 8px 12px;
+            }
+            #infoDisplay {
+                font-size: 0.8em; /* 在小屏幕上缩小字体 */
+                padding: 10px;
+            }
+            #gameCanvas {
+                margin-top: 10px;
+                 width: 98vw;
+            }
+            #controls{
+                 width: 98vw;
+            }
+            #chartCanvas{
+                 width: 98vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <button id="startBtn" class="controls-button">开始</button>
+        <button id="pauseBtn" class="controls-button">暂停</button>
+        <button id="resetBtn" class="controls-button">重置</button>
+        <button id="addWealthBtn" class="controls-button">增加财富</button>
+        <button id="tradeBtn" class="controls-button">交易</button>
+        <button id="taxBtn" class="controls-button">征税</button>
+        <button id="welfareBtn" class="controls-button">福利</button>
+        <button id="inflateBtn" class="controls-button">通货膨胀</button>
+        <button id="showChartBtn" class="controls-button">显示图表</button>
+        <div id="speedControl" style="margin-top: 10px; display: flex; align-items: center; justify-content: center; width: 100%;">
+            <label for="speedSlider" style="margin-right: 10px; color: #eee; font-size: 0.9em;">速度:</label>
+            <input type="range" id="speedSlider" min="1" max="20" value="10" style="width: 150px;">
+            <span id="speedValue" style="margin-left: 10px; color: #eee; font-size: 0.9em;">10x</span>
+        </div>
+    </div>
+    <div id="infoDisplay">
+        <p>细胞数量: <span id="cellCount">0</span></p>
+        <p>平均财富: <span id="averageWealth">0</span></p>
+        <p>最高财富: <span id="maxWealth">0</span></p>
+        <p>最低财富: <span id="minWealth">0</span></p>
+        <p>贫困细胞数量: <span id="poorCellCount">0</span></p>
+        <p>总财富: <span id="totalWealth">0</span></p>
+        <p>经济状态: <span id="economyState">稳定</span></p>
+        <p>模拟步数: <span id="stepCount">0</span></p>
+    </div>
+    <canvas id="chartCanvas" style="display: none;"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const addWealthBtn = document.getElementById('addWealthBtn');
+        const tradeBtn = document.getElementById('tradeBtn');
+        const taxBtn = document.getElementById('taxBtn');
+        const welfareBtn = document.getElementById('welfareBtn');
+        const inflateBtn = document.getElementById('inflateBtn');
+        const showChartBtn = document.getElementById('showChartBtn');
+        const infoDisplay = document.getElementById('infoDisplay');
+        const cellCountDisplay = document.getElementById('cellCount');
+        const averageWealthDisplay = document.getElementById('averageWealth');
+        const maxWealthDisplay = document.getElementById('maxWealth');
+        const minWealthDisplay = document.getElementById('minWealth');
+        const poorCellCountDisplay = document.getElementById('poorCellCount');
+        const totalWealthDisplay = document.getElementById('totalWealth');
+        const economyStateDisplay = document.getElementById('economyState');
+        const chartCanvas = document.getElementById('chartCanvas');
+        const chartCtx = chartCanvas.getContext('2d');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValueDisplay = document.getElementById('speedValue');
+        const stepCountDisplay = document.getElementById('stepCount');
+
+        let animationFrameId;
+        let isRunning = false;
+        let grid;
+        let cellSize;
+        const gridSize = 50; // 初始网格大小
+        const initialWealthRange = [100, 200];
+        const baseProductivityRange = [5, 10];
+        const consumptionNeedRange = [3, 7];
+        const taxRate = 0.2;
+        const welfareRate = 0.5;
+        const povertyLine = 50;
+        const inflationRate = 0.01;
+        const bankruptcyThreshold = -50;
+        let wealthHistory = [];
+        let wealthDistributionHistory = [];
+        let chartInstance = null;
+        let numSteps = 0; // 记录模拟步数
+        let speed = 10; // 初始速度
+        let updateInterval = 1000 / speed; // 更新间隔，毫秒
+
+        function resizeCanvas() {
+            const containerWidth = document.querySelector('body').clientWidth * 0.95; // 使用 95%
+            const containerHeight = document.querySelector('body').clientHeight * 0.8; // 使用 80%
+            const size = Math.min(containerWidth, containerHeight, 800); // 最大尺寸限制
+             const aspectRatio = 1;
+            canvas.width = size * aspectRatio;
+            canvas.height = size;
+            cellSize = size / gridSize;
+            if (grid) {
+                drawGrid(); // 重新绘制网格
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // 初始化画布大小
+
+        function initGrid() {
+            grid = [];
+            for (let i = 0; i < gridSize; i++) {
+                grid[i] = [];
+                for (let j = 0; j < gridSize; j++) {
+                    const initialWealth = Math.floor(Math.random() * (initialWealthRange[1] - initialWealthRange[0] + 1)) + initialWealthRange[0];
+                    const baseProductivity = Math.floor(Math.random() * (baseProductivityRange[1] - baseProductivityRange[0] + 1)) + baseProductivityRange[0];
+                    const consumptionNeed = Math.floor(Math.random() * (consumptionNeedRange[1] - consumptionNeedRange[0] + 1)) + consumptionNeedRange[0];
+                    grid[i][j] = {
+                        wealth: initialWealth,
+                        productivity: baseProductivity,
+                        consumptionNeed: consumptionNeed,
+                        color: getWealthColor(initialWealth),
+                        isAlive: true, // 初始时细胞存活
+                        id: i * gridSize + j, // Unique ID for each cell
+                    };
+                }
+            }
+            numSteps = 0;
+            wealthHistory = [];
+            wealthDistributionHistory = [];
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+        }
+
+        function getWealthColor(wealth) {
+            if (wealth > 300) {
+                return '#FFD700'; // Gold
+            } else if (wealth > 200) {
+                return '#ADFF2F'; // Green Yellow
+            } else if (wealth > 100) {
+                return '#7FFF00'; // Lime Green
+            } else if (wealth > 50) {
+                return '#00FF7F'; // Spring Green
+            } else if (wealth > 0) {
+                return '#00FFFF'; // Cyan
+            } else if (wealth === 0) {
+                return '#FFFFFF'; // White
+            } else if (wealth < bankruptcyThreshold) {
+                return '#B22222';  // Firebrick
+            } else {
+                return '#FF4500'; // Orange Red
+            }
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].isAlive) { // 只绘制存活的细胞
+                        ctx.fillStyle = grid[i][j].color;
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+        }
+
+        function updateGrid() {
+            if (!isRunning) return;
+
+            let totalWealth = 0;
+            let maxWealth = -Infinity;
+            let minWealth = Infinity;
+            let poorCellCount = 0;
+            let aliveCellCount = 0; // 统计存活细胞数量
+
+            const updatedGrid = [];
+            for (let i = 0; i < gridSize; i++) {
+                updatedGrid[i] = [];
+                for (let j = 0; j < gridSize; j++) {
+                    updatedGrid[i][j] = { ...grid[i][j] }; // Copy cell
+                }
+            }
+
+             for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (!grid[i][j].isAlive) continue; // Skip dead cells
+                    aliveCellCount++;
+                    let cell = grid[i][j];
+                    // Production and Consumption
+                    updatedGrid[i][j].wealth += cell.productivity - cell.consumptionNeed;
+                    totalWealth += updatedGrid[i][j].wealth;
+                    maxWealth = Math.max(maxWealth, updatedGrid[i][j].wealth);
+                    minWealth = Math.min(minWealth, updatedGrid[i][j].wealth);
+
+                    if (updatedGrid[i][j].wealth < povertyLine) {
+                        poorCellCount++;
+                    }
+                }
+            }
+
+            // Trade (Simplified: Each cell trades with a random neighbor)
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (!grid[i][j].isAlive) continue; // Dead cells don't trade
+                    const neighbors = getNeighbors(i, j);
+                    if (neighbors.length > 0) {
+                        const randomNeighborIndex = Math.floor(Math.random() * neighbors.length);
+                        const neighbor = neighbors[randomNeighborIndex];
+                        const tradeAmount = Math.random() * 20 - 10; // Random trade amount between -10 and 10
+                        updatedGrid[i][j].wealth -= tradeAmount;
+                        updatedGrid[neighbor.x][neighbor.y].wealth += tradeAmount;
+                    }
+                }
+            }
+
+            //Tax
+             let totalTaxRevenue = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (!grid[i][j].isAlive) continue;
+                    if (updatedGrid[i][j].wealth > 0) {
+                        const tax = updatedGrid[i][j].wealth * taxRate;
+                        updatedGrid[i][j].wealth -= tax;
+                        totalTaxRevenue += tax;
+                    }
+                }
+            }
+
+            // Welfare
+            const numPoorCells = poorCellCount;
+            if (numPoorCells > 0) {
+                const welfarePerCell = totalTaxRevenue * welfareRate / numPoorCells;
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                         if (!grid[i][j].isAlive) continue;
+                        if (updatedGrid[i][j].wealth < povertyLine) {
+                            updatedGrid[i][j].wealth += welfarePerCell;
+                        }
+                    }
+                }
+            }
+
+            // Inflation
+            totalWealth = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (updatedGrid[i][j].isAlive) {
+                         totalWealth += updatedGrid[i][j].wealth;
+                    }
+                }
+            }
+            const inflationAmount = totalWealth * inflationRate;
+            const inflationPerCell = inflationAmount / aliveCellCount;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (updatedGrid[i][j].isAlive) {
+                         updatedGrid[i][j].wealth += inflationPerCell;
+                    }
+                }
+            }
+            totalWealth += inflationAmount;
+
+            // Bankruptcy
+            let bankruptCount = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (updatedGrid[i][j].wealth < bankruptcyThreshold) {
+                        updatedGrid[i][j].isAlive = false; // Kill the cell
+                        bankruptCount++;
+                    }
+                }
+            }
+
+            // Update grid and redraw
+            grid = updatedGrid;
+            drawGrid();
+
+            // Record data for display and charting
+            wealthHistory.push(totalWealth);
+            wealthDistributionHistory.push(grid.map(row => row.filter(cell => cell.isAlive).map(cell => cell.wealth))); // Only living cells' wealth
+            numSteps++;
+            stepCountDisplay.textContent = numSteps;
+
+            // Update Info Display
+            updateInfoDisplay(aliveCellCount, totalWealth, averageWealth, maxWealth, minWealth, poorCellCount, bankruptCount);
+            if (aliveCellCount === 0) {
+                economyStateDisplay.textContent = "崩溃";
+                economyStateDisplay.style.color = "red";
+                isRunning = false;
+                clearInterval(animationFrameId);
+                alert("所有细胞已经死亡！经济崩溃！");
+            } else {
+                economyStateDisplay.textContent = "稳定";
+                economyStateDisplay.style.color = "#00FF7F";
+            }
+            if (isRunning) {
+                setTimeout(updateGrid, updateInterval); // 使用 setTimeout 控制速度
+            }
+        }
+
+        function getNeighbors(x, y) {
+            const neighbors = [];
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    const newX = x + i;
+                    const newY = y + j;
+                    if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize && grid[newX][newY].isAlive) { // Only living neighbors
+                        neighbors.push({ x: newX, y: newY });
+                    }
+                }
+            }
+            return neighbors;
+        }
+
+        function updateInfoDisplay(aliveCellCount, totalWealth, averageWealth, maxWealth, minWealth, poorCellCount, bankruptCount) {
+            let currentTotalWealth = 0;
+             let currentAliveCellCount = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].isAlive) {
+                        currentTotalWealth += grid[i][j].wealth;
+                        currentAliveCellCount++;
+                    }
+                }
+            }
+            averageWealth = currentTotalWealth / currentAliveCellCount;
+
+
+            let currentMaxWealth = -Infinity;
+            let currentMinWealth = Infinity;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (grid[i][j].isAlive) {
+                        currentMaxWealth = Math.max(currentMaxWealth, grid[i][j].wealth);
+                        currentMinWealth = Math.min(currentMinWealth, grid[i][j].wealth);
+                    }
+                }
+            }
+
+
+            let currentPoorCellCount = 0;
+             for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (grid[i][j].isAlive && grid[i][j].wealth < povertyLine) {
+                         currentPoorCellCount++;
+                     }
+                }
+             }
+
+
+            cellCountDisplay.textContent = currentAliveCellCount;
+            totalWealthDisplay.textContent = currentTotalWealth.toFixed(2);
+            averageWealthDisplay.textContent = averageWealth.toFixed(2);
+            maxWealthDisplay.textContent = currentMaxWealth.toFixed(2);
+            minWealthDisplay.textContent = currentMinWealth.toFixed(2);
+            poorCellCountDisplay.textContent = currentPoorCellCount;
+        }
+
+        function startSimulation() {
+            if (isRunning) return;
+            isRunning = true;
+            startBtn.textContent = '运行中...';
+            pauseBtn.textContent = '暂停';
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            resetBtn.disabled = true;
+            addWealthBtn.disabled = true;
+            tradeBtn.disabled = true;
+            taxBtn.disabled = true;
+            welfareBtn.disabled = true;
+            inflateBtn.disabled = true;
+            showChartBtn.disabled = true;
+            updateGrid();
+        }
+
+        function pauseSimulation() {
+            if (!isRunning) return;
+            isRunning = false;
+            startBtn.textContent = '继续';
+            pauseBtn.textContent = '已暂停';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resetBtn.disabled = false;
+             addWealthBtn.disabled = false;
+            tradeBtn.disabled = false;
+            taxBtn.disabled = false;
+            welfareBtn.disabled = false;
+            inflateBtn.disabled = false;
+            showChartBtn.disabled = false;
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            initGrid();
+            drawGrid();
+            startBtn.textContent = '开始';
+            pauseBtn.textContent = '暂停';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resetBtn.disabled = false;
+            addWealthBtn.disabled = false;
+            tradeBtn.disabled = false;
+            taxBtn.disabled = false;
+            welfareBtn.disabled = false;
+            inflateBtn.disabled = false;
+            showChartBtn.disabled = false;
+            updateInfoDisplay(0, 0, 0, 0, 0, 0, 0);
+            stepCountDisplay.textContent = 0;
+        }
+
+        function addWealth() {
+            if (!isRunning) return;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].isAlive) {
+                        grid[i][j].wealth += 50;
+                        grid[i][j].color = getWealthColor(grid[i][j].wealth);
+                    }
+                }
+            }
+            drawGrid();
+        }
+
+        function performTrade() {
+             if (!isRunning) return;
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (!grid[i][j].isAlive) continue;
+                    const neighbors = getNeighbors(i, j);
+                    if (neighbors.length > 0) {
+                        const randomNeighborIndex = Math.floor(Math.random() * neighbors.length);
+                        const neighbor = neighbors[randomNeighborIndex];
+                        const tradeAmount = Math.random() * 20 - 10;
+                        grid[i][j].wealth -= tradeAmount;
+                        grid[neighbor.x][neighbor.y].wealth += tradeAmount;
+                         grid[i][j].color = getWealthColor(grid[i][j].wealth);
+                         grid[neighbor.x][neighbor.y].color = getWealthColor(grid[neighbor.x][neighbor.y].wealth);
+                    }
+                }
+            }
+            drawGrid();
+        }
+
+        function applyTax() {
+            if (!isRunning) return;
+            let totalTaxRevenue = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (!grid[i][j].isAlive) continue;
+                    if (grid[i][j].wealth > 0) {
+                        const tax = grid[i][j].wealth * taxRate;
+                        grid[i][j].wealth -= tax;
+                        totalTaxRevenue += tax;
+                         grid[i][j].color = getWealthColor(grid[i][j].wealth);
+                    }
+                }
+            }
+            alert(`征收了 ${totalTaxRevenue.toFixed(2)} 的税.`);
+            drawGrid();
+        }
+
+        function applyWelfare() {
+            if (!isRunning) return;
+             let totalTaxRevenue = 0;
+             let poorCellCount = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (!grid[i][j].isAlive) continue;
+                    if (grid[i][j].wealth > 0) {
+                        const tax= grid[i][j].wealth * taxRate;
+                        grid[i][j].wealth -= tax;
+                        totalTaxRevenue += tax;
+                    }
+                    if(grid[i][j].wealth < povertyLine){
+                        poorCellCount++;
+                    }
+                }
+            }
+
+            if (poorCellCount > 0) {
+                const welfarePerCell = totalTaxRevenue * welfareRate / poorCellCount;
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                         if (!grid[i][j].isAlive) continue;
+                        if (grid[i][j].wealth < povertyLine) {
+                            grid[i][j].wealth += welfarePerCell;
+                             grid[i][j].color = getWealthColor(grid[i][j].wealth);
+                        }
+                    }
+                }
+                 alert(`发放了 ${welfarePerCell.toFixed(2)} 的福利给每个贫困细胞.`);
+            }
+            else{
+                 alert(`没有细胞符合领取福利的条件.`);
+            }
+
+            drawGrid();
+        }
+
+        function applyInflation() {
+            if (!isRunning) return;
+            let totalWealth = 0;
+             let aliveCellCount = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if(grid[i][j].isAlive){
+                        totalWealth += grid[i][j].wealth;
+                        aliveCellCount++;
+                    }
+                }
+            }
+            const inflationAmount = totalWealth * inflationRate;
+            const inflationPerCell = inflationAmount / aliveCellCount;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                     if (grid[i][j].isAlive) {
+                        grid[i][j].wealth += inflationPerCell;
+                         grid[i][j].color = getWealthColor(grid[i][j].wealth);
+                     }
+                }
+            }
+            alert(`货币总量增加了 ${inflationAmount.toFixed(2)}.`);
+            drawGrid();
+        }
+
+        function showChart() {
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartCanvas.style.display = 'block';
+            chartInstance = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: wealthHistory.map((_, index) => `Step ${index}`),
+                    datasets: [{
+                        label: '总财富',
+                        data: wealthHistory,
+                        backgroundColor: '#00FF7F',
+                        borderColor: '#00FF7F',
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: '模拟步数',
+                                color: '#EEE'
+                            },
+                            ticks: {
+                                color: '#EEE'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: '总财富',
+                                color: '#EEE'
+                            },
+                            ticks: {
+                                color: '#EEE'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false,
+                            labels: {
+                                color: '#EEE'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        startBtn.addEventListener('click', startSimulation);
+        pauseBtn.addEventListener('click', pauseSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        addWealthBtn.addEventListener('click', addWealth);
+        tradeBtn.addEventListener('click', performTrade);
+        taxBtn.addEventListener('click', applyTax);
+        welfareBtn.addEventListener('click', applyWelfare);
+        inflateBtn.addEventListener('click', applyInflation);
+        showChartBtn.addEventListener('click', showChart);
+
+        // 速度控制
+        speedSlider.addEventListener('input', function() {
+            speed = parseInt(this.value);
+            speedValueDisplay.textContent = `${speed}x`;
+            updateInterval = 1000 / speed; // 更新间隔
+            if (isRunning) {
+                clearInterval(animationFrameId);
+                updateGrid(); // 重新开始更新
+            }
+        });
+
+        initGrid();
+        drawGrid();
+    </script>
+</body>
+</html>

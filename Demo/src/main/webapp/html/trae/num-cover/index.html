@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>数字转文字测试工具</title>
+    <style>
+        body {
+            font-family: '微软雅黑', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #e9ecef;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>数字转文字测试工具</h1>
+        <div class="input-group">
+            <label for="numberInput">输入数字：</label>
+            <input type="number" id="numberInput" placeholder="请输入整数">
+        </div>
+        <button onclick="convertNumber()">转换</button>
+        <div id="result"></div>
+    </div>
+
+    <script src="number-to-words.js"></script>
+    <script>
+        function convertNumber() {
+            const input = document.getElementById('numberInput');
+            const resultDiv = document.getElementById('result');
+            const number = parseFloat(input.value);
+
+            try {
+                const converter = new NumberToWordsConverter('zh-CN');
+                const words = converter.convert(number);
+                resultDiv.innerHTML = `转换结果：<strong>${words}</strong>`;
+                resultDiv.style.background = '#d4edda'; // 成功提示色
+            } catch (error) {
+                resultDiv.innerHTML = `错误：${error.message}`;
+                resultDiv.style.background = '#f8d7da'; // 错误提示色
+            }
+        }
+    </script>
+</body>
+</html>

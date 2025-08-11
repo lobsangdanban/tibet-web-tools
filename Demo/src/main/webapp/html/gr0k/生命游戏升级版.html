@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Game of Life with Weather and Food</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; font-family: Arial, sans-serif; }
+        canvas { border: 1px solid black; }
+        .controls { margin: 10px; }
+        button, input { margin: 5px; padding: 8px; font-size: 14px; }
+        #status { margin: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Natural Game of Life: Weather and Food Dynamics</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="controls">
+        <button onclick="startSimulation()">Start</button>
+        <button onclick="pauseSimulation()">Pause</button>
+        <button onclick="resetSimulation()">Reset</button>
+        <button onclick="randomizeGrid()">Randomize</button>
+        <button onclick="setWeather('sunny')">Set Sunny</button>
+        <button onclick="setWeather('rainy')">Set Rainy</button>
+        <button onclick="setWeather('drought')">Set Drought</button>
+        <div>
+            <label for="speed">Speed (ms per frame): </label>
+            <input type="range" id="speed" min="50" max="1000" value="100" oninput="updateSpeed(this.value)">
+        </div>
+    </div>
+    <div id="status">Weather: Sunny | Population: 0</div>
+    <p>Click grid to toggle cells. Green cells = healthy, Red = low health, Green-brown = food levels.</p>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 40;
+        const cellSize = canvas.width / gridSize;
+        let grid = [];
+        let food = [];
+        let weather = 'sunny';
+        let weatherTimer = 0;
+        let weatherDuration = Math.floor(Math.random() * 20 + 20);
+        let isRunning = false;
+        let animationId;
+        let frameDelay = 100;
+
+        // Initialize grid and food
+        function initGrid() {
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill().map(() => ({ health: 0 })));
+            food = Array(gridSize).fill().map(() => Array(gridSize).fill().map(() => Math.random() * 50 + 30));
+            weather = 'sunny';
+            weatherTimer = 0;
+            updateStatus();
+        }
+
+        // Draw the grid
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw food background
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const foodLevel = food[i][j];
+                    ctx.fillStyle = `hsl(${120 - foodLevel * 1.2}, 80%, 50%)`; // Green to brown
+                    ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                }
+            }
+            // Draw weather overlay
+            ctx.globalAlpha = 0.2;
+            if (weather === 'rainy') {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if (weather === 'drought') {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            ctx.globalAlpha = 1.0;
+            // Draw cells
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].health > 0) {
+                        const health = grid[i][j].health;
+                        ctx.fillStyle = `hsl(${health * 1.2}, 100%, 50%)`; // Red to green
+                        ctx.fillRect(j * cellSize + 1, i * cellSize + 1, cellSize - 2, cellSize - 2);
+                    }
+                }
+            }
+        }
+
+        // Update status display
+        function updateStatus() {
+            let population = 0;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j].health > 0) population++;
+                }
+            }
+            document.getElementById('status').textContent = `Weather: ${weather.charAt(0).toUpperCase() + weather.slice(1)} | Population: ${population}`;
+        }
+
+        // Count alive neighbors
+        function countNeighbors(i, j) {
+            let count = 0;
+            for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                    if (di === 0 && dj === 0) continue;
+                    const ni = (i + di + gridSize) % gridSize;
+                    const nj = (j + dj + gridSize) % gridSize;
+                    if (grid[ni][nj].health > 0) count++;
+                }
+            }
+            return count;
+        }
+
+        // Check carrying capacity
+        function checkCarryingCapacity(i, j) {
+            let count = 0;
+            const maxCapacity = food[i][j] > 80 ? 5 : 4;
+            for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                    const ni = (i + di + gridSize) % gridSize;
+                    const nj = (j + dj + gridSize) % gridSize;
+                    if (grid[ni][nj].health > 0) count++;
+                }
+            }
+            return count <= maxCapacity;
+        }
+
+        // Update weather
+        function updateWeather() {
+            weatherTimer++;
+            if (weatherTimer >= weatherDuration) {
+                const rand = Math.random();
+                weather = rand < 0.3 ? 'rainy' : rand < 0.5 ? 'drought' : 'sunny';
+                weatherTimer = 0;
+                weatherDuration = Math.floor(Math.random() * 20 + 20);
+            }
+        }
+
+        // Update grid
+        function updateGrid() {
+            const newGrid = Array(gridSize).fill().map(() => Array(gridSize).fill().map(() => ({ health: 0 })));
+            const newFood = food.map(row => row.slice());
+            updateWeather();
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const cell = grid[i][j];
+                    const neighbors = countNeighbors(i, j);
+
+                    // Update food
+                    let foodChange = weather === 'rainy' ? 6 : weather === 'drought' ? -2 : 3;
+                    newFood[i][j] = Math.min(Math.max(newFood[i][j] + foodChange, 0), 100);
+
+                    if (cell.health > 0) {
+                        // Alive cell
+                        let newHealth = cell.health - 3; // Metabolic cost
+                        newHealth = Math.min(newHealth + Math.min(newFood[i][j], 4), 100); // Consume food
+                        newFood[i][j] = Math.max(newFood[i][j] - 4, 0);
+
+                        let deathProb = 0.02; // Base death probability
+                        if (weather === 'drought') deathProb += 0.05;
+                        if (weather === 'rainy') deathProb -= 0.01;
+
+                        if (newHealth < 15 || Math.random() < deathProb) {
+                            newGrid[i][j] = { health: 0 }; // Death
+                        } else {
+                            newGrid[i][j] = { health: newHealth }; // Survive
+                        }
+
+                        // Reproduction
+                        if (cell.health > 65 && newFood[i][j] > 40 && neighbors >= 2 && neighbors <= 4 && checkCarryingCapacity(i, j)) {
+                            for (let di = -1; di <= 1; di++) {
+                                for (let dj = -1; dj <= 1; dj++) {
+                                    if (di === 0 && dj === 0) continue;
+                                    const ni = (i + di + gridSize) % gridSize;
+                                    const nj = (j + dj + gridSize) % gridSize;
+                                    if (grid[ni][nj].health === 0 && newFood[ni][nj] > 30 && checkCarryingCapacity(ni, nj)) {
+                                        newGrid[ni][nj] = { health: 50 };
+                                        newFood[ni][nj] -= 10;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Dead cell
+                        if (neighbors === 3 && newFood[i][j] > 30 && checkCarryingCapacity(i, j)) {
+                            newGrid[i][j] = { health: 50 }; // Birth
+                            newFood[i][j] -= 10;
+                        }
+                    }
+                }
+            }
+            grid = newGrid;
+            food = newFood;
+            drawGrid();
+            updateStatus();
+        }
+
+        // Animation loop
+        function animate() {
+            if (isRunning) {
+                updateGrid();
+                setTimeout(() => {
+                    animationId = requestAnimationFrame(animate);
+                }, frameDelay);
+            }
+        }
+
+        // Start simulation
+        function startSimulation() {
+            if (!isRunning) {
+                isRunning = true;
+                animate();
+            }
+        }
+
+        // Pause simulation
+        function pauseSimulation() {
+            isRunning = false;
+            cancelAnimationFrame(animationId);
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            pauseSimulation();
+            initGrid();
+            drawGrid();
+            updateStatus();
+        }
+
+        // Randomize grid
+        function randomizeGrid() {
+            pauseSimulation();
+            initGrid();
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (Math.random() < 0.25) {
+                        grid[i][j] = { health: Math.random() * 50 + 50 };
+                    }
+                }
+            }
+            drawGrid();
+            updateStatus();
+        }
+
+        // Set weather
+        function setWeather(newWeather) {
+            weather = newWeather;
+            weatherTimer = 0;
+            weatherDuration = Math.floor(Math.random() * 20 + 20);
+            updateStatus();
+            drawGrid();
+        }
+
+        // Update simulation speed
+        function updateSpeed(value) {
+            frameDelay = parseInt(value);
+        }
+
+        // Handle canvas click
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const i = Math.floor(y / cellSize);
+            const j = Math.floor(x / cellSize);
+            if (grid[i][j].health > 0) {
+                grid[i][j] = { health: 0 }; // Kill cell
+            } else {
+                grid[i][j] = { health: 50 }; // Create cell
+            }
+            drawGrid();
+            updateStatus();
+        });
+
+        // Initialize and draw
+        initGrid();
+        drawGrid();
+    </script>
+</body>
+</html>

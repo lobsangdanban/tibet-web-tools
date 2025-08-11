@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文写字机编辑器</title>
+    <style>
+        #editor {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 29px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+    <!-- 引入 fontprocessor.js 文件 -->
+    <script type="module" src="fontProcessor.js"></script>
+    <script type="module" src="tibet-ajust-theme.js"></script>
+</head>
+<body>
+    <textarea id="editor" placeholder="请输入藏文内容"></textarea>
+    <!-- 修改为通过事件监听器调用函数 -->
+    <button id="generateGcodeButton">生成 G-code</button>
+    <pre id="gcodeOutput"></pre>
+
+    <script type="module">
+        import { textToPath, pathToGcode } from './fontProcessor.js';
+
+        async function generateGcode() {
+            try {
+                const inputText = document.getElementById('editor').value;
+                const path = textToPath(inputText);
+                if (path) {
+                    const gcode = pathToGcode(path);
+                    document.getElementById('gcodeOutput').textContent = gcode;
+                } else {
+                    console.error('未生成路径，请检查字体加载情况。');
+                    document.getElementById('gcodeOutput').textContent = '未生成路径，请检查字体加载情况。';
+                }
+            } catch (error) {
+                console.error('生成 G-code 时出错:', error);
+                document.getElementById('gcodeOutput').textContent = `生成 G-code 时出错: ${error.message}`;
+            }
+        }
+
+        // 添加事件监听器
+        document.getElementById('generateGcodeButton').addEventListener('click', generateGcode);
+    </script>
+</body>
+</html>

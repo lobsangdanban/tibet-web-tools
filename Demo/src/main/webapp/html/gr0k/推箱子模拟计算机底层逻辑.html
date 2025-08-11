@@ -1,0 +1,599 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>计算机底层原理模拟推箱子</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+        }
+        #info {
+            margin-top: 20px;
+            max-width: 800px;
+            text-align: left;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>计算机底层原理模拟推箱子</h2>
+        <p><strong>游戏隐喻：</strong></p>
+        <ul>
+            <li><strong>玩家（红色方块）：</strong>中央处理器（CPU），负责获取（Fetch）和执行（Execute）指令。</li>
+            <li><strong>箱子（黄色方块，标二进制值）：</strong>指令或数据，携带4位二进制值（如0101）。</li>
+            <li><strong>寄存器目标（绿色，标‘R’）：</strong>寄存器，临时存储数据或中间结果。</li>
+            <li><strong>内存目标（蓝色，标‘M’）：</strong>主内存，持久存储数据。</li>
+            <li><strong>运算目标（紫色，标‘ALU’）：</strong>算术逻辑单元，执行二进制加法。</li>
+            <li><strong>墙壁（灰色）：</strong>硬件限制或内存边界。</li>
+            <li><strong>移动次数：</strong>模拟CPU时钟周期，记录指令执行次数。</li>
+            <li><strong>程序计数器（PC）：</strong>跟踪当前执行的指令编号。</li>
+        </ul>
+        <p><strong>玩法：</strong>使用方向键移动玩家（CPU）。将箱子（指令/数据）推到寄存器（R）或内存（M）上存储，或推到运算目标（ALU）执行二进制加法。完成所有目标以进入下一关卡，模拟完整的程序执行流程。</p>
+    </div>
+    <div id="status"></div>
+    <script>
+        // 关卡数据：每个关卡模拟不同计算机操作
+        const levels = [
+            // 关卡1：简单数据存储（寄存器和内存）
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', '.', 'R', '#'],
+                    ['#', '.', '.', 'B2', '.', 'M', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '0011', 'B2': '0101' },
+                description: '将数据存储到寄存器和内存：将箱子B1（0011）推到寄存器（R），B2（0101）推到内存（M）。'
+            },
+            // 关卡2：二进制加法
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', '.', 'A', '#'],
+                    ['#', '.', '.', 'B2', '.', '.', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '0011', 'B2': '0101' },
+                description: '执行二进制加法：将箱子B1（0011）和B2（0101）推到运算目标（ALU）执行加法，结果显示在界面。'
+            },
+            // 关卡3：指令流水线
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', 'R', '.', '#'],
+                    ['#', '.', 'B2', 'R', '.', 'M', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '1010', 'B2': '0110' },
+                description: '模拟指令流水线：按顺序将箱子B1（1010）和B2（0110）推到寄存器（R），然后将一个箱子推到内存（M）。'
+            }
+        ];
+
+        let currentLevel = 0;
+        let grid = levels[currentLevel].grid;
+        let binaryValues = levels[currentLevel].binary;
+        let playerPos = { x: 2, y: 2 };
+        let moves = 0;
+        let programCounter = 0;
+        let aluResult = '';
+        let tileSize = 50;
+
+        function setup() {
+            createCanvas(7 * tileSize, 6 * tileSize);
+            textAlign(CENTER, CENTER);
+            textSize(16);
+            updateStatus();
+        }
+
+        function draw() {
+            background(220);
+            // 绘制网格
+            for (let y = 0; y < grid.length; y++) {
+                for (let x = 0; x < grid[y].length; x++) {
+                    let px = x * tileSize;
+                    let py = y * tileSize;
+                    if (grid[y][x] === '#') {
+                        fill(100); // 墙壁（硬件边界）
+                        rect(px, py, tileSize, tileSize);
+                    } else if (grid[y][x] === '@') {
+                        fill(255, 0, 0); // 玩家（CPU）
+                        rect(px, py, tileSize, tileSize);
+                        text('CPU', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x].startsWith('B')) {
+                        fill(255, 255, 0); // 箱子（指令/数据）
+                        rect(px, py, tileSize, tileSize);
+                        text(binaryValues[grid[y][x].replace('T', '')], px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'R') {
+                        fill(0, 255, 0); // 寄存器
+                        rect(px, py, tileSize, tileSize);
+                        text('R', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'M') {
+                        fill(0, 0, 255); // 内存
+                        rect(px, py, tileSize, tileSize);
+                        text('M', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'A') {
+                        fill(128, 0, 128); // ALU
+                        rect(px, py, tileSize, tileSize);
+                        text('ALU', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x].startsWith('BT')) {
+                        fill(255, 255, 0); // 箱子在目标上
+                        rect(px, py, tileSize, tileSize);
+                        text('存储', px + tileSize / 2, py + tileSize / 2);
+                    }
+                }
+            }
+            // 显示状态信息
+            fill(0);
+            text(`关卡 ${currentLevel + 1}: ${levels[currentLevel].description}`, width / 2, 20);
+            text(`程序计数器: ${programCounter} | 已执行指令数: ${moves}`, width / 2, 40);
+            if (aluResult) {
+                text(`ALU结果: ${aluResult}`, width / 2, 60);
+            }
+            // 检查胜利条件
+            let won = checkWinCondition();
+            if (won) {
+                fill(0);
+                text("关卡完成！按R进入下一关", width / 2, height - 20);
+            }
+        }
+
+        function keyPressed() {
+            let newX = playerPos.x;
+            let newY = playerPos.y;
+            let nextX = playerPos.x;
+            let nextY = playerPos.y;
+
+            if (keyCode === LEFT_ARROW) {
+                newX--;
+                nextX -= 2;
+            } else if (keyCode === RIGHT_ARROW) {
+                newX++;
+                nextX += 2;
+            } else if (keyCode === UP_ARROW) {
+                newY--;
+                nextY -= 2;
+            } else if (keyCode === DOWN_ARROW) {
+                newY++;
+                nextY += 2;
+            } else if (keyCode === 82 && checkWinCondition()) { // 按R进入下一关
+                nextLevel();
+                return;
+            }
+
+            // 检查移动是否有效
+            if (newX >= 0 && newX < grid[0].length && newY >= 0 && newY < grid.length && grid[newY][newX] !== '#') {
+                if (grid[newY][newX].startsWith('B')) {
+                    // 检查箱子是否可以被推动
+                    if (nextX >= 0 && nextX < grid[0].length && nextY >= 0 && nextY < grid.length &&
+                        (grid[nextY][nextX] === '.' || grid[nextY][nextX] === 'R' || grid[nextY][nextX] === 'M' || grid[nextY][nextX] === 'A')) {
+                        let boxId = grid[newY][newX].replace('T', '');
+                        // 处理ALU运算
+                        if (grid[nextY][nextX] === 'A') {
+                            performBinaryAddition(boxId);
+                        }
+                        // 更新箱子位置
+                        grid[nextY][nextX] = grid[nextY][nextX] === '.' ? boxId : boxId + 'T';
+                        // 更新玩家位置
+                        grid[playerPos.y][playerPos.x] = grid[playerPos.y][playerPos.x] === '@' ? '.' : grid[playerPos.y][playerPos.x];
+                        grid[newY][newX] = '@';
+                        playerPos.x = newX;
+                        playerPos.y = newY;
+                        moves++;
+                        programCounter++;
+                        updateStatus();
+                    }
+                } else {
+                    // 移动玩家
+                    grid[playerPos.y][playerPos.x] = grid[playerPos.y][playerPos.x] === '@' ? '.' : grid[playerPos.y][playerPos.x];
+                    grid[newY][newX] = '@';
+                    playerPos.x = newX;
+                    playerPos.y = newY;
+                    moves++;
+                    programCounter++;
+                    updateStatus();
+                }
+            }
+        }
+
+        function performBinaryAddition(boxId) {
+            if (!aluResult) {
+                aluResult = binaryValues[boxId];
+            } else {
+                let num1 = parseInt(aluResult, 2);
+                let num2 = parseInt(binaryValues[boxId], 2);
+                let sum = num1 + num2;
+                aluResult = sum.toString(2).padStart(4, '0');
+            }
+            updateStatus();
+        }
+
+        function checkWinCondition() {
+            for (let y = 0; y < grid.length; y++) {
+                for (let x = 0; x < grid[y].length; x++) {
+                    if (grid[y][x] === 'R' || grid[y][x] === 'M' || (grid[y][x] === 'A' && currentLevel !== 1)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= levels.length) {
+                currentLevel = 0; // 循环回到第一关
+            }
+            grid = levels[currentLevel].grid.map(row => [...row]);
+            binaryValues = { ...levels[currentLevel].binary };
+            playerPos = { x: 2, y: 2 };
+            moves = 0;
+            programCounter = 0;
+            aluResult = '';
+            updateStatus();
+        }
+
+        function updateStatus() {
+            let statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `
+                <p><strong>当前状态：</strong></p>
+                <p>关卡 ${currentLevel + 1}: ${levels[currentLevel].description}</p>
+                <p>程序计数器: ${programCounter}</p>
+                <p>已执行指令数: ${moves}</p>
+                ${aluResult ? `<p>ALU结果: ${aluResult} (二进制)</p>` : ''}
+            `;
+        }
+    </script>
+</body>
+<--
+为了更全面地展示计算机底层原理的核心功能，我将扩展推箱子游戏，使其模拟更多的计算机硬件操作，包括二进制运算、指令获取、执行、数据存储以及寄存器和内存管理。游戏将通过更复杂的关卡和机制来隐喻这些概念，同时保持直观性和可玩性。以下是一个增强版的网页实现，使用HTML、p5.js和JavaScript，包含以下功能：
+
+- **关卡设计**：多个关卡模拟不同计算机操作（二进制加法、寄存器操作、指令流水线）。
+- **二进制运算**：箱子携带二进制值，推到特定目标执行加法运算，结果显示在界面上。
+- **寄存器和内存**：目标区域分为寄存器（临时存储）和内存（持久存储）。
+- **指令获取与执行**：玩家移动模拟指令获取（Fetch）和执行（Execute），通过箱子移动路径体现。
+- **程序计数器（PC）**：显示当前指令编号，模拟程序计数器的递增。
+- **状态提示**：详细的界面文字解释每个动作对应的计算机操作。
+
+以下是完整的代码实现，界面文字继续使用中文。
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>计算机底层原理模拟推箱子</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+        }
+        #info {
+            margin-top: 20px;
+            max-width: 800px;
+            text-align: left;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>计算机底层原理模拟推箱子</h2>
+        <p><strong>游戏隐喻：</strong></p>
+        <ul>
+            <li><strong>玩家（红色方块）：</strong>中央处理器（CPU），负责获取（Fetch）和执行（Execute）指令。</li>
+            <li><strong>箱子（黄色方块，标二进制值）：</strong>指令或数据，携带4位二进制值（如0101）。</li>
+            <li><strong>寄存器目标（绿色，标‘R’）：</strong>寄存器，临时存储数据或中间结果。</li>
+            <li><strong>内存目标（蓝色，标‘M’）：</strong>主内存，持久存储数据。</li>
+            <li><strong>运算目标（紫色，标‘ALU’）：</strong>算术逻辑单元，执行二进制加法。</li>
+            <li><strong>墙壁（灰色）：</strong>硬件限制或内存边界。</li>
+            <li><strong>移动次数：</strong>模拟CPU时钟周期，记录指令执行次数。</li>
+            <li><strong>程序计数器（PC）：</strong>跟踪当前执行的指令编号。</li>
+        </ul>
+        <p><strong>玩法：</strong>使用方向键移动玩家（CPU）。将箱子（指令/数据）推到寄存器（R）或内存（M）上存储，或推到运算目标（ALU）执行二进制加法。完成所有目标以进入下一关卡，模拟完整的程序执行流程。</p>
+    </div>
+    <div id="status"></div>
+    <script>
+        // 关卡数据：每个关卡模拟不同计算机操作
+        const levels = [
+            // 关卡1：简单数据存储（寄存器和内存）
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', '.', 'R', '#'],
+                    ['#', '.', '.', 'B2', '.', 'M', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '0011', 'B2': '0101' },
+                description: '将数据存储到寄存器和内存：将箱子B1（0011）推到寄存器（R），B2（0101）推到内存（M）。'
+            },
+            // 关卡2：二进制加法
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', '.', 'A', '#'],
+                    ['#', '.', '.', 'B2', '.', '.', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '0011', 'B2': '0101' },
+                description: '执行二进制加法：将箱子B1（0011）和B2（0101）推到运算目标（ALU）执行加法，结果显示在界面。'
+            },
+            // 关卡3：指令流水线
+            {
+                grid: [
+                    ['#', '#', '#', '#', '#', '#', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '.', '@', 'B1', 'R', '.', '#'],
+                    ['#', '.', 'B2', 'R', '.', 'M', '#'],
+                    ['#', '.', '.', '.', '.', '.', '#'],
+                    ['#', '#', '#', '#', '#', '#', '#']
+                ],
+                binary: { 'B1': '1010', 'B2': '0110' },
+                description: '模拟指令流水线：按顺序将箱子B1（1010）和B2（0110）推到寄存器（R），然后将一个箱子推到内存（M）。'
+            }
+        ];
+
+        let currentLevel = 0;
+        let grid = levels[currentLevel].grid;
+        let binaryValues = levels[currentLevel].binary;
+        let playerPos = { x: 2, y: 2 };
+        let moves = 0;
+        let programCounter = 0;
+        let aluResult = '';
+        let tileSize = 50;
+
+        function setup() {
+            createCanvas(7 * tileSize, 6 * tileSize);
+            textAlign(CENTER, CENTER);
+            textSize(16);
+            updateStatus();
+        }
+
+        function draw() {
+            background(220);
+            // 绘制网格
+            for (let y = 0; y < grid.length; y++) {
+                for (let x = 0; x < grid[y].length; x++) {
+                    let px = x * tileSize;
+                    let py = y * tileSize;
+                    if (grid[y][x] === '#') {
+                        fill(100); // 墙壁（硬件边界）
+                        rect(px, py, tileSize, tileSize);
+                    } else if (grid[y][x] === '@') {
+                        fill(255, 0, 0); // 玩家（CPU）
+                        rect(px, py, tileSize, tileSize);
+                        text('CPU', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x].startsWith('B')) {
+                        fill(255, 255, 0); // 箱子（指令/数据）
+                        rect(px, py, tileSize, tileSize);
+                        text(binaryValues[grid[y][x].replace('T', '')], px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'R') {
+                        fill(0, 255, 0); // 寄存器
+                        rect(px, py, tileSize, tileSize);
+                        text('R', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'M') {
+                        fill(0, 0, 255); // 内存
+                        rect(px, py, tileSize, tileSize);
+                        text('M', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x] === 'A') {
+                        fill(128, 0, 128); // ALU
+                        rect(px, py, tileSize, tileSize);
+                        text('ALU', px + tileSize / 2, py + tileSize / 2);
+                    } else if (grid[y][x].startsWith('BT')) {
+                        fill(255, 255, 0); // 箱子在目标上
+                        rect(px, py, tileSize, tileSize);
+                        text('存储', px + tileSize / 2, py + tileSize / 2);
+                    }
+                }
+            }
+            // 显示状态信息
+            fill(0);
+            text(`关卡 ${currentLevel + 1}: ${levels[currentLevel].description}`, width / 2, 20);
+            text(`程序计数器: ${programCounter} | 已执行指令数: ${moves}`, width / 2, 40);
+            if (aluResult) {
+                text(`ALU结果: ${aluResult}`, width / 2, 60);
+            }
+            // 检查胜利条件
+            let won = checkWinCondition();
+            if (won) {
+                fill(0);
+                text("关卡完成！按R进入下一关", width / 2, height - 20);
+            }
+        }
+
+        function keyPressed() {
+            let newX = playerPos.x;
+            let newY = playerPos.y;
+            let nextX = playerPos.x;
+            let nextY = playerPos.y;
+
+            if (keyCode === LEFT_ARROW) {
+                newX--;
+                nextX -= 2;
+            } else if (keyCode === RIGHT_ARROW) {
+                newX++;
+                nextX += 2;
+            } else if (keyCode === UP_ARROW) {
+                newY--;
+                nextY -= 2;
+            } else if (keyCode === DOWN_ARROW) {
+                newY++;
+                nextY += 2;
+            } else if (keyCode === 82 && checkWinCondition()) { // 按R进入下一关
+                nextLevel();
+                return;
+            }
+
+            // 检查移动是否有效
+            if (newX >= 0 && newX < grid[0].length && newY >= 0 && newY < grid.length && grid[newY][newX] !== '#') {
+                if (grid[newY][newX].startsWith('B')) {
+                    // 检查箱子是否可以被推动
+                    if (nextX >= 0 && nextX < grid[0].length && nextY >= 0 && nextY < grid.length &&
+                        (grid[nextY][nextX] === '.' || grid[nextY][nextX] === 'R' || grid[nextY][nextX] === 'M' || grid[nextY][nextX] === 'A')) {
+                        let boxId = grid[newY][newX].replace('T', '');
+                        // 处理ALU运算
+                        if (grid[nextY][nextX] === 'A') {
+                            performBinaryAddition(boxId);
+                        }
+                        // 更新箱子位置
+                        grid[nextY][nextX] = grid[nextY][nextX] === '.' ? boxId : boxId + 'T';
+                        // 更新玩家位置
+                        grid[playerPos.y][playerPos.x] = grid[playerPos.y][playerPos.x] === '@' ? '.' : grid[playerPos.y][playerPos.x];
+                        grid[newY][newX] = '@';
+                        playerPos.x = newX;
+                        playerPos.y = newY;
+                        moves++;
+                        programCounter++;
+                        updateStatus();
+                    }
+                } else {
+                    // 移动玩家
+                    grid[playerPos.y][playerPos.x] = grid[playerPos.y][playerPos.x] === '@' ? '.' : grid[playerPos.y][playerPos.x];
+                    grid[newY][newX] = '@';
+                    playerPos.x = newX;
+                    playerPos.y = newY;
+                    moves++;
+                    programCounter++;
+                    updateStatus();
+                }
+            }
+        }
+
+        function performBinaryAddition(boxId) {
+            if (!aluResult) {
+                aluResult = binaryValues[boxId];
+            } else {
+                let num1 = parseInt(aluResult, 2);
+                let num2 = parseInt(binaryValues[boxId], 2);
+                let sum = num1 + num2;
+                aluResult = sum.toString(2).padStart(4, '0');
+            }
+            updateStatus();
+        }
+
+        function checkWinCondition() {
+            for (let y = 0; y < grid.length; y++) {
+                for (let x = 0; x < grid[y].length; x++) {
+                    if (grid[y][x] === 'R' || grid[y][x] === 'M' || (grid[y][x] === 'A' && currentLevel !== 1)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= levels.length) {
+                currentLevel = 0; // 循环回到第一关
+            }
+            grid = levels[currentLevel].grid.map(row => [...row]);
+            binaryValues = { ...levels[currentLevel].binary };
+            playerPos = { x: 2, y: 2 };
+            moves = 0;
+            programCounter = 0;
+            aluResult = '';
+            updateStatus();
+        }
+
+        function updateStatus() {
+            let statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `
+                <p><strong>当前状态：</strong></p>
+                <p>关卡 ${currentLevel + 1}: ${levels[currentLevel].description}</p>
+                <p>程序计数器: ${programCounter}</p>
+                <p>已执行指令数: ${moves}</p>
+                ${aluResult ? `<p>ALU结果: ${aluResult} (二进制)</p>` : ''}
+            `;
+        }
+    </script>
+</body>
+</html>
+
+<!-- ### 增强功能说明
+1. **多关卡设计**：
+   - **关卡1**：模拟数据存储，将箱子推到寄存器（R）和内存（M）。
+   - **关卡2**：模拟二进制加法，将箱子推到ALU目标执行加法运算，结果显示在界面。
+   - **关卡3**：模拟指令流水线，要求按顺序将箱子推到寄存器，再将一个箱子推到内存。
+2. **二进制运算**：
+   - 箱子携带4位二进制值（如0011、0101）。
+   - 在关卡2中，将两个箱子推到ALU目标，触发二进制加法（例如0011 + 0101 = 1000），结果显示在界面。
+3. **寄存器和内存**：
+   - 绿色目标（R）表示寄存器，临时存储数据。
+   - 蓝色目标（M）表示主内存，持久存储数据。
+4. **指令获取与执行**：
+   - 玩家每次移动模拟指令获取（Fetch），推动箱子模拟指令执行（Execute）。
+   - 程序计数器（PC）随每次移动递增，显示在界面。
+5. **界面和状态**：
+   - 界面显示当前关卡描述、程序计数器、指令执行次数和ALU运算结果。
+   - 状态区域动态更新，解释玩家动作对应的计算机操作。
+6. **视觉隐喻**：
+   - **玩家（红色，标‘CPU’）**：中央处理器。
+   - **箱子（黄色，标二进制值）**：指令或数据。
+   - **寄存器（绿色，标‘R’）**：临时存储。
+   - **内存（蓝色，标‘M’）**：持久存储。
+   - **ALU（紫色，标‘ALU’）**：算术逻辑单元。
+   - **箱子在目标上（黄色，标‘存储’）**：数据存储完成。
+   - **墙壁（灰色）**：硬件限制。
+
+### 如何玩
+- **控制**：使用方向键移动红色方块（CPU）。按R键在关卡完成时进入下一关。
+- **目标**：根据关卡要求，将箱子（指令/数据）推到寄存器（R）、内存（M）或ALU（A）上。
+- **关卡**：
+  - **关卡1**：将B1（0011）推到寄存器，B2（0101）推到内存。
+  - **关卡2**：将B1和B2推到ALU执行二进制加法，查看结果。
+  - **关卡3**：按顺序将B1和B2推到寄存器，再将一个箱子推到内存。
+- **胜利条件**：完成关卡目标（如所有目标被占用），界面显示“关卡完成！按R进入下一关”。
+
+### 计算机原理映射
+- **指令获取（Fetch）**：玩家移动到箱子旁，模拟从内存获取指令。
+- **指令执行（Execute）**：推动箱子到目标，模拟执行指令（如存储或运算）。
+- **二进制运算**：ALU目标执行加法，模拟算术逻辑单元的运算过程。
+- **寄存器和内存**：寄存器（R）用于临时存储，内存（M）用于持久存储，反映计算机存储层次。
+- **程序计数器**：每次移动递增，模拟跟踪指令地址。
+- **时钟周期**：移动次数记录为“已执行指令数”，模拟CPU时钟周期。
+
+这个增强版游戏通过多关卡和交互机制，全面展示了计算机底层原理的核心逻辑，包括指令流水线、二进制运算和存储管理，适合学习和可视化计算机硬件工作流程。 -->
+
+</html>

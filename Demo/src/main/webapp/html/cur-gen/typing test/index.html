@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="bo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>བོད་ཡིག་འཇོག་ཚད་བརྟག་ཚོད།</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>བོད་ཡིག་འཇོག་ཚད་བརྟག་ཚོད།</h1>
+        
+        <div class="test-section">
+            <button id="startTest" class="btn">བརྟག་ཚོད་འགོ་འཛུགས་</button>
+            <div id="timer" class="timer">00:00</div>
+            
+            <div class="text-display">
+                <p id="sampleText" class="sample-text"></p>
+                <textarea id="userInput" class="user-input" disabled></textarea>
+            </div>
+        </div>
+
+        <div class="results-section" style="display: none;">
+            <h2>འབྲས་བུ།</h2>
+            <div class="stats">
+                <p>དུས་ཚོད།: <span id="timeResult">0</span> སྐར་མ།</p>
+                <p>འཇོག་ཚད།: <span id="speedResult">0</span> ཡིག་ཚད།/སྐར་མ།</p>
+                <p>ནོར་ཚད།: <span id="errorRate">0</span>%</p>
+            </div>
+
+            <div class="error-analysis">
+                <h3>ནོར་ཚད་ཞིབ་ཕྲ།</h3>
+                <div id="errorList"></div>
+            </div>
+
+            <div class="character-stats">
+                <h3>ཡིག་ཚད་སྡོམ་རྩིས།</h3>
+                <div id="characterList"></div>
+            </div>
+
+            <button id="saveStats" class="btn">གཏོང་ཚད་ཉར་ཚགས་</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

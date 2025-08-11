@@ -1,0 +1,76 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>IoT 数据管理</title>  
+ <style>
+ body {  
+    font-family: Arial, sans-serif;  
+    padding: 20px;  
+    margin: 0;  
+}  
+  
+header h1 {  
+    color: #333;  
+}  
+  
+#sensorData {  
+    margin-top: 20px;  
+}  
+  
+button {  
+    margin-top: 10px;  
+    padding: 10px 20px;  
+    cursor: pointer;  
+}
+ </style>
+</head>  
+<body>  
+    <header>  
+        <h1>物联网数据监控</h1>  
+    </header>  
+    <main>  
+        <section>  
+            <h2>传感器数据</h2>  
+            <div id="sensorData">  
+                <!-- 传感器数据将动态加载到这里 -->  
+                <p>加载中...</p>  
+            </div>  
+            <button onclick="fetchData()">刷新数据</button>  
+        </section>  
+    </main>  
+  
+    <script type="javascript/text">
+	function fetchData() {  
+    // 假设的数据URL，实际中应替换为真实的数据API地址  
+    const url = 'https://api.example.com/sensors';  
+  
+    fetch(url)  
+        .then(response => response.json())  
+        .then(data => {  
+            // 假设data是一个包含多个传感器数据的数组  
+            const sensorDataDiv = document.getElementById('sensorData');  
+            sensorDataDiv.innerHTML = ''; // 清空当前数据  
+  
+            if (data.length > 0) {  
+                data.forEach(sensor => {  
+                    const p = document.createElement('p');  
+                    p.textContent = `传感器ID: ${sensor.id}, 温度: ${sensor.temperature}, 湿度: ${sensor.humidity}`;  
+                    sensorDataDiv.appendChild(p);  
+                });  
+            } else {  
+                sensorDataDiv.textContent = '没有传感器数据。';  
+            }  
+        })  
+        .catch(error => {  
+            console.error('Error fetching data:', error);  
+            document.getElementById('sensorData').textContent = '数据加载失败。';  
+        });  
+}  
+  
+// 页面加载时自动加载数据  
+window.onload = fetchData;
+	</script>  
+</body>  
+</html>

@@ -1,0 +1,576 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>因明逻辑辩论游戏（优化版）</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            font-family: Arial, 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 20px 0;
+            gap: 20px;
+        }
+        .game-area {
+            flex: 7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #fff;
+            max-width: 100%;
+        }
+        .controls-area {
+            flex: 3;
+            position: fixed;
+            right: 20px;
+            width: 350px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .setup, .controls {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        button, input, select {
+            width: calc(100% - 20px);
+            margin: 5px 0;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #ddd;
+        }
+        #status {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
+            text-align: center;
+        }
+        #debatePrompt {
+            font-size: 20px;
+            color: #d32f2f;
+            margin: 10px 0;
+            display: none;
+            text-align: center;
+        }
+        #answers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .answer-btn {
+            cursor: pointer;
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 16px;
+            flex: 1 1 calc(50% - 10px);
+            text-align: center;
+        }
+        .answer-btn:hover {
+            background-color: #bbdefb;
+        }
+        .keyword-select {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #81c784;
+        }
+        .relation-select {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        #relationContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+        }
+        #relationContainer select {
+            flex: 1 1 calc(33% - 10px);
+            min-width: 100px;
+        }
+        p {
+            font-size: 16px;
+            color: #555;
+            max-width: 800px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .controls-area {
+                position: static;
+                width: 100%;
+                max-width: 350px;
+                margin: 10px 0;
+            }
+            .game-area {
+                flex: none;
+                width: 100%;
+                max-width: 800px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-area">
+            <h1>因明逻辑辩论游戏</h1>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div id="debatePrompt"></div>
+            <p>输入关键词（最多5个，用空格分隔，如“声音 无常 所作”）或上传文本文件（每行以空格分隔关键词）。为每对相邻关键词定义因明关系（如“宗-因”“因-喻”）。点击“开始”，关键词组（1到3个）从左侧随机下落，按顺序选择右侧关系连接关键词（例如：三关键词需连接“声音-无常”“无常-所作”），正确后立即清理，错误时触发辩论质问。目标：快速连接关键词组，练习因明逻辑！</p>
+        </div>
+        <div class="controls-area">
+            <div class="setup">
+                <h3>设置关键词和因明关系</h3>
+                <div>
+                    <label>手动输入关键词: <input type="text" id="keywordInput" placeholder="例如：声音 无常 所作"></label>
+                    <button onclick="addKeywords()">添加</button>
+                </div>
+                <div>
+                    <label>上传关键词文件: <input type="file" id="fileInput" accept=".txt"></label>
+                </div>
+                <div>
+                    <label>添加自定义关系: <input type="text" id="customRelation" placeholder="例如：正例"></label>
+                    <button onclick="addCustomRelation()">添加关系</button>
+                </div>
+                <div>
+                    <label>定义因明关系: </label>
+                    <div id="relationContainer">
+                        <select id="keyword1" class="keyword-select"></select>
+                        <select id="relation1" class="relation-select"></select>
+                        <select id="keyword2" class="keyword-select"></select>
+                    </div>
+                    <button onclick="addKeywordSelect()">添加关键词</button>
+                    <button onclick="addRelation()">添加关系</button>
+                </div>
+            </div>
+            <div class="controls">
+                <button onclick="startGame()">开始</button>
+                <button onclick="pauseGame()">暂停</button>
+                <button onclick="resetGame()">重置</button>
+                <button onclick="nextBatch()">下一批次</button>
+            </div>
+            <div id="status">分数: 0 | 当前批次: 1 | 当前步骤: 1 | 剩余关键词组: 0</div>
+            <div id="answers"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let keywordBatches = [[]]; // 存储多批次关键词
+        let currentBatch = 0;
+        let relations = []; // 存储有序的相邻关键词关系
+        let customRelations = ['宗-因', '因-喻', '宗-喻', '无关']; // 自定义关系列表
+        let fallingGroups = [];
+        let score = 0;
+        let isRunning = false;
+        let animationId;
+        let debatePrompt = document.getElementById('debatePrompt');
+        let keywordSelects = [document.getElementById('keyword1'), document.getElementById('keyword2')];
+        let relationSelects = [document.getElementById('relation1')];
+
+        // 初始化游戏
+        function initGame() {
+            keywordBatches = [[]];
+            currentBatch = 0;
+            relations = [];
+            customRelations = ['宗-因', '因-喻', '宗-喻', '无关'];
+            fallingGroups = [];
+            score = 0;
+            debatePrompt.style.display = 'none';
+            keywordSelects = [document.getElementById('keyword1'), document.getElementById('keyword2')];
+            relationSelects = [document.getElementById('relation1')];
+            document.getElementById('relationContainer').innerHTML = `
+                <select id="keyword1" class="keyword-select"></select>
+                <select id="relation1" class="relation-select"></select>
+                <select id="keyword2" class="keyword-select"></select>
+            `;
+            keywordSelects = [document.getElementById('keyword1'), document.getElementById('keyword2')];
+            relationSelects = [document.getElementById('relation1')];
+            updateStatus();
+            updateKeywordDropdowns();
+            updateRelationDropdowns();
+            updateAnswers();
+        }
+
+        // 添加手动输入的关键词
+        function addKeywords() {
+            const input = document.getElementById('keywordInput').value.trim();
+            if (input) {
+                const newKeywords = input.split(/\s+/).map(k => k.trim()).filter(k => k);
+                if (keywordBatches[currentBatch].length + newKeywords.length <= 5) {
+                    keywordBatches[currentBatch].push(...newKeywords);
+                    document.getElementById('keywordInput').value = '';
+                    updateKeywordDropdowns();
+                } else {
+                    alert('每批最多允许5个关键词！');
+                }
+            }
+        }
+
+        // 处理文件上传
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    keywordBatches = content.split('\n').map(line => 
+                        line.trim().split(/\s+/).filter(k => k)
+                    ).filter(batch => batch.length > 0);
+                    currentBatch = 0;
+                    updateKeywordDropdowns();
+                    updateStatus();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // 添加自定义关系
+        function addCustomRelation() {
+            const relation = document.getElementById('customRelation').value.trim();
+            if (relation && !customRelations.includes(relation)) {
+                customRelations.push(relation);
+                document.getElementById('customRelation').value = '';
+                updateRelationDropdowns();
+                updateAnswers();
+            }
+        }
+
+        // 更新关键词下拉菜单
+        function updateKeywordDropdowns() {
+            const keywords = keywordBatches[currentBatch] || [];
+            keywordSelects.forEach(select => {
+                select.innerHTML = '';
+                keywords.forEach(k => {
+                    const option = document.createElement('option');
+                    option.value = k;
+                    option.text = k;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // 更新关系下拉菜单
+        function updateRelationDropdowns() {
+            relationSelects.forEach(select => {
+                select.innerHTML = '';
+                customRelations.forEach(rel => {
+                    const option = document.createElement('option');
+                    option.value = rel;
+                    option.text = rel;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // 添加关键词和关系选择框
+        function addKeywordSelect() {
+            if (keywordSelects.length < 5) {
+                const container = document.getElementById('relationContainer');
+                const newRelationSelect = document.createElement('select');
+                newRelationSelect.id = `relation${keywordSelects.length}`;
+                newRelationSelect.className = 'relation-select';
+                customRelations.forEach(rel => {
+                    const option = document.createElement('option');
+                    option.value = rel;
+                    option.text = rel;
+                    newRelationSelect.appendChild(option);
+                });
+                const newKeywordSelect = document.createElement('select');
+                newKeywordSelect.id = `keyword${keywordSelects.length + 1}`;
+                newKeywordSelect.className = 'keyword-select';
+                const keywords = keywordBatches[currentBatch] || [];
+                keywords.forEach(k => {
+                    const option = document.createElement('option');
+                    option.value = k;
+                    option.text = k;
+                    newKeywordSelect.appendChild(option);
+                });
+                container.appendChild(newRelationSelect);
+                container.appendChild(newKeywordSelect);
+                relationSelects.push(newRelationSelect);
+                keywordSelects.push(newKeywordSelect);
+            }
+        }
+
+        // 添加关系
+        function addRelation() {
+            const keywords = keywordSelects.map(select => select.value).filter((k, i, arr) => k && arr.indexOf(k) === i);
+            const relationsList = relationSelects.map(select => select.value);
+            if (keywords.length >= 2 && relationsList.length === keywords.length - 1) {
+                const group = {
+                    keywords: keywords,
+                    relations: relationsList,
+                    currentStep: 0
+                };
+                relations.push(group);
+            } else {
+                alert('请为每对相邻关键词定义关系，且至少选择2个不同关键词！');
+            }
+        }
+
+        // 更新答案按钮
+        function updateAnswers() {
+            const answersDiv = document.getElementById('answers');
+            answersDiv.innerHTML = '';
+            customRelations.forEach(rel => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = rel;
+                btn.onclick = () => selectRelation(rel);
+                answersDiv.appendChild(btn);
+            });
+        }
+
+        // 选择关系
+        function selectRelation(relation) {
+            if (fallingGroups.length > 0) {
+                const group = fallingGroups[0];
+                if (group.keywords.length === 1) {
+                    // 单关键词无需连接，直接得分并移除
+                    score += 5;
+                    fallingGroups.shift();
+                    debatePrompt.style.display = 'none';
+                } else {
+                    const correctRelation = group.relations[group.currentStep];
+                    if (correctRelation === relation) {
+                        group.currentStep++;
+                        score += 10;
+                        debatePrompt.style.display = 'none';
+                        if (group.currentStep >= group.relations.length) {
+                            fallingGroups.shift(); // 完成连接后移除
+                        }
+                    } else {
+                        score = Math.max(0, score - 5);
+                        const prompts = [
+                            '此因如何支持宗？请重新论证！',
+                            '喻与因的联系何在？请再思考！',
+                            '宗、因、喻关系不清，试重构命题！',
+                            '此关系不成立，试申述理由！'
+                        ];
+                        debatePrompt.textContent = prompts[Math.floor(Math.random() * prompts.length)];
+                        debatePrompt.style.display = 'block';
+                    }
+                }
+                updateStatus();
+            }
+        }
+
+        // 检查关键词是否重叠
+        function checkOverlap(x1, existingXs, keywordWidth = 100, gap = 20) {
+            return existingXs.every(x2 => Math.abs(x1 - x2) >= keywordWidth + gap);
+        }
+
+        // 绘制游戏
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 绘制网格
+            ctx.strokeStyle = '#ccc';
+            for (let i = 0; i <= canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            // 绘制下落关键词组
+            fallingGroups.forEach(group => {
+                group.keywords.forEach((kw, i) => {
+                    ctx.fillStyle = group.colors[i];
+                    ctx.fillRect(group.x[i], group.y[i], 100, 50);
+                    ctx.fillStyle = 'black';
+                    ctx.font = '20px Microsoft YaHei';
+                    ctx.fillText(kw, group.x[i] + 5, group.y[i] + 35);
+                });
+                // 绘制已连接的部分
+                for (let i = 0; i < group.currentStep; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(group.x[i] + 50, group.y[i] + 25);
+                    ctx.lineTo(group.x[i + 1] + 50, group.y[i + 1] + 25);
+                    ctx.strokeStyle = 'green';
+                    ctx.stroke();
+                    ctx.fillStyle = 'black';
+                    ctx.font = '16px Microsoft YaHei';
+                    ctx.fillText(group.relations[i], (group.x[i] + group.x[i + 1]) / 2 + 50, (group.y[i] + group.y[i + 1]) / 2 + 25);
+                }
+            });
+        }
+
+        // 更新游戏状态
+        function updateGame() {
+            const keywords = keywordBatches[currentBatch] || [];
+            if (keywords.length < 1) {
+                alert('当前批次关键词不足，请添加关键词或上传文件！');
+                pauseGame();
+                return;
+            }
+            if (fallingGroups.length === 0) {
+                // 随机选择1到3个关键词的组
+                const availableGroups = [
+                    // 单关键词组
+                    ...keywords.map(kw => ({ keywords: [kw], relations: [], currentStep: 0 })),
+                    // 双关键词组（从relations中提取）
+                    ...relations.filter(g => g.keywords.length >= 2).map(g => ({
+                        keywords: g.keywords.slice(0, 2),
+                        relations: g.relations.slice(0, 1),
+                        currentStep: 0
+                    })),
+                    // 三关键词组
+                    ...relations.filter(g => g.keywords.length >= 3).map(g => ({
+                        keywords: g.keywords.slice(0, 3),
+                        relations: g.relations.slice(0, 2),
+                        currentStep: 0
+                    }))
+                ].filter(g => 
+                    !fallingGroups.some(fg => fg.keywords.join(':') === g.keywords.join(':')) &&
+                    g.keywords.every(kw => keywords.includes(kw))
+                );
+                if (availableGroups.length === 0) {
+                    currentBatch = (currentBatch + 1) % keywordBatches.length;
+                    return;
+                }
+                const group = availableGroups[Math.floor(Math.random() * availableGroups.length)];
+                const newGroup = {
+                    keywords: group.keywords,
+                    relations: group.relations,
+                    x: [],
+                    y: group.keywords.map(() => 0),
+                    speeds: group.keywords.map(() => Math.random() * 0.7 + 0.8),
+                    colors: group.keywords.map(() => `hsl(${Math.random() * 360}, 70%, 70%)`),
+                    currentStep: 0
+                };
+                // 分配不重叠的X坐标
+                const keywordWidth = 100;
+                const gap = 20;
+                const maxAttempts = 10;
+                for (let i = 0; i < group.keywords.length; i++) {
+                    let x, attempts = 0;
+                    do {
+                        x = Math.random() * (canvas.width - keywordWidth);
+                        attempts++;
+                    } while (!checkOverlap(x, newGroup.x, keywordWidth, gap) && attempts < maxAttempts);
+                    if (attempts >= maxAttempts) {
+                        x = (i * (canvas.width - keywordWidth)) / Math.max(1, group.keywords.length - 1);
+                    }
+                    newGroup.x.push(x);
+                }
+                fallingGroups.push(newGroup);
+            }
+            fallingGroups.forEach(group => {
+                group.y = group.y.map((y, i) => y + group.speeds[i]);
+                if (group.y.some(y => y > canvas.height - 50)) {
+                    fallingGroups.shift();
+                    score = Math.max(0, score - 5);
+                    debatePrompt.textContent = '关键词组未连接！请重申宗、因、喻关系！';
+                    debatePrompt.style.display = 'block';
+                    updateStatus();
+                }
+            });
+            drawGame();
+        }
+
+        // 更新状态
+        function updateStatus() {
+            const currentStep = fallingGroups.length > 0 ? fallingGroups[0].currentStep + 1 : 1;
+            document.getElementById('status').textContent = `分数: ${score} | 当前批次: ${currentBatch + 1} | 当前步骤: ${currentStep} | 剩余关键词组: ${relations.length}`;
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (!isRunning && keywordBatches[currentBatch].length >= 1 && (relations.length > 0 || keywordBatches[currentBatch].length > 0)) {
+                isRunning = true;
+                animate();
+            } else {
+                alert('请添加至少1个关键词和1个因明关系（或仅关键词用于单关键词模式）！');
+            }
+        }
+
+        // 动画循环
+        function animate() {
+            if (isRunning) {
+                updateGame();
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        // 暂停游戏
+        function pauseGame() {
+            isRunning = false;
+            cancelAnimationFrame(animationId);
+        }
+
+        // 重置游戏
+        function resetGame() {
+            pauseGame();
+            initGame();
+            drawGame();
+        }
+
+        // 下一批次
+        function nextBatch() {
+            pauseGame();
+            fallingGroups = [];
+            currentBatch = (currentBatch + 1) % keywordBatches.length;
+            updateKeywordDropdowns();
+            updateStatus();
+            drawGame();
+        }
+
+        // 初始化
+        initGame();
+        drawGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>钟摆动画</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        canvas {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pendulumCanvas" width="400" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById('pendulumCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = 50; // 钟摆的固定点
+
+        // 钟摆参数
+        const pendulumLength = 150; // 摆长
+        const amplitude = Math.PI / 4; // 振幅，即最大摆动角度 (45度)
+        const speed = 0.05; // 摆动速度
+        let time = 0; // 时间变量，随着帧数增加
+
+        function drawPendulum() {
+            // 计算当前角度，用 Math.sin() 实现周期性摆动
+            const currentAngle = amplitude * Math.sin(time * speed);
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 计算摆锤的位置
+            const bobX = centerX + pendulumLength * Math.sin(currentAngle);
+            const bobY = centerY + pendulumLength * Math.cos(currentAngle);
+
+            // 绘制钟摆的线
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(bobX, bobY);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 绘制摆锤（一个圆）
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = '#4f46e5';
+            ctx.fill();
+
+            time++; // 时间变量递增
+            requestAnimationFrame(drawPendulum); // 循环调用，生成动画
+        }
+
+        drawPendulum();
+    </script>
+</body>
+</html>

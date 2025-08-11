@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 物联网开发工具展示</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>ESP32 物联网开发工具展示</h1>
+    </header>
+    
+    <main>
+        <section class="introduction">
+            <h2>简介</h2>
+            <p>ESP32 是一款功能强大的物联网开发板，支持 Wi-Fi 和蓝牙连接。本页面展示了一些常用的 ESP32 开发工具和资源。</p>
+        </section>
+
+        <section class="tools">
+            <h2>开发工具</h2>
+            <div class="tool-card">
+                <h3>Arduino IDE</h3>
+                <p>Arduino IDE 是一个简单易用的开发环境，支持 ESP32 开发。你可以使用 Arduino 编程语言快速开发物联网应用。</p>
+                <a href="https://www.arduino.cc/en/software" target="_blank">下载</a>
+            </div>
+            <div class="tool-card">
+                <h3>ESP-IDF</h3>
+                <p>ESP-IDF 是乐鑫官方提供的开发框架，提供了丰富的 API 和工具，适合专业开发者使用。</p>
+                <a href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/" target="_blank">了解更多</a>
+            </div>
+        </section>
+
+        <section class="resources">
+            <h2>学习资源</h2>
+            <ul>
+                <li><a href="https://randomnerdtutorials.com/" target="_blank">Random Nerd Tutorials</a></li>
+                <li><a href="https://www.espressif.com/en/support/documents/technical-documents" target="_blank">乐鑫官方文档</a></li>
+            </ul>
+        </section>
+
+        <section class="esp32-ecosystem">
+            <h2>ESP32 生态目录</h2>
+            <ol>
+                <li>硬件
+                    <ul>
+                        <li>开发板
+                            <ul>
+                                <li>ESP32 DevKitC</li>
+                                <li>ESP32 Wrover Kit</li>
+                                <li>ESP32 NodeMCU</li>
+                            </ul>
+                        </li>
+                        <li>扩展模块
+                            <ul>
+                                <li>传感器模块（温湿度、光照等）</li>
+                                <li>通信模块（LoRa、NB-IoT 等）</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>软件
+                    <ul>
+                        <li>开发框架
+                            <ul>
+                                <li>Arduino IDE</li>
+                                <li>ESP-IDF</li>
+                                <li>MicroPython</li>
+                            </ul>
+                        </li>
+                        <li>库和工具
+                            <ul>
+                                <li>WiFi 库</li>
+                                <li>Bluetooth 库</li>
+                                <li>OTA 升级工具</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>云服务
+                    <ul>
+                        <li>乐鑫云</li>
+                        <li>阿里云 IoT 平台</li>
+                        <li>腾讯云 IoT 平台</li>
+                    </ul>
+                </li>
+                <li>社区和支持
+                    <ul>
+                        <li>乐鑫官方论坛</li>
+                        <li>GitHub 开源项目</li>
+                        <li>Stack Overflow</li>
+                    </ul>
+                </li>
+            </ol>
+        </section>
+
+        <!-- 新增基本逻辑关系目录 -->
+        <section class="basic-logic">
+            <h2>搭建环境、开发、编译、上传和快速原型设计基本逻辑关系</h2>
+            <ol>
+                <li>搭建环境
+                    <ul>
+                        <li>选择开发框架（Arduino IDE、ESP-IDF 或 MicroPython）</li>
+                        <li>安装对应开发工具和依赖</li>
+                        <li>配置开发环境（如设置串口、SDK 路径等）</li>
+                    </ul>
+                </li>
+                <li>开发
+                    <ul>
+                        <li>明确项目需求和功能</li>
+                        <li>使用所选开发框架编写代码</li>
+                        <li>调用相应库和 API 实现功能</li>
+                    </ul>
+                </li>
+                <li>编译
+                    <ul>
+                        <li>检查代码语法错误</li>
+                        <li>将源代码转换为可执行的二进制文件</li>
+                    </ul>
+                </li>
+                <li>上传
+                    <ul>
+                        <li>通过串口或网络将二进制文件传输到 ESP32 开发板</li>
+                        <li>验证上传是否成功</li>
+                    </ul>
+                </li>
+                <li>快速原型设计
+                    <ul>
+                        <li>基于已有的开发环境和代码框架快速迭代功能</li>
+                        <li>通过多次开发 - 编译 - 上传流程验证想法</li>
+                    </ul>
+                </li>
+            </ol>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 ESP32 物联网开发工具展示</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

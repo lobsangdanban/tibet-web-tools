@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>图像转 ASCII 艺术</title>
+</head>
+<body>
+    <input type="file" id="imageInput" accept="image/*">
+    <pre id="asciiOutput"></pre>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const asciiOutput = document.getElementById('asciiOutput');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const width = 80;
+                        const aspectRatio = img.height / img.width;
+                        const height = Math.floor(width * aspectRatio);
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const asciiChars = "@%#*+=-:. ";
+                        let asciiArt = '';
+
+                        for (let y = 0; y < height; y++) {
+                            for (let x = 0; x < width; x++) {
+                                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                                const avg = (pixel[0] + pixel[1] + pixel[2]) / 3;
+                                const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
+                                asciiArt += asciiChars[charIndex];
+                            }
+                            asciiArt += '\n';
+                        }
+
+                        asciiOutput.textContent = asciiArt;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,902 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>智能标签系统</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            min-height: 100vh;
+            background: #f0f2f5;
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 280px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            height: fit-content;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        #workspace {
+            width: 70vw;
+            height: 70vh;
+            border: 2px dashed #ccc;
+            position: relative;
+            overflow: hidden;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .tag {
+            padding: 5px 0px;  /* 缩小内边距 */
+            color: white;
+            border-radius: 8px;
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            font-size: 32px;  /* 进一步放大字体 */
+            font-family: "Microsoft Himalaya", sans-serif;
+            transition: transform 0.1s, box-shadow 0.2s;
+            min-width: 68px;  /* 增加最小宽度 */
+            text-align: center;
+            font-weight: normal;  /* 不加粗 */
+        }
+
+        .tag.selected {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .selection-area {
+            position: absolute;
+            border: 2px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            pointer-events: none;
+        }
+
+        #tagInput {
+           padding: 12px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            font-size: 20px;
+            width: 300px;
+            transition: border-color 0.3s;
+        }
+
+        #colorPicker {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+        }
+
+        #deleteBtn {
+            padding: 3px 8px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 30px;
+            transition: background 0.3s;
+        }
+
+        #deleteBtn:hover {
+            background: #c0392b;
+        }
+
+        #deleteBtn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-size: 21px;
+            color: #666;
+            text-align: center;
+        }
+
+        .panel-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+        }
+
+        .save-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .save-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 30px;
+        }
+
+        .save-btn, .load-btn, .delete-layout-btn {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+
+        .save-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #219a52;
+        }
+
+        .load-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        .load-btn:hover {
+            background: #2980b9;
+        }
+
+        .delete-layout-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .delete-layout-btn:hover {
+            background: #c0392b;
+        }
+
+        .saved-layouts {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .layout-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .layout-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 30px;
+        }
+
+        .layout-info {
+            font-size: 21px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .layout-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .layout-actions button {
+            flex: 1;
+            padding: 4px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 21px;
+        }
+
+        .rename-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 21px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<body>
+    <div class="left-panel">
+        <div class="panel-title">གཞོང་ངོས་དོ་དམ།</div>
+        
+        <div class="save-section">
+            <input type="text" class="save-input" id="layoutName" placeholder="གཞོང་མིང་།">
+            <button class="save-btn" id="saveBtn">ཉར་ཚགས།</button>
+        </div>
+        
+        <div class="saved-layouts" id="savedLayouts">
+            <!-- 保存的布局列表将在这里显示 -->
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="input-group">
+            <input type="text" id="tagInput" placeholder="ཡི་གེ་གཏགས་རྗེས enter གནོན་དགོས།">
+            <input type="color" id="colorPicker" value="#3498db">
+        </div>
+        
+        <div class="controls">
+            <button id="deleteBtn" disabled>བསུབ་པ།</button>
+        </div>
+        
+        <div id="workspace"></div>
+        
+        <div class="info">
+            <span style="font-size:30px;align:center;color:black;">ཁ་དོག་ཀར་མར། ༢༠༢༥ ཐ་སྙད་སྡེར་མ།</span>
+        </div>
+    </div>
+
+    <script>
+        // 初始化状态管理
+        const state = {
+            isDragging: false,
+            isSelecting: false,
+            selectedTags: new Set(),
+            dragData: new Map(),
+            selectionRect: null,
+            colorIndex: 0,
+            colors: [
+                '#2980b9', '#c0392b', '#27ae60', '#d68910',
+                '#7d3c98', '#17a2b8', '#dc7633', '#ad1457',
+                '#00838f', '#689f38', '#d84315', '#512da8'
+            ],
+            savedLayouts: new Map() // 存储保存的布局
+        };
+
+        // DOM 元素引用
+        const dom = {
+            workspace: document.getElementById('workspace'),
+            input: document.getElementById('tagInput'),
+            colorPicker: document.getElementById('colorPicker'),
+            deleteBtn: document.getElementById('deleteBtn'),
+            layoutName: document.getElementById('layoutName'),
+            saveBtn: document.getElementById('saveBtn'),
+            savedLayouts: document.getElementById('savedLayouts')
+        };
+
+        // 工具函数
+        const utils = {
+            // 检查两个矩形是否重叠
+            checkOverlap(rect1, rect2) {
+                return !(rect1.right < rect2.left || 
+                        rect1.left > rect2.right || 
+                        rect1.bottom < rect2.top || 
+                        rect1.top > rect2.bottom);
+            },
+
+            // 获取元素的边界框
+            getElementBounds(element) {
+                const rect = element.getBoundingClientRect();
+                const workspaceRect = dom.workspace.getBoundingClientRect();
+                return {
+                    left: rect.left - workspaceRect.left,
+                    top: rect.top - workspaceRect.top,
+                    right: rect.right - workspaceRect.left,
+                    bottom: rect.bottom - workspaceRect.top,
+                    width: rect.width,
+                    height: rect.height
+                };
+            },
+
+            // 检查标签是否与其他标签重叠
+            isPositionValid(tag, x, y) {
+                const tagWidth = tag.offsetWidth;
+                const tagHeight = tag.offsetHeight;
+                
+                const newRect = {
+                    left: x,
+                    top: y,
+                    right: x + tagWidth,
+                    bottom: y + tagHeight
+                };
+
+                // 检查边界
+                if (x < 0 || y < 0 || 
+                    x + tagWidth > dom.workspace.offsetWidth ||
+                    y + tagHeight > dom.workspace.offsetHeight) {
+                    return false;
+                }
+
+                // 检查与其他标签的重叠
+                const otherTags = dom.workspace.querySelectorAll('.tag');
+                for (let otherTag of otherTags) {
+                    if (otherTag === tag) continue;
+                    
+                    const otherRect = utils.getElementBounds(otherTag);
+                    if (utils.checkOverlap(newRect, otherRect)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+
+            // 寻找不重叠的位置
+            findValidPosition(tag) {
+                const maxAttempts = 100;
+                const tagWidth = tag.offsetWidth || 100;
+                const tagHeight = tag.offsetHeight || 40;
+                
+                for (let i = 0; i < maxAttempts; i++) {
+                    const x = Math.random() * (dom.workspace.offsetWidth - tagWidth);
+                    const y = Math.random() * (dom.workspace.offsetHeight - tagHeight);
+                    
+                    if (utils.isPositionValid(tag, x, y)) {
+                        return { x, y };
+                    }
+                }
+
+                // 如果找不到位置，使用网格布局
+                return utils.findGridPosition(tag);
+            },
+
+            // 就近调整位置 - 在当前位置附近寻找合适位置
+            findNearbyValidPosition(tag, currentX, currentY) {
+                const tagWidth = tag.offsetWidth;
+                const tagHeight = tag.offsetHeight;
+                const gridSize = 10; // 网格大小，用于对齐
+                const maxDistance = 100; // 最大搜索距离
+
+                // 将当前位置对齐到网格
+                const gridX = Math.round(currentX / gridSize) * gridSize;
+                const gridY = Math.round(currentY / gridSize) * gridSize;
+
+                // 螺旋式搜索附近的位置
+                for (let distance = 0; distance <= maxDistance; distance += gridSize) {
+                    // 搜索当前距离圈上的所有位置
+                    const positions = utils.getPositionsAtDistance(gridX, gridY, distance, gridSize);
+                    
+                    for (let pos of positions) {
+                        // 检查边界
+                        if (pos.x >= 0 && pos.y >= 0 && 
+                            pos.x + tagWidth <= dom.workspace.offsetWidth &&
+                            pos.y + tagHeight <= dom.workspace.offsetHeight) {
+                            
+                            if (utils.isPositionValid(tag, pos.x, pos.y)) {
+                                return pos;
+                            }
+                        }
+                    }
+                }
+
+                // 如果附近找不到位置，尝试吸附到其他标签或边界
+                return utils.findSnapPosition(tag, currentX, currentY) || { x: currentX, y: currentY };
+            },
+
+            // 获取指定距离圈上的网格位置
+            getPositionsAtDistance(centerX, centerY, distance, gridSize) {
+                const positions = [];
+                
+                if (distance === 0) {
+                    return [{ x: centerX, y: centerY }];
+                }
+
+                const steps = Math.max(8, Math.round(distance / gridSize) * 4);
+                
+                for (let i = 0; i < steps; i++) {
+                    const angle = (i / steps) * 2 * Math.PI;
+                    const x = centerX + Math.round(Math.cos(angle) * distance / gridSize) * gridSize;
+                    const y = centerY + Math.round(Math.sin(angle) * distance / gridSize) * gridSize;
+                    positions.push({ x, y });
+                }
+                
+                return positions;
+            },
+
+            // 尝试吸附到边界或其他标签
+            findSnapPosition(tag, currentX, currentY) {
+                const tagWidth = tag.offsetWidth;
+                const tagHeight = tag.offsetHeight;
+                const snapDistance = 20; // 吸附距离
+                const gridSize = 10;
+
+                const candidates = [];
+
+                // 吸附到工作区边界
+                candidates.push(
+                    { x: 0, y: currentY }, // 左边界
+                    { x: dom.workspace.offsetWidth - tagWidth, y: currentY }, // 右边界
+                    { x: currentX, y: 0 }, // 上边界
+                    { x: currentX, y: dom.workspace.offsetHeight - tagHeight }, // 下边界
+                    { x: 0, y: 0 }, // 左上角
+                    { x: dom.workspace.offsetWidth - tagWidth, y: 0 }, // 右上角
+                    { x: 0, y: dom.workspace.offsetHeight - tagHeight }, // 左下角
+                    { x: dom.workspace.offsetWidth - tagWidth, y: dom.workspace.offsetHeight - tagHeight } // 右下角
+                );
+
+                // 吸附到其他标签
+                const otherTags = dom.workspace.querySelectorAll('.tag');
+                otherTags.forEach(otherTag => {
+                    if (otherTag === tag) return;
+                    
+                    const otherRect = utils.getElementBounds(otherTag);
+                    
+                    // 在其他标签的四周添加候选位置
+                    candidates.push(
+                        { x: otherRect.left - tagWidth - gridSize, y: otherRect.top }, // 左侧
+                        { x: otherRect.right + gridSize, y: otherRect.top }, // 右侧
+                        { x: otherRect.left, y: otherRect.top - tagHeight - gridSize }, // 上侧
+                        { x: otherRect.left, y: otherRect.bottom + gridSize }, // 下侧
+                        // 对角位置
+                        { x: otherRect.left - tagWidth - gridSize, y: otherRect.top - tagHeight - gridSize },
+                        { x: otherRect.right + gridSize, y: otherRect.top - tagHeight - gridSize },
+                        { x: otherRect.left - tagWidth - gridSize, y: otherRect.bottom + gridSize },
+                        { x: otherRect.right + gridSize, y: otherRect.bottom + gridSize }
+                    );
+                });
+
+                // 按距离排序候选位置
+                candidates.sort((a, b) => {
+                    const distA = Math.sqrt(Math.pow(a.x - currentX, 2) + Math.pow(a.y - currentY, 2));
+                    const distB = Math.sqrt(Math.pow(b.x - currentX, 2) + Math.pow(b.y - currentY, 2));
+                    return distA - distB;
+                });
+
+                // 找到第一个有效位置
+                for (let pos of candidates) {
+                    if (pos.x >= 0 && pos.y >= 0 && 
+                        pos.x + tagWidth <= dom.workspace.offsetWidth &&
+                        pos.y + tagHeight <= dom.workspace.offsetHeight) {
+                        
+                        if (utils.isPositionValid(tag, pos.x, pos.y)) {
+                            return pos;
+                        }
+                    }
+                }
+
+                return null;
+            },
+
+            // 网格布局寻找位置
+            findGridPosition(tag) {
+                const tagWidth = tag.offsetWidth || 100;
+                const tagHeight = tag.offsetHeight || 40;
+                const gridSize = 20;
+                
+                for (let y = 0; y < dom.workspace.offsetHeight - tagHeight; y += gridSize) {
+                    for (let x = 0; x < dom.workspace.offsetWidth - tagWidth; x += gridSize) {
+                        if (utils.isPositionValid(tag, x, y)) {
+                            return { x, y };
+                        }
+                    }
+                }
+                
+                // 最后的备用位置
+                return { x: 10, y: 10 };
+            }
+        };
+
+        // 事件处理器
+        const handlers = {
+            createTag(text) {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.textContent = text;
+                tag.style.backgroundColor = this.getNextColor();
+                
+                // 随机位置放置标签，允许重叠
+                const maxX = dom.workspace.offsetWidth - 100; // 预估标签宽度
+                const maxY = dom.workspace.offsetHeight - 50; // 预估标签高度
+                
+                tag.style.left = Math.random() * maxX + 'px';
+                tag.style.top = Math.random() * maxY + 'px';
+                
+                return tag;
+            },
+
+            getNextColor() {
+                const color = state.colors[state.colorIndex % state.colors.length];
+                state.colorIndex++;
+                return color;
+            },
+
+            handleInputKeypress(e) {
+                if (e.key === 'Enter') {
+                    this.processInput();
+                }
+            },
+
+            processInput() {
+                const texts = dom.input.value.trim().split(/\s+/).filter(t => t);
+                if (texts.length === 0) return;
+
+                texts.forEach(text => {
+                    const tag = this.createTag(text);
+                    dom.workspace.appendChild(tag);
+                    this.addTagEvents(tag);
+                });
+
+                dom.input.value = '';
+                handlers.updateDeleteButton();
+            },
+
+            addTagEvents(tag) {
+                tag.addEventListener('mousedown', e => this.startDragging(e, tag));
+                tag.addEventListener('click', e => this.toggleSelection(e, tag));
+            },
+
+            startDragging(e, tag) {
+                if (!state.selectedTags.has(tag)) {
+                    this.clearSelections();
+                    this.selectTag(tag);
+                }
+
+                state.dragData.clear();
+                state.selectedTags.forEach(tag => {
+                    const rect = tag.getBoundingClientRect();
+                    state.dragData.set(tag, {
+                        offsetX: e.clientX - rect.left,
+                        offsetY: e.clientY - rect.top,
+                        originalX: parseInt(tag.style.left),
+                        originalY: parseInt(tag.style.top)
+                    });
+                });
+
+                state.isDragging = true;
+                document.addEventListener('mousemove', this.handleDrag);
+                document.addEventListener('mouseup', this.endDragging);
+                e.preventDefault();
+            },
+
+            handleDrag(e) {
+                if (!state.isDragging) return;
+                e.preventDefault();
+
+                state.selectedTags.forEach(tag => {
+                    const offset = state.dragData.get(tag);
+                    const workspaceRect = dom.workspace.getBoundingClientRect();
+                    
+                    let newX = e.clientX - workspaceRect.left - offset.offsetX;
+                    let newY = e.clientY - workspaceRect.top - offset.offsetY;
+                    
+                    // 边界检测，但允许重叠
+                    const maxX = dom.workspace.offsetWidth - tag.offsetWidth;
+                    const maxY = dom.workspace.offsetHeight - tag.offsetHeight;
+                    
+                    newX = Math.max(0, Math.min(newX, maxX));
+                    newY = Math.max(0, Math.min(newY, maxY));
+                    
+                    tag.style.left = newX + 'px';
+                    tag.style.top = newY + 'px';
+                });
+            },
+
+            endDragging() {
+                if (!state.isDragging) return;
+                
+                state.isDragging = false;
+                document.removeEventListener('mousemove', handlers.handleDrag);
+                document.removeEventListener('mouseup', handlers.endDragging);
+            },
+
+            selectTag(tag) {
+                tag.classList.add('selected');
+                state.selectedTags.add(tag);
+                this.updateDeleteButton();
+            },
+
+            toggleSelection(e, tag) {
+                if (state.isDragging) return;
+                e.stopPropagation();
+
+                if (!e.ctrlKey) this.clearSelections();
+                
+                if (tag.classList.contains('selected')) {
+                    tag.classList.remove('selected');
+                    state.selectedTags.delete(tag);
+                } else {
+                    this.selectTag(tag);
+                }
+                
+                this.updateDeleteButton();
+            },
+
+            clearSelections() {
+                state.selectedTags.forEach(tag => tag.classList.remove('selected'));
+                state.selectedTags.clear();
+                this.updateDeleteButton();
+            },
+
+            updateDeleteButton() {
+                dom.deleteBtn.disabled = state.selectedTags.size === 0;
+                dom.deleteBtn.textContent = state.selectedTags.size > 0 
+                    ? `བསུབ་པ། (${state.selectedTags.size})` 
+                    : 'བསུབ་པ།';
+            },
+
+            deleteSelectedTags() {
+                state.selectedTags.forEach(tag => {
+                    if (tag.parentNode) {
+                        tag.parentNode.removeChild(tag);
+                    }
+                });
+                state.selectedTags.clear();
+                this.updateDeleteButton();
+            },
+
+            initWorkspaceEvents() {
+                dom.workspace.addEventListener('mousedown', e => {
+                    if (e.target === dom.workspace) {
+                        this.startAreaSelection(e);
+                    }
+                });
+            },
+
+            startAreaSelection(e) {
+                if (!e.ctrlKey) this.clearSelections();
+                
+                state.isSelecting = true;
+                const rect = dom.workspace.getBoundingClientRect();
+                
+                state.selectionRect = {
+                    startX: e.clientX - rect.left,
+                    startY: e.clientY - rect.top,
+                    element: this.createSelectionBox()
+                };
+
+                dom.workspace.appendChild(state.selectionRect.element);
+                document.addEventListener('mousemove', handlers.updateSelectionArea);
+                document.addEventListener('mouseup', handlers.finalizeSelection);
+                e.preventDefault();
+            },
+
+            createSelectionBox() {
+                const box = document.createElement('div');
+                box.className = 'selection-area';
+                return box;
+            },
+
+            updateSelectionArea(e) {
+                if (!state.isSelecting) return;
+                
+                const rect = dom.workspace.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+
+                const box = state.selectionRect.element;
+                const left = Math.min(state.selectionRect.startX, currentX);
+                const top = Math.min(state.selectionRect.startY, currentY);
+                
+                box.style.left = left + 'px';
+                box.style.top = top + 'px';
+                box.style.width = Math.abs(currentX - state.selectionRect.startX) + 'px';
+                box.style.height = Math.abs(currentY - state.selectionRect.startY) + 'px';
+
+                handlers.updateSelectionsBasedOnArea();
+            },
+
+            updateSelectionsBasedOnArea() {
+                const areaRect = state.selectionRect.element.getBoundingClientRect();
+                const workspaceRect = dom.workspace.getBoundingClientRect();
+                
+                const selectionArea = {
+                    left: areaRect.left - workspaceRect.left,
+                    top: areaRect.top - workspaceRect.top,
+                    right: areaRect.right - workspaceRect.left,
+                    bottom: areaRect.bottom - workspaceRect.top
+                };
+
+                document.querySelectorAll('.tag').forEach(tag => {
+                    const tagRect = utils.getElementBounds(tag);
+                    if (utils.checkOverlap(selectionArea, tagRect)) {
+                        if (!state.selectedTags.has(tag)) {
+                            handlers.selectTag(tag);
+                        }
+                    }
+                });
+            },
+
+            finalizeSelection() {
+                state.isSelecting = false;
+                if (state.selectionRect.element.parentNode) {
+                    state.selectionRect.element.parentNode.removeChild(state.selectionRect.element);
+                }
+                document.removeEventListener('mousemove', handlers.updateSelectionArea);
+                document.removeEventListener('mouseup', handlers.finalizeSelection);
+                handlers.updateDeleteButton();
+            },
+
+            handleKeyDown(e) {
+                if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedTags.size > 0) {
+                    // 防止在输入框中删除文字时误删标签
+                    if (document.activeElement !== dom.input && document.activeElement !== dom.layoutName) {
+                        this.deleteSelectedTags();
+                        e.preventDefault();
+                    }
+                }
+            },
+
+            // 保存当前布局
+            saveCurrentLayout() {
+                const layoutName = dom.layoutName.value.trim();
+                if (!layoutName) {
+                    alert('གཞོང་ངོས་ཀྱི་མིང་གཏག་རོགས།');
+                    return;
+                }
+
+                const tags = dom.workspace.querySelectorAll('.tag');
+                const layoutData = {
+                    name: layoutName,
+                    timestamp: new Date().toLocaleString(),
+                    tags: Array.from(tags).map(tag => ({
+                        text: tag.textContent,
+                        backgroundColor: tag.style.backgroundColor,
+                        left: tag.style.left,
+                        top: tag.style.top
+                    }))
+                };
+
+                state.savedLayouts.set(layoutName, layoutData);
+                dom.layoutName.value = '';
+                this.renderSavedLayouts();
+            },
+
+            // 渲染保存的布局列表
+            renderSavedLayouts() {
+                dom.savedLayouts.innerHTML = '';
+                
+                if (state.savedLayouts.size === 0) {
+                    dom.savedLayouts.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;font-size:21px;">ཉར་དགོས་པའི་གཞོང་ངོས་མི་འདུག</div>';
+                    return;
+                }
+
+                state.savedLayouts.forEach((layout, key) => {
+                    const layoutItem = document.createElement('div');
+                    layoutItem.className = 'layout-item';
+                    layoutItem.innerHTML = `
+                        <div class="layout-name">${layout.name}</div>
+                        <div class="layout-info">${layout.tags.length} ཐ་སྙད། ${layout.timestamp}</div>
+                        <div class="layout-actions">
+                            <button class="load-btn" onclick="handlers.loadLayout('${key}')">མངོན་པ།</button>
+                            <button class="load-btn" onclick="handlers.startRename('${key}')">བསྐྱར་མིང་།</button>
+                            <button class="delete-layout-btn" onclick="handlers.deleteLayout('${key}')">གཞོང་བསུབ།</button>
+                        </div>
+                    `;
+                    dom.savedLayouts.appendChild(layoutItem);
+                });
+            },
+
+            // 加载布局
+            loadLayout(layoutName) {
+                const layout = state.savedLayouts.get(layoutName);
+                if (!layout) return;
+
+                // 清空当前标签
+                dom.workspace.innerHTML = '';
+                this.clearSelections();
+
+                // 重建标签
+                layout.tags.forEach(tagData => {
+                    const tag = document.createElement('div');
+                    tag.className = 'tag';
+                    tag.textContent = tagData.text;
+                    tag.style.backgroundColor = tagData.backgroundColor;
+                    tag.style.left = tagData.left;
+                    tag.style.top = tagData.top;
+                    
+                    dom.workspace.appendChild(tag);
+                    this.addTagEvents(tag);
+                });
+
+                this.updateDeleteButton();
+            },
+
+            // 删除布局
+            deleteLayout(layoutName) {
+                if (confirm(`གཞོང་ངོས་"${layoutName}"བསུབ་པ་ཡིན་ནམ།`)) {
+                    state.savedLayouts.delete(layoutName);
+                    this.renderSavedLayouts();
+                }
+            },
+
+            // 开始重命名
+            startRename(layoutName) {
+                const layout = state.savedLayouts.get(layoutName);
+                if (!layout) return;
+
+                const layoutItem = Array.from(dom.savedLayouts.children).find(item => 
+                    item.querySelector('.layout-name').textContent === layoutName
+                );
+
+                const nameDiv = layoutItem.querySelector('.layout-name');
+                const actionsDiv = layoutItem.querySelector('.layout-actions');
+                
+                nameDiv.innerHTML = `<input type="text" class="rename-input" value="${layoutName}" id="renameInput-${layoutName}">`;
+                actionsDiv.innerHTML = `
+                    <button class="load-btn" onclick="handlers.confirmRename('${layoutName}')">གཏན་འཁེལ།</button>
+                    <button class="delete-layout-btn" onclick="handlers.renderSavedLayouts()">མིན།</button>
+                `;
+
+                const input = document.getElementById(`renameInput-${layoutName}`);
+                input.focus();
+                input.select();
+            },
+
+            // 确认重命名
+            confirmRename(oldName) {
+                const input = document.getElementById(`renameInput-${oldName}`);
+                const newName = input.value.trim();
+                
+                if (!newName) {
+                    alert('མིང་སྟོང་བར་མི་འོས།');
+                    return;
+                }
+
+                if (newName !== oldName && state.savedLayouts.has(newName)) {
+                    alert('མིང་འདི་བསྐྱར་བཟློས་རེད།');
+                    return;
+                }
+
+                const layout = state.savedLayouts.get(oldName);
+                layout.name = newName;
+                
+                state.savedLayouts.delete(oldName);
+                state.savedLayouts.set(newName, layout);
+                
+                this.renderSavedLayouts();
+            }
+        };
+
+        // 初始化事件监听
+        dom.input.addEventListener('keypress', e => handlers.handleInputKeypress(e));
+        dom.deleteBtn.addEventListener('click', () => handlers.deleteSelectedTags());
+        dom.saveBtn.addEventListener('click', () => handlers.saveCurrentLayout());
+        dom.layoutName.addEventListener('keypress', e => {
+            if (e.key === 'Enter') handlers.saveCurrentLayout();
+        });
+        document.addEventListener('keydown', e => handlers.handleKeyDown(e));
+        handlers.initWorkspaceEvents();
+
+        // 初始化布局列表
+        handlers.renderSavedLayouts();
+
+        // 点击空白区域取消选择
+        document.addEventListener('click', e => {
+            if (!dom.workspace.contains(e.target) && e.target !== dom.deleteBtn) {
+                handlers.clearSelections();
+            }
+        });
+    </script>
+</body>
+</html>

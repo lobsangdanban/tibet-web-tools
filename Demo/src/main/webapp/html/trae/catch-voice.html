@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统声音录制工具</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        #startBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #stopBtn {
+            background-color: #f44336;
+            color: white;
+            display: none;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .status {
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            background-color: #e9f5ff;
+        }
+        .recording-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #f44336;
+            margin-right: 10px;
+            animation: pulse 1.5s infinite;
+            display: none;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .audio-player {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        audio {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .download-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            color: #2196F3;
+            text-decoration: none;
+            padding: 0.8rem;
+            border: 1px solid #2196F3;
+            border-radius: 5px;
+            display: none;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>系统声音录制工具</h1>
+        <div class="status">
+            <span class="recording-indicator"></span>
+            <span id="statusText">准备就绪</span>
+        </div>
+        
+        <div class="audio-source-selector">
+            <label for="audioSource">音频源:</label>
+            <select id="audioSource"></select>
+            <button id="refreshDevices" style="margin-left: 10px;">刷新设备</button>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">开始录制</button>
+            <button id="stopBtn">停止录制</button>
+        </div>
+        <div class="audio-player">
+            <h3>录制预览</h3>
+            <audio id="audioPreview" controls></audio>
+            <a id="downloadLink" class="download-link" download="system-audio-recording.wav">下载录音</a>
+        </div>
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>确保已在系统中启用"立体声混音"设备（Windows）或"音频环回"（Mac）</li>
+                <li>在音频源下拉菜单中选择"立体声混音"或类似选项</li>
+                <li>点击"开始录制"，然后在微信小程序中播放音频</li>
+                <li>录制完成后点击"停止录制"</li>
+            </ul>
+            <div class="troubleshooting">
+                <strong>如果看不到音频设备选项:</strong> 请确保已授予麦克风权限，并尝试刷新页面或点击"刷新设备"按钮。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let stream;
+        const audioSourceSelect = document.getElementById('audioSource');
+        const refreshDevicesBtn = document.getElementById('refreshDevices');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusText = document.getElementById('statusText');
+        const recordingIndicator = document.querySelector('.recording-indicator');
+        const audioPreview = document.getElementById('audioPreview');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // 页面加载时获取设备列表
+        document.addEventListener('DOMContentLoaded', getAudioDevices);
+        refreshDevicesBtn.addEventListener('click', getAudioDevices);
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+
+        // 获取音频设备列表
+        async function getAudioDevices() {
+            try {
+                // 先请求权限，再获取设备列表
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                
+                // 清空现有选项
+                audioSourceSelect.innerHTML = '';
+                
+                const audioDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                if (audioDevices.length === 0) {
+                    statusText.textContent = '未检测到音频设备，请检查系统设置';
+                    return;
+                }
+                
+                // 添加设备选项
+                audioDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `音频设备 ${audioSourceSelect.options.length + 1}`;
+                    audioSourceSelect.appendChild(option);
+                });
+                
+                // 自动选择立体声混音（如果存在）
+                const mixOptions = Array.from(audioSourceSelect.options).find(option => 
+                    option.text.includes('立体声') || option.text.includes('混音') || option.text.includes('Loopback')
+                );
+                
+                if (mixOptions) {
+                    mixOptions.selected = true;
+                }
+            } catch (error) {
+                console.error('获取音频设备失败:', error);
+                statusText.textContent = `无法获取音频设备: ${error.message}`;
+                alert('请确保已授予麦克风权限，并检查您的音频设备设置。');
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const selectedDeviceId = audioSourceSelect.value;
+                
+                // 使用更兼容的语法获取音频流
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: selectedDeviceId ? { deviceId: selectedDeviceId } : true,
+                    video: false
+                });
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data);
+                });
+                
+                mediaRecorder.addEventListener('stop', () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPreview.src = audioUrl;
+                    downloadLink.href = audioUrl;
+                    downloadLink.style.display = 'block';
+                    
+                    // 停止所有音轨
+                    stream.getTracks().forEach(track => track.stop());
+                });
+                
+                mediaRecorder.start();
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+                statusText.textContent = '正在录制系统声音...';
+                recordingIndicator.style.display = 'inline-block';
+            } catch (error) {
+                console.error('录制启动失败:', error);
+                statusText.textContent = `录制启动失败: ${error.message}`;
+                alert(`录制失败: ${error.message}\n\n请尝试以下解决方案:\n1. 确保已选择正确的音频源\n2. 检查浏览器权限设置\n3. 尝试使用Chrome浏览器\n4. 确保系统已启用立体声混音`);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                startBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'none';
+                statusText.textContent = '录制已完成';
+                recordingIndicator.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

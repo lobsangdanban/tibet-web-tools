@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>藏文打字速度测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #text-display {
+            font-size: 24px;
+            margin: 20px;
+            line-height: 1.5;
+            min-height: 100px;
+        }
+        #input-field {
+            width: 80%;
+            height: 100px;
+            font-size: 20px;
+            margin: 20px;
+            padding: 10px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        #stats {
+            margin: 20px;
+            font-size: 18px;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #save-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>藏文打字速度测试</h1>
+    <div id="stats">
+        <p>时间: <span id="timer">0</span> 秒</p>
+        <p>速度: <span id="wpm">0</span> 字/分钟</p>
+        <p>正确率: <span id="accuracy">0</span>%</p>
+        <p>错误率: <span id="error-rate">0</span>%</p>
+    </div>
+    <div id="text-display"></div>
+    <textarea id="input-field" placeholder="在此输入藏文..." disabled></textarea>
+    <div class="button-container">
+        <button id="start-btn">开始测试</button>
+        <button id="save-btn">保存结果</button>
+    </div>
+
+    <script>
+        const sampleText = "བོད་ཡིག་ནི་བོད་རིགས་ཀྱི་སྐད་ཡིག་ཡིན། བོད་ཡིག་ནི་དབྱངས་གསལ་གྱི་ཡི་གེ་ཞིག་ཡིན།"; // 示例藏文文本
+        let startTime, timer;
+        let isTestActive = false;
+        let totalCharacters = 0;
+        let correctCharacters = 0;
+        let testResults = null;
+
+        const textDisplay = document.getElementById('text-display');
+        const inputField = document.getElementById('input-field');
+        const startButton = document.getElementById('start-btn');
+        const saveButton = document.getElementById('save-btn');
+        const timerDisplay = document.getElementById('timer');
+        const wpmDisplay = document.getElementById('wpm');
+        const accuracyDisplay = document.getElementById('accuracy');
+        const errorRateDisplay = document.getElementById('error-rate');
+
+        function initializeTest() {
+            textDisplay.innerHTML = sampleText.split('').map(char => 
+                `<span class="char">${char}</span>`).join('');
+            inputField.value = '';
+            totalCharacters = 0;
+            correctCharacters = 0;
+            startTime = new Date();
+            isTestActive = true;
+            inputField.disabled = false;
+            inputField.focus();
+            saveButton.style.display = 'none';
+
+            timer = setInterval(() => {
+                const currentTime = Math.floor((new Date() - startTime) / 1000);
+                timerDisplay.textContent = currentTime;
+                
+                // 计算WPM (假设平均每个藏文字符为一个字)
+                const minutes = currentTime / 60;
+                const wpm = Math.round(totalCharacters / minutes);
+                wpmDisplay.textContent = wpm;
+            }, 1000);
+        }
+
+        inputField.addEventListener('input', (e) => {
+            if (!isTestActive) return;
+
+            const inputText = e.target.value;
+            totalCharacters = inputText.length;
+            correctCharacters = 0;
+
+            const characters = textDisplay.getElementsByClassName('char');
+            
+            for (let i = 0; i < characters.length; i++) {
+                if (i < inputText.length) {
+                    if (inputText[i] === sampleText[i]) {
+                        characters[i].className = 'char correct';
+                        correctCharacters++;
+                    } else {
+                        characters[i].className = 'char incorrect';
+                    }
+                } else {
+                    characters[i].className = 'char';
+                }
+            }
+
+            // 计算正确率和错误率
+            const accuracy = Math.round((correctCharacters / totalCharacters) * 100) || 0;
+            const errorRate = 100 - accuracy;
+            
+            accuracyDisplay.textContent = accuracy;
+            errorRateDisplay.textContent = errorRate;
+
+            // 检查是否完成测试
+            if (inputText.length === sampleText.length) {
+                endTest();
+            }
+        });
+
+        startButton.addEventListener('click', () => {
+            if (isTestActive) {
+                endTest();
+            }
+            initializeTest();
+        });
+
+        function endTest() {
+            clearInterval(timer);
+            isTestActive = false;
+            inputField.disabled = true;
+            startButton.textContent = '重新开始';
+            saveButton.style.display = 'block';
+            
+            // 保存测试结果
+            testResults = {
+                time: timerDisplay.textContent,
+                wpm: wpmDisplay.textContent,
+                accuracy: accuracyDisplay.textContent,
+                errorRate: errorRateDisplay.textContent,
+                date: new Date().toLocaleString()
+            };
+        }
+
+        saveButton.addEventListener('click', () => {
+            if (!testResults) return;
+
+            const content = `藏文打字测试结果
+测试时间: ${testResults.date}
+用时: ${testResults.time}秒
+速度: ${testResults.wpm}字/分钟
+正确率: ${testResults.accuracy}%
+错误率: ${testResults.errorRate}%`;
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `藏文打字测试结果_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>

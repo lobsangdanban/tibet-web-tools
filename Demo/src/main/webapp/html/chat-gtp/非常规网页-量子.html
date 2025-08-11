@@ -1,0 +1,373 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>∞◊△量子意识流◊△∞</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            cursor: none;
+        }
+        
+        .quantum-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .consciousness-node {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: quantumFlicker 0.1s infinite;
+        }
+        
+        .thought-stream {
+            position: absolute;
+            color: #00ff88;
+            font-size: 12px;
+            opacity: 0;
+            transform: rotate(0deg);
+            animation: thoughtFlow 15s linear infinite;
+            white-space: nowrap;
+        }
+        
+        .reality-distortion {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            border-radius: 50%;
+            animation: distort 8s ease-in-out infinite;
+        }
+        
+        .void-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.1);
+            font-size: 2rem;
+            text-align: center;
+            z-index: 10;
+            animation: voidPulse 3s ease-in-out infinite;
+            pointer-events: all;
+            cursor: pointer;
+        }
+        
+        .dimensional-shift {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 49%, rgba(255, 0, 0, 0.1) 50%, transparent 51%);
+            animation: dimensionalShift 20s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes quantumFlicker {
+            0%, 50% { opacity: 1; transform: scale(1); }
+            25% { opacity: 0.3; transform: scale(1.5); }
+            75% { opacity: 0.7; transform: scale(0.5); }
+        }
+        
+        @keyframes thoughtFlow {
+            0% { 
+                opacity: 0; 
+                transform: translateX(-100px) rotate(0deg) scale(0.5);
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateX(0) rotate(45deg) scale(1);
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateX(calc(100vw + 100px)) rotate(405deg) scale(1.5);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateX(calc(100vw + 200px)) rotate(450deg) scale(0.1);
+            }
+        }
+        
+        @keyframes distort {
+            0% { 
+                transform: scale(0.5) skew(0deg, 0deg); 
+                border-radius: 50%; 
+            }
+            25% { 
+                transform: scale(1.2) skew(15deg, 5deg); 
+                border-radius: 20% 80% 60% 40%; 
+            }
+            50% { 
+                transform: scale(0.8) skew(-10deg, 20deg); 
+                border-radius: 70% 30% 50% 50%; 
+            }
+            75% { 
+                transform: scale(1.5) skew(25deg, -15deg); 
+                border-radius: 30% 70% 70% 30%; 
+            }
+            100% { 
+                transform: scale(0.5) skew(0deg, 0deg); 
+                border-radius: 50%; 
+            }
+        }
+        
+        @keyframes voidPulse {
+            0% { 
+                opacity: 0.1; 
+                transform: translate(-50%, -50%) scale(1) rotate(0deg); 
+                filter: blur(0px);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: translate(-50%, -50%) scale(1.1) rotate(180deg); 
+                filter: blur(2px);
+            }
+            100% { 
+                opacity: 0.1; 
+                transform: translate(-50%, -50%) scale(1) rotate(360deg); 
+                filter: blur(0px);
+            }
+        }
+        
+        @keyframes dimensionalShift {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.5); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        
+        .interaction-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+        
+        .chaos-text {
+            position: absolute;
+            color: rgba(255, 100, 0, 0.7);
+            font-size: 8px;
+            transform: rotate(90deg);
+            animation: chaosFloat 25s linear infinite;
+        }
+        
+        @keyframes chaosFloat {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(1080deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="quantum-layer" id="quantumLayer"></div>
+    <div class="dimensional-shift"></div>
+    
+    <div class="void-text" id="voidText" onclick="triggerQuantumCollapse()">
+        虚无即一切<br>
+        ∞ 点击扰动现实 ∞<br>
+        意识 → 代码 → 虚无
+    </div>
+    
+    <div class="interaction-zone" id="interactionZone"></div>
+
+    <script>
+        // 非线性思维：从结果开始，向原因逆推
+        let quantumState = Math.PI;
+        let consciousnessNodes = [];
+        let thoughtStreams = [];
+        let realityLayers = 7;
+        
+        // 创建意识节点 - 不规则的网格系统
+        function spawnConsciousnessNodes() {
+            const layer = document.getElementById('quantumLayer');
+            
+            // 使用质数和黄金比例而非常规坐标系统
+            for (let i = 0; i < 144; i++) {
+                const node = document.createElement('div');
+                node.className = 'consciousness-node';
+                
+                // 基于混沌理论的位置计算
+                const phi = (1 + Math.sqrt(5)) / 2;
+                const angle = i * phi * 2 * Math.PI;
+                const radius = Math.sqrt(i) * 15;
+                
+                const x = Math.sin(angle) * radius + window.innerWidth / 2;
+                const y = Math.cos(angle) * radius + window.innerHeight / 2;
+                
+                node.style.left = x + 'px';
+                node.style.top = y + 'px';
+                
+                // 每个节点有独特的量子属性
+                node.style.animationDelay = (i * 0.618) + 's';
+                node.style.animationDuration = (0.1 + Math.random() * 0.5) + 's';
+                
+                layer.appendChild(node);
+                consciousnessNodes.push(node);
+            }
+        }
+        
+        // 思维流生成 - 基于量子概率而非确定性逻辑
+        function generateThoughtStream() {
+            const thoughts = [
+                '编程不是控制，而是对话',
+                '代码即诗，诗即虚无',
+                '函数不返回值，返回可能性',
+                '调试就是与宇宙协商',
+                '变量不存储数据，存储意图',
+                '循环是时间的幻象',
+                '条件判断是现实的分叉',
+                '数组包含的不是元素，是关系',
+                '对象不是实体，是交互的可能',
+                '算法是宇宙的呼吸',
+                '错误是系统的自我表达',
+                '注释是给未来自己的咒语'
+            ];
+            
+            const stream = document.createElement('div');
+            stream.className = 'thought-stream';
+            stream.textContent = thoughts[Math.floor(Math.random() * thoughts.length)];
+            
+            // 基于当前宇宙状态的位置计算
+            stream.style.top = (Math.sin(Date.now() * 0.001) * window.innerHeight * 0.3 + window.innerHeight / 2) + 'px';
+            stream.style.left = '-100px';
+            stream.style.animationDuration = (10 + Math.random() * 10) + 's';
+            stream.style.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            
+            document.body.appendChild(stream);
+            
+            // 自我消除
+            setTimeout(() => stream.remove(), 15000);
+        }
+        
+        // 现实扭曲场生成
+        function createRealityDistortion() {
+            const distortion = document.createElement('div');
+            distortion.className = 'reality-distortion';
+            
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            
+            distortion.style.left = x + 'px';
+            distortion.style.top = y + 'px';
+            distortion.style.animationDuration = (5 + Math.random() * 10) + 's';
+            
+            document.body.appendChild(distortion);
+            
+            setTimeout(() => distortion.remove(), 15000);
+        }
+        
+        // 混沌文本生成
+        function spawnChaosText() {
+            const chaosWords = ['递归', '迭代', '封装', '抽象', '多态', '继承', '异步', '同步', '并发', '串行'];
+            const text = document.createElement('div');
+            text.className = 'chaos-text';
+            text.textContent = chaosWords[Math.floor(Math.random() * chaosWords.length)];
+            
+            text.style.left = Math.random() * window.innerWidth + 'px';
+            text.style.top = '100vh';
+            text.style.animationDuration = (20 + Math.random() * 10) + 's';
+            
+            document.body.appendChild(text);
+            
+            setTimeout(() => text.remove(), 35000);
+        }
+        
+        // 量子塌缩事件
+        function triggerQuantumCollapse() {
+            quantumState *= Math.E;
+            
+            // 改变所有节点的行为
+            consciousnessNodes.forEach(node => {
+                node.style.animationDirection = quantumState % 2 ? 'reverse' : 'normal';
+                node.style.background = `hsl(${quantumState * 100 % 360}, 100%, 50%)`;
+            });
+            
+            // 创建涟漪效应
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => createRealityDistortion(), i * 200);
+            }
+            
+            // 改变虚无文本
+            const voidText = document.getElementById('voidText');
+            const newTexts = [
+                '现实已被重构<br>∞ 继续扰动 ∞<br>代码 → 意识 → 代码',
+                '量子态已塌缩<br>∞ 观察即改变 ∞<br>虚无 → 存在 → 虚无',
+                '维度发生偏移<br>∞ 点击延续 ∞<br>思维 → 代码 → 现实'
+            ];
+            voidText.innerHTML = newTexts[Math.floor(quantumState) % newTexts.length];
+        }
+        
+        // 非线性事件循环
+        function quantumLoop() {
+            // 随机决定执行什么操作，而非固定顺序
+            const actions = [
+                generateThoughtStream,
+                createRealityDistortion,
+                spawnChaosText
+            ];
+            
+            const randomAction = actions[Math.floor(Math.random() * actions.length)];
+            randomAction();
+            
+            // 下次执行间隔基于量子不确定性
+            const nextInterval = Math.abs(Math.sin(quantumState) * 3000) + 500;
+            setTimeout(quantumLoop, nextInterval);
+            
+            quantumState += 0.1;
+        }
+        
+        // 鼠标交互 - 将光标变为意识探针
+        document.addEventListener('mousemove', (e) => {
+            // 在鼠标位置创建临时意识节点
+            const probe = document.createElement('div');
+            probe.style.position = 'absolute';
+            probe.style.left = e.clientX + 'px';
+            probe.style.top = e.clientY + 'px';
+            probe.style.width = '1px';
+            probe.style.height = '1px';
+            probe.style.background = 'rgba(255, 255, 255, 0.5)';
+            probe.style.pointerEvents = 'none';
+            probe.style.transform = 'scale(10)';
+            probe.style.transition = 'all 2s ease-out';
+            
+            document.body.appendChild(probe);
+            
+            setTimeout(() => {
+                probe.style.opacity = '0';
+                probe.style.transform = 'scale(0)';
+            }, 100);
+            
+            setTimeout(() => probe.remove(), 2100);
+        });
+        
+        // 初始化宇宙
+        spawnConsciousnessNodes();
+        quantumLoop();
+        
+        // 反重力滚动
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            document.body.style.transform = `rotate(${e.deltaY * 0.1}deg) scale(${1 + e.deltaY * 0.001})`;
+            
+            setTimeout(() => {
+                document.body.style.transform = 'rotate(0deg) scale(1)';
+            }, 1000);
+        });
+        
+        // 时间扭曲
+        setInterval(() => {
+            document.body.style.filter = `hue-rotate(${Date.now() * 0.01}deg)`;
+        }, 100);
+    </script>
+</body>
+</html>

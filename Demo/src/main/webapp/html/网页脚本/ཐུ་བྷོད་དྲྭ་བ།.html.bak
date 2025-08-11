@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>ཐུ་ལྷོད་དྲྭ་བ།</title>
+  <style>
+	html,body{
+		margin:auto 90%;
+		background:red;
+	}
+	.head-font{
+		font-size:30px;
+		color:auto;
+	}
+	section{
+		margin:auto 90%;
+		background:green;
+	}
+  </style>
+ </head>
+ <body>
+ <section class="section-top">
+ <div class="head-font">
+		ཐུ་བྷོད་དྲྭ་བར་ཕེབས་པར་དགའ་བསུ་ཞུ།
+	</div>
+ </section>
+	
+ </body>
+</html>

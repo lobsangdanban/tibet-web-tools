@@ -1,0 +1,253 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cosmic Game of Life</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      border: 2px solid #333;
+      background: radial-gradient(circle, rgba(10, 10, 50, 0.8), rgba(0, 0, 20, 1));
+    }
+    .controls {
+      margin: 10px;
+      text-align: center;
+    }
+    button, select, input {
+      margin: 5px;
+      padding: 8px;
+      font-size: 16px;
+      background: #222;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover, select:hover, input:hover {
+      background: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button onclick="toggleSimulation()">Start/Stop</button>
+    <button onclick="clearGrid()">Clear</button>
+    <button onclick="randomizeGrid()">Randomize</button>
+    <select onchange="loadPattern(this.value)">
+      <option value="">Select Pattern</option>
+      <option value="glider">Glider</option>
+      <option value="pulsar">Pulsar</option>
+      <option value="spaceship">Spaceship</option>
+    </select>
+    <div>
+      <label>Speed: <input type="range" id="speed" min="50" max="1000" value="100" oninput="updateSpeed(this.value)"></label>
+      <label>Grid Size: <input type="number" id="gridSize" min="10" max="100" value="50" oninput="resizeGrid(this.value)"></label>
+      <label>Energy Decay: <input type="range" id="decay" min="0" max="0.1" step="0.01" value="0.02" oninput="updateDecay(this.value)"></label>
+    </div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gridSize = 50;
+    let cellSize = 10;
+    let grid = [];
+    let energy = [];
+    let isRunning = false;
+    let animationId;
+    let speed = 100;
+    let decayRate = 0.02;
+
+    // Initialize grid and canvas
+    function initGrid() {
+      canvas.width = gridSize * cellSize;
+      canvas.height = gridSize * cellSize;
+      grid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+      energy = Array(gridSize).fill().map(() => Array(gridSize).fill(1));
+      drawGrid();
+    }
+
+    // Draw grid with cosmic effects
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Starfield background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      for (let i = 0; i < 100; i++) {
+        ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 2, 2);
+      }
+      // Draw cells
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (grid[i][j]) {
+            const e = energy[i][j];
+            ctx.fillStyle = `rgba(100, 200, 255, ${e})`;
+            ctx.beginPath();
+            ctx.arc((j + 0.5) * cellSize, (i + 0.5) * cellSize, cellSize / 2 - 1, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    // Count neighbors
+    function countNeighbors(i, j) {
+      let count = 0;
+      for (let di = -1; di <= 1; di++) {
+        for (let dj = -1; dj <= 1; dj++) {
+          if (di === 0 && dj === 0) continue;
+          let ni = (i + di + gridSize) % gridSize;
+          let nj = (j + dj + gridSize) % gridSize;
+          count += grid[ni][nj];
+        }
+      }
+      return count;
+    }
+
+    // Update grid with energy and random cosmic events
+    function updateGrid() {
+      let newGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+      let newEnergy = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          let neighbors = countNeighbors(i, j);
+          let e = energy[i][j] - decayRate;
+          if (grid[i][j]) {
+            // Survival rule with energy
+            if (neighbors === 2 || neighbors === 3) {
+              newGrid[i][j] = 1;
+              newEnergy[i][j] = Math.max(0, e);
+            }
+          } else {
+            // Birth rule with energy threshold
+            if (neighbors === 3 && e > 0.3) {
+              newGrid[i][j] = 1;
+              newEnergy[i][j] = 1;
+            }
+          }
+          // Random cosmic event (e.g., cosmic ray)
+          if (Math.random() < 0.001) {
+            newGrid[i][j] = 1;
+            newEnergy[i][j] = 1;
+          }
+        }
+      }
+      grid = newGrid;
+      energy = newEnergy;
+      drawGrid();
+    }
+
+    // Animation loop
+    function animate() {
+      if (isRunning) {
+        updateGrid();
+        animationId = setTimeout(() => requestAnimationFrame(animate), speed);
+      }
+    }
+
+    // Toggle simulation
+    function toggleSimulation() {
+      isRunning = !isRunning;
+      if (isRunning) {
+        animate();
+      } else {
+        clearTimeout(animationId);
+      }
+    }
+
+    // Clear grid
+    function clearGrid() {
+      isRunning = false;
+      clearTimeout(animationId);
+      initGrid();
+    }
+
+    // Randomize grid
+    function randomizeGrid() {
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          grid[i][j] = Math.random() > 0.7 ? 1 : 0;
+          energy[i][j] = grid[i][j] ? 1 : 0;
+        }
+      }
+      drawGrid();
+    }
+
+    // Load predefined patterns
+    function loadPattern(pattern) {
+      clearGrid();
+      if (pattern === 'glider') {
+        grid[1][2] = grid[2][3] = grid[3][1] = grid[3][2] = grid[3][3] = 1;
+        energy[1][2] = energy[2][3] = energy[3][1] = energy[3][2] = energy[3][3] = 1;
+      } else if (pattern === 'pulsar') {
+        const p = Math.floor(gridSize / 2);
+        const pulsar = [
+          [0,0,1,1,1,0,0,0,1,1,1,0,0],
+          [0,0,0,0,0,0,0,0,0,0,0,0,0],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [0,0,1,1,1,0,0,0,1,1,1,0,0],
+          [0,0,0,0,0,0,0,0,0,0,0,0,0],
+          [0,0,1,1,1,0,0,0,1,1,1,0,0],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [1,0,0,0,0,1,0,1,0,0,0,0,1],
+          [0,0,0,0,0,0,0,0,0,0,0,0,0],
+          [0,0,1,1,1,0,0,0,1,1,1,0,0]
+        ];
+        for (let i = 0; i < 13; i++) {
+          for (let j = 0; j < 13; j++) {
+            grid[p - 6 + i][p - 6 + j] = pulsar[i][j];
+            energy[p - 6 + i][p - 6 + j] = pulsar[i][j];
+          }
+        }
+      } else if (pattern === 'spaceship') {
+        grid[2][1] = grid[2][4] = grid[3][5] = grid[4][1] = grid[4][5] = grid[5][2] = grid[5][3] = grid[5][4] = grid[5][5] = 1;
+        energy[2][1] = energy[2][4] = energy[3][5] = energy[4][1] = energy[4][5] = energy[5][2] = energy[5][3] = energy[5][4] = energy[5][5] = 1;
+      }
+      drawGrid();
+    }
+
+    // Update speed
+    function updateSpeed(value) {
+      speed = parseInt(value);
+    }
+
+    // Update decay rate
+    function updateDecay(value) {
+      decayRate = parseFloat(value);
+    }
+
+    // Resize grid
+    function resizeGrid(value) {
+      gridSize = parseInt(value);
+      cellSize = Math.min(800 / gridSize, 10);
+      initGrid();
+    }
+
+    // Initialize
+    initGrid();
+
+    // Canvas click to toggle cells
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / cellSize);
+      const y = Math.floor((e.clientY - rect.top) / cellSize);
+      grid[y][x] = grid[y][x] ? 0 : 1;
+      energy[y][x] = grid[y][x] ? 1 : 0;
+      drawGrid();
+    });
+  </script>
+</body>
+</html>

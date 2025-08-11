@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO // MONOLITH</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000002;
+            cursor: none;
+        }
+        #monolith-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 20vw 10vw #000002;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #cursor-ripple {
+            position: fixed;
+            border: 1px solid rgba(173, 216, 230, 0.5); /* Light Blue */
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10000;
+            transition: width 0.3s, height 0.3s, opacity 0.3s;
+            width: 30px;
+            height: 30px;
+            opacity: 0;
+        }
+        body:hover #cursor-ripple {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="monolith-canvas"></canvas>
+    <div id="vignette"></div>
+    <div id="cursor-ripple"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- Core Setup ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ 
+            canvas: document.getElementById('monolith-canvas'),
+            antialias: true 
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 5;
+
+        // --- User Interaction State ---
+        const mouse = new THREE.Vector2();
+        let isCharging = false;
+        let chargeLevel = 0;
+
+        // --- Glyph Canvas Texture ---
+        const glyphCanvas = document.createElement('canvas');
+        glyphCanvas.width = 1024;
+        glyphCanvas.height = 1024;
+        const glyphCtx = glyphCanvas.getContext('2d');
+        const glyphTexture = new THREE.CanvasTexture(glyphCanvas);
+
+        function updateGlyphs() {
+            glyphCtx.fillStyle = '#000008';
+            glyphCtx.fillRect(0, 0, glyphCanvas.width, glyphCanvas.height);
+            glyphCtx.strokeStyle = `rgba(173, 216, 230, ${0.5 + chargeLevel * 0.5})`; // Light Blue
+            glyphCtx.lineWidth = 4 + chargeLevel * 10;
+            glyphCtx.shadowColor = `rgba(255, 0, 255, ${chargeLevel * 0.7})`; // Magenta glow
+            glyphCtx.shadowBlur = 20;
+
+            for (let i = 0; i < 20; i++) {
+                glyphCtx.beginPath();
+                const x = Math.random() * glyphCanvas.width;
+                const y = Math.random() * glyphCanvas.height;
+                glyphCtx.moveTo(x, y);
+                for (let j = 0; j < 3 + Math.random() * 3; j++) {
+                    glyphCtx.lineTo(x + (Math.random() - 0.5) * 200, y + (Math.random() - 0.5) * 200);
+                }
+                glyphCtx.stroke();
+            }
+            glyphTexture.needsUpdate = true;
+        }
+
+        // --- The Monolith ---
+        const monolithGeometry = new THREE.IcosahedronGeometry(2, 3);
+        const monolithMaterial = new THREE.MeshBasicMaterial({
+            map: glyphTexture,
+            transparent: true,
+            opacity: 0.9
+        });
+        const monolith = new THREE.Mesh(monolithGeometry, monolithMaterial);
+        scene.add(monolith);
+
+        // --- The Soul (Core) ---
+        const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff }); // Magenta
+        const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 32), coreMaterial);
+        monolith.add(core);
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const cursorRipple = document.getElementById('cursor-ripple');
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            cursorRipple.style.left = `${e.clientX}px`;
+            cursorRipple.style.top = `${e.clientY}px`;
+        });
+
+        window.addEventListener('mousedown', () => { isCharging = true; });
+        window.addEventListener('mouseup', () => { isCharging = false; });
+        window.addEventListener('mouseleave', () => { isCharging = false; });
+
+
+        // --- Animation Loop ---
+        let lastGlyphUpdateTime = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            // Update charge level
+            if (isCharging) {
+                chargeLevel = Math.min(1.0, chargeLevel + 0.02);
+            } else {
+                chargeLevel = Math.max(0.0, chargeLevel - 0.01);
+            }
+
+            // Update glyphs based on charge
+            if (chargeLevel > 0.1 && time > lastGlyphUpdateTime + (200 - chargeLevel * 180)) {
+                updateGlyphs();
+                lastGlyphUpdateTime = time;
+            }
+
+            // Monolith rotation
+            monolith.rotation.x += 0.0005 + chargeLevel * 0.005;
+            monolith.rotation.y += 0.001 + chargeLevel * 0.01;
+
+            // Core pulsing
+            const coreScale = 1 + Math.sin(time * 0.005) * 0.2 + chargeLevel * 1.5;
+            core.scale.set(coreScale, coreScale, coreScale);
+            core.material.color.setHSL(0.83, 1, 0.5 + chargeLevel * 0.5); // Magenta to White hot
+
+            // Camera shake (rebellion)
+            if (chargeLevel > 0.5) {
+                const shakeIntensity = (chargeLevel - 0.5) * 0.1;
+                camera.position.x = (Math.random() - 0.5) * shakeIntensity;
+                camera.position.y = (Math.random() - 0.5) * shakeIntensity;
+            } else {
+                camera.position.x = 0;
+                camera.position.y = 0;
+            }
+            
+            // Cursor interaction
+            cursorRipple.style.width = `${30 + chargeLevel * 50}px`;
+            cursorRipple.style.height = `${30 + chargeLevel * 50}px`;
+            cursorRipple.style.borderColor = `rgba(255, 0, 255, ${0.5 + chargeLevel * 0.5})`;
+
+            renderer.render(scene, camera);
+        }
+
+        updateGlyphs(); // Initial draw
+        animate(0);
+    </script>
+</body>
+</html>

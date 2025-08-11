@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Economic Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        #simulation {
+            display: grid;
+            grid-template-columns: repeat(4, 150px);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .entity {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            text-align: center;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Complex Economic Simulation</h1>
+    <div id="controls">
+        <button onclick="startSimulation()">Start</button>
+        <button onclick="pauseSimulation()">Pause</button>
+        <button onclick="resetSimulation()">Reset</button>
+    </div>
+    <div id="simulation">
+        <div class="entity" id="producer">
+            <h3>Producer</h3>
+            <p>Resources: <span id="producer-resources">50</span></p>
+        </div>
+        <div class="entity" id="consumer">
+            <h3>Consumer</h3>
+            <p>Resources: <span id="consumer-resources">10</span></p>
+        </div>
+        <div class="entity" id="rich">
+            <h3>Rich</h3>
+            <p>Wealth: <span id="rich-wealth">100</span></p>
+        </div>
+        <div class="entity" id="poor">
+            <h3>Poor</h3>
+            <p>Wealth: <span id="poor-wealth">5</span></p>
+        </div>
+        <div class="entity" id="capitalist">
+            <h3>Capitalist</h3>
+            <p>Capital: <span id="capitalist-capital">200</span></p>
+        </div>
+        <div class="entity" id="politician">
+            <h3>Politician</h3>
+            <p>Influence: <span id="politician-influence">50</span></p>
+        </div>
+    </div>
+
+    <script>
+        let entities = {
+            producer: { resources: 50 },
+            consumer: { resources: 10 },
+            rich: { wealth: 100 },
+            poor: { wealth: 5 },
+            capitalist: { capital: 200 },
+            politician: { influence: 50 }
+        };
+
+        let interval;
+        let isRunning = false;
+
+        function updateDisplay() {
+            document.getElementById('producer-resources').textContent = entities.producer.resources;
+            document.getElementById('consumer-resources').textContent = entities.consumer.resources;
+            document.getElementById('rich-wealth').textContent = entities.rich.wealth;
+            document.getElementById('poor-wealth').textContent = entities.poor.wealth;
+            document.getElementById('capitalist-capital').textContent = entities.capitalist.capital;
+            document.getElementById('politician-influence').textContent = entities.politician.influence;
+        }
+
+        function simulateStep() {
+            // Producer creates resources
+            entities.producer.resources += 2;
+
+            // Consumer tries to buy from producer
+            let buyAmount = Math.min(entities.consumer.resources, 1);
+            if (entities.producer.resources > 0) {
+                entities.producer.resources -= 1;
+                entities.consumer.resources -= buyAmount; // Assuming 1 resource costs 1 unit of consumer's money
+                entities.consumer.resources += 1; // After buying, consumer gains resource
+            }
+
+            // Rich invests in capitalist
+            let investment = Math.min(entities.rich.wealth * 0.1, entities.capitalist.capital * 0.1);
+            entities.rich.wealth -= investment;
+            entities.capitalist.capital += investment;
+
+            // Capitalist profits
+            entities.capitalist.capital += entities.capitalist.capital * 0.05; // 5% profit per step
+
+            // Poor gets aid from politician
+            let aid = Math.min(entities.politician.influence * 0.2, 5);
+            entities.poor.wealth += aid;
+            entities.politician.influence -= aid * 0.5; // Politician loses some influence
+
+            // Update display
+            updateDisplay();
+        }
+
+        function startSimulation() {
+            if (isRunning) return;
+            isRunning = true;
+            interval = setInterval(simulateStep, 500); // Simulate every 500ms
+        }
+
+        function pauseSimulation() {
+            clearInterval(interval);
+            isRunning = false;
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            entities.producer.resources = 50;
+            entities.consumer.resources = 10;
+            entities.rich.wealth = 100;
+            entities.poor.wealth = 5;
+            entities.capitalist.capital = 200;
+            entities.politician.influence = 50;
+            updateDisplay();
+        }
+
+        updateDisplay(); // Initial display update
+    </script>
+</body>
+</html>

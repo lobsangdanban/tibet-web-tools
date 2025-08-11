@@ -1,0 +1,53 @@
+汇编语言实现冒泡排序详解本例使用 x86 汇编语言，并以之前代码中的数据段为例：; 数据段
+array dd 5, 1, 4, 2, 8, 3
+array_length equ ($ - array) / 4
+1.  初始化array：定义一个双字 (dd) 数组，包含初始值 [5, 1, 4, 2, 8, 3]。array_length：计算数组的长度，这里是 6。ecx：用于存储外层循环的计数器，初始化为 array_length - 1，即 5。esi：用于存储内层循环的数组索引，初始化为 0。edx：用于标记是否有交换发生，初始化为 0。2.  外层循环 (outer_loop)push ecx：将 ecx 的值压入栈中，以便在内层循环中使用和恢复。mov esi, 0：将 esi（数组索引）重置为 0。mov edx, 0：将交换标志 edx 重置为 0。循环条件：ecx > 0。3.  内层循环 (inner_loop)cmp esi, ecx：比较 esi 和 ecx。jge inner_loop_end：如果 esi >= ecx，跳转到 inner_loop_end，结束内层循环。mov eax, [array + esi * 4]：将 array[esi] 的值加载到 eax 中。  由于是双字数组，所以索引乘以 4。mov ebx, [array + (esi + 1) * 4]：将 array[esi + 1] 的值加载到 ebx 中。cmp eax, ebx：比较 eax 和 ebx。jle no_swap：如果 eax <= ebx，跳转到 no_swap，不交换。交换操作：mov [array + esi * 4], ebx：将 ebx 的值存储到 array[esi]。mov [array + (esi + 1) * 4], eax：将 eax 的值存储到 array[esi + 1]。mov edx, 1：设置交换标志 edx 为 1，表示发生了交换。no_swap：inc esi：将 esi 增加 1，移动到下一个数组元素。jmp inner_loop：跳转到 inner_loop 的开始，继续比较。4.  内层循环结束 (inner_loop_end)内层循环执行完毕，此时 esi 遍历了 array 的一部分。5.  检查交换标志cmp edx, 0：检查交换标志 edx 是否为 0。jz sorted_end：如果 edx == 0，说明内层循环中没有发生交换，数组已经有序，跳转到 sorted_end。6.  外层循环迭代pop ecx：从栈中恢复 ecx 的值。loop outer_loop：loop 指令自动将 ecx 减 1，并检查 ecx 是否为 0。如果 ecx != 0，跳转到 outer_loop 的开始，继续外层循环。7.  排序结束 (sorted_end)当外层循环结束时，数组排序完成。ret：返回。总结冒泡排序通过内层循环比较相邻元素并在必要时进行交换，外层循环控制内层循环的次数，确保所有元素都参与了比较。  edx 标志用于提前结束排序，如果在某次外层循环中没有发生交换，说明数组已经有序。
+汇编语言实现冒泡排序详解
+
+### 数据段初始化
+- 定义一个双字 (dd) 数组 `array`，包含初始值 `[5, 1, 4, 2, 8, 3]`。
+- 计算数组长度 `array_length`，值为 6。计算方式为 `($ - array) / 4`。
+
+### 寄存器初始化
+- `ecx`：用于存储外层循环的计数器，初始化为 `array_length - 1`，即 5。
+- `esi`：用于存储内层循环的数组索引，初始化为 0。
+- `edx`：用于标记是否有交换发生，初始化为 0。
+
+### 排序流程
+
+#### 1. 外层循环 (`outer_loop`)
+- `push ecx`：将 `ecx` 的值压入栈中，以便在内层循环中使用和恢复。
+- `mov esi, 0`：将 `esi`（数组索引）重置为 0。
+- `mov edx, 0`：将交换标志 `edx` 重置为 0。
+- 循环条件：`ecx > 0`。
+
+#### 2. 内层循环 (`inner_loop`)
+- `cmp esi, ecx`：比较 `esi` 和 `ecx`。
+- `jge inner_loop_end`：如果 `esi >= ecx`，跳转到 `inner_loop_end`，结束内层循环。
+- `mov eax, [array + esi * 4]`：将 `array[esi]` 的值加载到 `eax` 中，由于是双字数组，所以索引乘以 4。
+- `mov ebx, [array + (esi + 1) * 4]`：将 `array[esi + 1]` 的值加载到 `ebx` 中。
+- `cmp eax, ebx`：比较 `eax` 和 `ebx`。
+- `jle no_swap`：如果 `eax <= ebx`，跳转到 `no_swap`，不交换。
+- 交换操作：
+  - `mov [array + esi * 4], ebx`：将 `ebx` 的值存储到 `array[esi]`。
+  - `mov [array + (esi + 1) * 4], eax`：将 `eax` 的值存储到 `array[esi + 1]`。
+  - `mov edx, 1`：设置交换标志 `edx` 为 1，表示发生了交换。
+- `no_swap`：`inc esi`：将 `esi` 增加 1，移动到下一个数组元素。
+- `jmp inner_loop`：跳转到 `inner_loop` 的开始，继续比较。
+
+#### 3. 内层循环结束 (`inner_loop_end`)
+内层循环执行完毕，此时 `esi` 遍历了 `array` 的一部分。
+
+#### 4. 检查交换标志
+- `cmp edx, 0`：检查交换标志 `edx` 是否为 0。
+- `jz sorted_end`：如果 `edx == 0`，说明内层循环中没有发生交换，数组已经有序，跳转到 `sorted_end`。
+
+#### 5. 外层循环迭代
+- `pop ecx`：从栈中恢复 `ecx` 的值。
+- `loop outer_loop`：`loop` 指令自动将 `ecx` 减 1，并检查 `ecx` 是否为 0。如果 `ecx != 0`，跳转到 `outer_loop` 的开始，继续外层循环。
+
+#### 6. 排序结束 (`sorted_end`)
+当外层循环结束时，数组排序完成。`ret`：返回。
+
+### 总结
+冒泡排序通过内层循环比较相邻元素并在必要时进行交换，外层循环控制内层循环的次数，确保所有元素都参与了比较。`edx` 标志用于提前结束排序，如果在某次外层循环中没有发生交换，说明数组已经有序。

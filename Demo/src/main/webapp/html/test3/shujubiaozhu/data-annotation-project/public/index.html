@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Annotation Project</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <header>
+        <h1>数据标注工具</h1>
+    </header>
+    <main>
+        <section id="upload-section">
+            <h2>上传数据</h2>
+            <input type="file" id="file-input" accept=".json,.csv,.txt">
+            <button id="upload-button">上传</button>
+        </section>
+        <section id="data-view-section">
+            <h2>数据预览</h2>
+            <div id="data-preview">
+                <p>请上传文件以查看数据。</p>
+            </div>
+        </section>
+        <section id="annotation-section">
+            <h2>标注区域</h2>
+            <textarea id="annotation-input" placeholder="在此输入标注..."></textarea>
+            <button id="save-annotation-button">保存标注</button>
+        </section>
+    </main>
+    <footer>
+        <p>© 2025 数据标注工具</p>
+    </footer>
+    <script type="module" src="../src/app.js"></script>
+</body>
+</html>

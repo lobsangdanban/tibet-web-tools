@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识图谱 - 熵的跨学科关联（可编辑）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+  <style>
+    body {
+      background-color: #f3f4f6;
+    }
+    #knowledgeGraph {
+      height: 500px;
+      border: 1px solid #e5e7eb;
+      background-color: white;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- 导航栏 -->
+  <nav class="bg-blue-600 text-white p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">知识图谱 - 熵（可编辑）</h1>
+      <ul class="flex space-x-6">
+        <li><a href="#home" class="hover:text-blue-200">首页</a></li>
+        <li><a href="#about" class="hover:text-blue-200">关于</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <section id="home" class="py-16">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">熵的跨学科知识图谱</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 图谱区域 -->
+        <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">知识图谱</h3>
+          <div id="knowledgeGraph"></div>
+        </div>
+        <!-- 右侧区域：节点详情与编辑 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">节点管理</h3>
+          <!-- 节点详情 -->
+          <div id="nodeInfo" class="text-gray-600 mb-6">
+            <p>点击图谱中的节点以查看详细信息。</p>
+          </div>
+          <!-- 添加节点表单 -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">添加节点</h4>
+            <input id="nodeLabel" type="text" placeholder="节点名称" class="w-full p-2 mb-2 border rounded">
+            <input id="nodeDescription" type="text" placeholder="节点描述" class="w-full p-2 mb-2 border rounded">
+            <select id="nodeGroup" class="w-full p-2 mb-2 border rounded">
+              <option value="core">核心概念</option>
+              <option value="discipline">学科</option>
+              <option value="concept">具体概念</option>
+            </select>
+            <button onclick="addNode()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">添加节点</button>
+          </div>
+          <!-- 添加边表单 -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">添加边</h4>
+            <select id="edgeFrom" class="w-full p-2 mb-2 border rounded"></select>
+            <select id="edgeTo" class="w-full p-2 mb-2 border rounded"></select>
+            <input id="edgeLabel" type="text" placeholder="关系名称" class="w-full p-2 mb-2 border rounded">
+            <button onclick="addEdge()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">添加边</button>
+          </div>
+          <!-- 编辑/删除节点 -->
+          <div>
+            <h4 class="text-lg font-semibold mb-2">编辑/删除节点</h4>
+            <select id="editNodeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <input id="editNodeLabel" type="text" placeholder="新名称" class="w-full p-2 mb-2 border rounded">
+            <input id="editNodeDescription" type="text" placeholder="新描述" class="w-full p-2 mb-2 border rounded">
+            <select id="editNodeGroup" class="w-full p-2 mb-2 border rounded">
+              <option value="core">核心概念</option>
+              <option value="discipline">学科</option>
+              <option value="concept">具体概念</option>
+            </select>
+            <button onclick="updateNode()" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mb-2">更新节点</button>
+            <button onclick="deleteNode()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除节点</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="about" class="py-16 bg-blue-50">
+    <div class="container mx-auto text-center">
+      <h2 class="text-3xl font-bold mb-8">关于本图谱</h2>
+      <p class="text-lg max-w-2xl mx-auto">
+        本知识图谱展示了“熵”在物理学、信息论和生物学中的关联，支持动态添加、编辑和删除节点与边，探索跨学科知识的同构性。
+      </p>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="bg-blue-600 text-white p-4 text-center">
+    <p>© 2025 知识图谱展示. 保留所有权利。</p>
+  </footer>
+
+  <script>
+    // 初始化数据
+    let nodes = new vis.DataSet([
+      { id: 1, label: "熵", group: "core", color: "#3b82f6", description: "系统无序度的度量" },
+      { id: 2, label: "物理学", group: "discipline", description: "研究自然界基本规律" },
+      { id: 3, label: "信息论", group: "discipline", description: "研究信息的度量与传递" },
+      { id: 4, label: "生物学", group: "discipline", description: "研究生命系统" },
+      { id: 5, label: "热力学第二定律", group: "concept", description: "熵在孤立系统中趋向最大" },
+      { id: 6, label: "香农熵", group: "concept", description: "衡量信息的不确定性" },
+      { id: 7, label: "代谢与生态", group: "concept", description: "熵与生物系统能量流动相关" }
+    ]);
+
+    let edges = new vis.DataSet([
+      { from: 1, to: 2, label: "应用于" },
+      { from: 1, to: 3, label: "应用于" },
+      { from: 1, to: 4, label: "应用于" },
+      { from: 2, to: 5, label: "包含" },
+      { from: 3, to: 6, label: "包含" },
+      { from: 4, to: 7, label: "包含" }
+    ]);
+
+    // 初始化Vis.js网络图
+    const container = document.getElementById("knowledgeGraph");
+    const data = { nodes: nodes, edges: edges };
+    const options = {
+      nodes: {
+        shape: "dot",
+        size: 20,
+        font: { size: 14, face: "Arial" }
+      },
+      edges: {
+        arrows: "to",
+        font: { align: "middle" }
+      },
+      physics: { enabled: true },
+      interaction: { zoomView: true, dragView: true }
+    };
+    const network = new vis.Network(container, data, options);
+
+    // 更新下拉菜单选项
+    function updateNodeSelects() {
+      const edgeFrom = document.getElementById("edgeFrom");
+      const edgeTo = document.getElementById("edgeTo");
+      const editNodeSelect = document.getElementById("editNodeSelect");
+      edgeFrom.innerHTML = "";
+      edgeTo.innerHTML = "";
+      editNodeSelect.innerHTML = "";
+      nodes.forEach(node => {
+        const option = `<option value="${node.id}">${node.label}</option>`;
+        edgeFrom.innerHTML += option;
+        edgeTo.innerHTML += option;
+        editNodeSelect.innerHTML += option;
+      });
+    }
+    updateNodeSelects();
+
+    // 点击节点显示详情
+    network.on("click", function (params) {
+      const nodeId = params.nodes[0];
+      const nodeInfo = document.getElementById("nodeInfo");
+      if (nodeId) {
+        const node = nodes.get(nodeId);
+        nodeInfo.innerHTML = `<h4 class="text-lg font-semibold">${node.label}</h4><p>${node.description || "暂无描述"}</p>`;
+        // 填充编辑表单
+        document.getElementById("editNodeSelect").value = node.id;
+        document.getElementById("editNodeLabel").value = node.label;
+        document.getElementById("editNodeDescription").value = node.description || "";
+        document.getElementById("editNodeGroup").value = node.group;
+      } else {
+        nodeInfo.innerHTML = `<p>点击图谱中的节点以查看详细信息。</p>`;
+      }
+    });
+
+    // 添加节点
+    function addNode() {
+      const label = document.getElementById("nodeLabel").value;
+      const description = document.getElementById("nodeDescription").value;
+      const group = document.getElementById("nodeGroup").value;
+      if (label) {
+        const id = nodes.length + 1;
+        nodes.add({ id, label, group, description, color: group === "core" ? "#3b82f6" : group === "discipline" ? "#10b981" : "#f59e0b" });
+        updateNodeSelects();
+        document.getElementById("nodeLabel").value = "";
+        document.getElementById("nodeDescription").value = "";
+      } else {
+        alert("请输入节点名称！");
+      }
+    }
+
+    // 添加边
+    function addEdge() {
+      const from = parseInt(document.getElementById("edgeFrom").value);
+      const to = parseInt(document.getElementById("edgeTo").value);
+      const label = document.getElementById("edgeLabel").value;
+      if (from && to && label) {
+        edges.add({ from, to, label });
+        document.getElementById("edgeLabel").value = "";
+      } else {
+        alert("请选择起点、终点并输入关系名称！");
+      }
+    }
+
+    // 更新节点
+    function updateNode() {
+      const id = parseInt(document.getElementById("editNodeSelect").value);
+      const label = document.getElementById("editNodeLabel").value;
+      const description = document.getElementById("editNodeDescription").value;
+      const group = document.getElementById("editNodeGroup").value;
+      if (id && label) {
+        nodes.update({ id, label, description, group, color: group === "core" ? "#3b82f6" : group === "discipline" ? "#10b981" : "#f59e0b" });
+        updateNodeSelects();
+      } else {
+        alert("请选择节点并输入新名称！");
+      }
+    }
+
+    // 删除节点
+    function deleteNode() {
+      const id = parseInt(document.getElementById("editNodeSelect").value);
+      if (id) {
+        nodes.remove(id);
+        edges.get().forEach(edge => {
+          if (edge.from === id || edge.to === id) {
+            edges.remove(edge.id);
+          }
+        });
+        updateNodeSelects();
+        document.getElementById("nodeInfo").innerHTML = `<p>点击图谱中的节点以查看详细信息。</p>`;
+      } else {
+        alert("请选择要删除的节点！");
+      }
+    }
+  </script>
+</body>
+</html>

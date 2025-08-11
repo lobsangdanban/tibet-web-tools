@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>小费计算器</title>
+ </head>
+ <body>
+
+	<!--  
+		1.输入客单价
+		2.计算小费以客单价的15%计算
+		3.客单价＋小费＝总消费
+	-->
+
+	客单价：<input type="number" id="danjia"></input>
+	<button onclick=cal()>计算小费</button>
+	<span id="xiaofei"></span>
+
+<script type="text/javascript">
+	function cal(){
+		var num = document.getElementById("danjia").value;
+		var a = num*0.015;
+		document.getElementById("xiaofei").innerHTML = a.value;
+		alert(a)
+	}
+ </script>
+ </body>
+ 
+</html>

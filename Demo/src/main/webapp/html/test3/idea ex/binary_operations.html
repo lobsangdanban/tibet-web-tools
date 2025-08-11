@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>童趣梦幻 - 二进制运算及进制移位动画乐园</title>
+    <!-- 可以添加一些童趣的图标 -->
+    <link rel="icon" href="https://img.icons8.com/color/48/000000/magic-wand.png" type="image/png">
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background-color: #f5e3d7; 
+            color: #5a3d2b; 
+            /* 替换为有效的背景图片链接 */
+            background-image: url('https://example.com/your-valid-image.gif'); 
+            background-size: cover;
+            background-attachment: fixed;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 20px;
+            background-color: #fff3e6; /* 输入区域背景 */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ff9999; /* 开关默认颜色 */
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #8bc34a; /* 开关选中颜色 */
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #8bc34a;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .operation-select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+
+        .number-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .number-input {
+            padding: 5px;
+            margin-top: 5px;
+            width: 150px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .shift-input {
+            width: 50px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .result-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background-color: #fff3e6; /* 结果区域背景 */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #ff9999; /* 结果圆圈默认颜色 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            transition: background-color 0.4s;
+        }
+
+        .result-circle.active {
+            background-color: #8bc34a; /* 结果为 1 时的颜色 */
+        }
+
+        .result-circle.inactive {
+            background-color: #ff9999; /* 结果为 0 时的颜色 */
+        }
+        /* 可以添加一些梦幻的背景动画 */
+/* 原有的 body 选择器后续还有代码，这里保持原样，因为当前选择部分不存在空规则集 */
+
+
+        .input-section, .result-section {
+            /* 让输入和结果区域有半透明效果，更梦幻 */
+            background-color: rgba(255, 243, 230, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #ff6f61;">✨童趣梦幻 - 二进制运算及进制移位动画乐园✨</h1>
+    <!-- 可以添加一些童趣的提示文字 -->
+    <p style="color: #ff6f61; font-size: 18px;">欢迎来到充满魔法的运算世界，快来探索吧！</p>
+    <div class="input-section">
+        <div class="input-group">
+            <label>输入 A</label>
+            <label class="switch">
+                <input type="checkbox" id="inputA">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="input-group">
+            <label>输入 B</label>
+            <label class="switch">
+                <input type="checkbox" id="inputB">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div>
+    <div class="input-section">
+        <div class="number-input-group">
+            <label>数值输入</label>
+            <input type="text" class="number-input" id="numberInput" placeholder="输入数值">
+            <select class="operation-select" id="baseSelect">
+                <option value="2">二进制</option>
+                <option value="8">八进制</option>
+                <option value="10">十进制</option>
+                <option value="16">十六进制</option>
+            </select>
+        </div>
+        <div class="number-input-group">
+            <label>移位位数</label>
+            <input type="number" class="number-input shift-input" id="shiftInput" value="0">
+        </div>
+    </div>
+    <select class="operation-select" id="operation">
+        <option value="AND">与门 (AND)</option>
+        <option value="OR">或门 (OR)</option>
+        <option value="NOT">非门 (NOT)</option>
+        <option value="XOR">异或门 (XOR)</option>
+        <option value="LSHIFT">左移 (LSHIFT)</option>
+        <option value="RSHIFT">右移 (RSHIFT)</option>
+    </select>
+    <div class="result-section">
+        <label>结果</label>
+        <div class="result-circle" id="resultCircle">0</div>
+        <div>
+            <label>二进制: </label>
+            <span id="resultBinary">0</span>
+        </div>
+        <div>
+            <label>八进制: </label>
+            <span id="resultOctal">0</span>
+        </div>
+        <div>
+            <label>十进制: </label>
+            <span id="resultDecimal">0</span>
+        </div>
+        <div>
+            <label>十六进制: </label>
+            <span id="resultHex">0</span>
+        </div>
+    </div>
+
+    <script>
+        const inputA = document.getElementById('inputA');
+        const inputB = document.getElementById('inputB');
+        const operationSelect = document.getElementById('operation');
+        const resultCircle = document.getElementById('resultCircle');
+        const numberInput = document.getElementById('numberInput');
+        const baseSelect = document.getElementById('baseSelect');
+        const shiftInput = document.getElementById('shiftInput');
+        const resultBinary = document.getElementById('resultBinary');
+        const resultOctal = document.getElementById('resultOctal');
+        const resultDecimal = document.getElementById('resultDecimal');
+        const resultHex = document.getElementById('resultHex');
+
+        // 修改 performOperation 函数
+        function performOperation() { 
+            const a = inputA.checked ? 1 : 0;
+            const b = inputB.checked ? 1 : 0;
+            const operation = operationSelect.value;
+            const numberStr = numberInput.value;
+            const base = parseInt(baseSelect.value);
+            const shift = parseInt(shiftInput.value);
+            let result;
+
+            if (numberStr) {
+                const num = parseInt(numberStr, base);
+                switch(operation) {
+                    case 'AND':
+                        result = a && b;
+                        break;
+                    case 'OR':
+                        result = a || b;
+                        break;
+                    case 'NOT':
+                        result = !a;
+                        break;
+                    case 'XOR':
+                        result = a ^ b;
+                        break;
+                    case 'LSHIFT':
+                        result = num << shift;
+                        break;
+                    case 'RSHIFT':
+                        result = num >> shift;
+                        break;
+                }
+            } else {
+                // 处理原有的逻辑
+                switch(operation) {
+                    case 'AND':
+                        result = a && b;
+                        break;
+                    case 'OR':
+                        result = a || b;
+                        break;
+                    case 'NOT':
+                        result = !a;
+                        break;
+                    case 'XOR':
+                        result = a ^ b;
+                        break;
+                    case 'LSHIFT':
+                    case 'RSHIFT':
+                        result = 0;
+                        break;
+                }
+            }
+
+            resultCircle.textContent = result ? '1' : '0';
+            resultCircle.className = `result-circle ${result ? 'active' : 'inactive'}`;
+
+            if (typeof result === 'number') {
+                resultBinary.textContent = result.toString(2);
+                resultOctal.textContent = result.toString(8);
+                resultDecimal.textContent = result.toString(10);
+                resultHex.textContent = result.toString(16).toUpperCase();
+            } else {
+                resultBinary.textContent = result ? '1' : '0';
+                resultOctal.textContent = result ? '1' : '0';
+                resultDecimal.textContent = result ? '1' : '0';
+                resultHex.textContent = result ? '1' : '0';
+            }
+        }
+
+        inputA.addEventListener('change', performOperation);
+        inputB.addEventListener('change', performOperation);
+        operationSelect.addEventListener('change', performOperation);
+        numberInput.addEventListener('input', performOperation);
+        baseSelect.addEventListener('change', performOperation);
+        shiftInput.addEventListener('input', performOperation);
+    </script>
+</body>
+</html>
+
+<style>
+    .logic-gate-container {
+        margin-top: 20px;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .logic-gate {
+        width: 100px;
+        height: 60px;
+        position: relative;
+        margin: 20px auto;
+    }
+
+    .gate-shape {
+        fill: #ffffff;
+        stroke: #000000;
+        stroke-width: 2;
+    }
+
+    .input-line, .output-line {
+        stroke: #000000;
+        stroke-width: 2;
+    }
+
+    .active-line {
+        stroke: #ff0000;
+        stroke-width: 3;
+    }
+
+    .gate-label {
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        font-size: 16px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+    }
+
+
+</style>

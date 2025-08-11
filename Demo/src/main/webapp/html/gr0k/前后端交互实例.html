@@ -1,0 +1,588 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前后端数据交互示例</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .section:hover {
+            transform: translateY(-5px);
+        }
+        
+        .frontend {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+        
+        .backend {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .database {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        .data-display {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .protocol-info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .method-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        
+        .get { background: #48bb78; color: white; }
+        .post { background: #ed8936; color: white; }
+        .put { background: #4299e1; color: white; }
+        .delete { background: #f56565; color: white; }
+        
+        .json-viewer {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .json-key { color: #63b3ed; }
+        .json-string { color: #68d391; }
+        .json-number { color: #fbb6ce; }
+        .json-boolean { color: #faf089; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 前后端数据交互完整流程</h1>
+        
+        <!-- 前端数据输入部分 -->
+        <div class="section frontend">
+            <h2>📱 前端 - 用户数据输入</h2>
+            
+            <div class="form-group">
+                <label>用户姓名:</label>
+                <input type="text" id="userName" placeholder="请输入用户姓名">
+            </div>
+            
+            <div class="form-group">
+                <label>年龄:</label>
+                <input type="number" id="userAge" placeholder="请输入年龄">
+            </div>
+            
+            <div class="form-group">
+                <label>邮箱:</label>
+                <input type="email" id="userEmail" placeholder="请输入邮箱地址">
+            </div>
+            
+            <div class="form-group">
+                <label>用户角色:</label>
+                <select id="userRole">
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                    <option value="moderator">版主</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>个人简介:</label>
+                <textarea id="userBio" rows="3" placeholder="请输入个人简介"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>头像上传:</label>
+                <input type="file" id="userAvatar" accept="image/*">
+            </div>
+            
+            <button onclick="submitUserData()">📤 提交用户数据 (JSON)</button>
+            <button onclick="submitFormData()">📤 提交表单数据 (FormData)</button>
+            <button onclick="submitUrlEncoded()">📤 提交URL编码数据</button>
+            <button onclick="getUserList()">📥 获取用户列表</button>
+            
+            <div class="protocol-info">
+                <h4>🌐 HTTP协议信息</h4>
+                <div id="requestInfo">等待请求...</div>
+            </div>
+            
+            <div class="data-display" id="requestData">
+                发送的数据将在这里显示...
+            </div>
+        </div>
+        
+        <!-- 后端处理部分 -->
+        <div class="section backend">
+            <h2>🖥️ 后端 - 数据处理与存储</h2>
+            
+            <div class="protocol-info">
+                <h4>📊 后端数据结构</h4>
+                <p><strong>接收到的数据格式:</strong></p>
+                <div id="backendReceived">等待接收数据...</div>
+                
+                <p><strong>数据验证与转换:</strong></p>
+                <div id="dataValidation">等待验证...</div>
+                
+                <p><strong>数据库操作:</strong></p>
+                <div id="databaseOperation">等待操作...</div>
+            </div>
+        </div>
+        
+        <!-- 数据库存储部分 -->
+        <div class="section database">
+            <h2>🗄️ 数据库 - 数据存储格式</h2>
+            
+            <div class="protocol-info">
+                <h4>💾 存储的数据结构</h4>
+                <div class="json-viewer" id="storedData">
+// 数据库中存储的用户数据结构
+{
+  <span class="json-key">"id"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"name"</span>: <span class="json-string">"示例用户"</span>,
+  <span class="json-key">"age"</span>: <span class="json-number">25</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"user@example.com"</span>,
+  <span class="json-key">"role"</span>: <span class="json-string">"user"</span>,
+  <span class="json-key">"bio"</span>: <span class="json-string">"这是个人简介"</span>,
+  <span class="json-key">"avatar_url"</span>: <span class="json-string">"/uploads/avatars/user_1.jpg"</span>,
+  <span class="json-key">"created_at"</span>: <span class="json-string">"2025-08-03T10:30:00Z"</span>,
+  <span class="json-key">"updated_at"</span>: <span class="json-string">"2025-08-03T10:30:00Z"</span>,
+  <span class="json-key">"is_active"</span>: <span class="json-boolean">true</span>
+}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 响应数据部分 -->
+        <div class="section frontend">
+            <h2>📱 前端 - 响应数据处理</h2>
+            
+            <div class="protocol-info">
+                <h4>📥 从后端接收到的响应数据</h4>
+                <div id="responseInfo">等待响应...</div>
+            </div>
+            
+            <div class="data-display" id="responseData">
+                接收到的数据将在这里显示...
+            </div>
+            
+            <div class="protocol-info">
+                <h4>🎨 数据渲染展示</h4>
+                <div id="renderedData">
+                    <p>渲染后的用户界面将在这里显示...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟后端API
+        const mockAPI = {
+            users: [
+                {
+                    id: 1,
+                    name: "张三",
+                    age: 28,
+                    email: "zhangsan@example.com",
+                    role: "admin",
+                    bio: "系统管理员，负责平台维护和用户管理",
+                    avatar_url: "/uploads/avatars/user_1.jpg",
+                    created_at: "2025-01-15T08:30:00Z",
+                    updated_at: "2025-07-20T15:45:00Z",
+                    is_active: true
+                },
+                {
+                    id: 2,
+                    name: "李四",
+                    age: 24,
+                    email: "lisi@example.com",
+                    role: "user",
+                    bio: "前端开发工程师，热爱新技术",
+                    avatar_url: "/uploads/avatars/user_2.jpg",
+                    created_at: "2025-02-10T10:15:00Z",
+                    updated_at: "2025-07-25T09:20:00Z",
+                    is_active: true
+                }
+            ],
+            
+            createUser: function(userData) {
+                const newUser = {
+                    id: this.users.length + 1,
+                    ...userData,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    is_active: true
+                };
+                this.users.push(newUser);
+                return {
+                    success: true,
+                    message: "用户创建成功",
+                    data: newUser
+                };
+            },
+            
+            getUsers: function() {
+                return {
+                    success: true,
+                    message: "获取用户列表成功",
+                    data: this.users,
+                    pagination: {
+                        total: this.users.length,
+                        page: 1,
+                        limit: 10
+                    }
+                };
+            }
+        };
+
+        function updateRequestInfo(method, url, contentType, data) {
+            const requestInfo = document.getElementById('requestInfo');
+            requestInfo.innerHTML = `
+                <span class="method-tag ${method.toLowerCase()}">${method}</span>
+                <strong>URL:</strong> ${url}<br>
+                <strong>Content-Type:</strong> ${contentType}<br>
+                <strong>数据大小:</strong> ${JSON.stringify(data).length} bytes
+            `;
+        }
+
+        function updateBackendInfo(received, validation, dbOperation) {
+            document.getElementById('backendReceived').innerHTML = `<pre>${JSON.stringify(received, null, 2)}</pre>`;
+            document.getElementById('dataValidation').innerHTML = validation;
+            document.getElementById('databaseOperation').innerHTML = dbOperation;
+        }
+
+        function renderUserList(users) {
+            const renderedData = document.getElementById('renderedData');
+            let html = '<div style="display: grid; gap: 15px;">';
+            
+            users.forEach(user => {
+                html += `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: white;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(45deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                ${user.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 style="margin: 0; color: #2d3748;">${user.name}</h4>
+                                <p style="margin: 5px 0; color: #718096;">${user.email}</p>
+                                <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                                    ${user.role}
+                                </span>
+                            </div>
+                        </div>
+                        <p style="margin: 10px 0; color: #4a5568;">${user.bio}</p>
+                        <small style="color: #a0aec0;">创建时间: ${new Date(user.created_at).toLocaleString()}</small>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            renderedData.innerHTML = html;
+        }
+
+        async function submitUserData() {
+            // 1. 收集前端表单数据
+            const userData = {
+                name: document.getElementById('userName').value,
+                age: parseInt(document.getElementById('userAge').value),
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRole').value,
+                bio: document.getElementById('userBio').value
+            };
+
+            // 2. 构建HTTP请求
+            const requestData = {
+                method: 'POST',
+                url: '/api/users',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(userData)
+            };
+
+            // 显示请求信息
+            updateRequestInfo('POST', '/api/users', 'application/json', userData);
+            document.getElementById('requestData').textContent = JSON.stringify(requestData, null, 2);
+
+            // 3. 模拟网络传输延迟
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // 4. 后端接收和处理
+            const validation = `
+✅ 数据类型验证通过
+✅ 邮箱格式验证通过  
+✅ 年龄范围验证通过
+✅ 角色权限验证通过
+🔄 数据清理和转换完成
+            `;
+
+            const dbOperation = `
+📝 SQL: INSERT INTO users (name, age, email, role, bio, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+💾 数据库写入成功
+🔄 触发相关业务逻辑（发送欢迎邮件、用户统计更新等）
+            `;
+
+            updateBackendInfo(userData, validation, dbOperation);
+
+            // 5. 调用模拟API
+            const response = mockAPI.createUser(userData);
+
+            // 6. 构建响应数据
+            const responseInfo = `
+                <span class="method-tag post">200 OK</span>
+                <strong>响应时间:</strong> 245ms<br>
+                <strong>Content-Type:</strong> application/json<br>
+                <strong>数据大小:</strong> ${JSON.stringify(response).length} bytes
+            `;
+
+            document.getElementById('responseInfo').innerHTML = responseInfo;
+            document.getElementById('responseData').textContent = JSON.stringify(response, null, 2);
+
+            // 7. 前端处理响应数据
+            if (response.success) {
+                alert('用户创建成功！');
+                // 清空表单
+                document.getElementById('userName').value = '';
+                document.getElementById('userAge').value = '';
+                document.getElementById('userEmail').value = '';
+                document.getElementById('userBio').value = '';
+            }
+        }
+
+        async function submitFormData() {
+            // 使用FormData格式提交（适用于文件上传）
+            const formData = new FormData();
+            formData.append('name', document.getElementById('userName').value);
+            formData.append('age', document.getElementById('userAge').value);
+            formData.append('email', document.getElementById('userEmail').value);
+            formData.append('role', document.getElementById('userRole').value);
+            formData.append('bio', document.getElementById('userBio').value);
+            
+            const avatarFile = document.getElementById('userAvatar').files[0];
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
+
+            updateRequestInfo('POST', '/api/users/upload', 'multipart/form-data', {
+                note: 'FormData包含文件上传，实际大小取决于文件'
+            });
+
+            document.getElementById('requestData').textContent = `
+FormData内容:
+- name: ${formData.get('name')}
+- age: ${formData.get('age')}
+- email: ${formData.get('email')}
+- role: ${formData.get('role')}
+- bio: ${formData.get('bio')}
+- avatar: ${avatarFile ? avatarFile.name + ' (' + avatarFile.size + ' bytes)' : '未选择文件'}
+
+HTTP请求头:
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Length: ${avatarFile ? avatarFile.size + 500 : 500} (approximate)
+            `;
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const validation = `
+✅ 文件类型验证通过 (image/*)
+✅ 文件大小验证通过 (< 5MB)
+✅ 文件安全扫描通过
+🔄 文件重命名和存储完成
+🔄 生成缩略图完成
+            `;
+
+            const dbOperation = `
+📁 文件保存路径: /uploads/avatars/user_${Date.now()}.jpg
+📝 SQL: INSERT INTO users (...) VALUES (...)
+📝 SQL: INSERT INTO user_files (user_id, file_path, file_type) VALUES (?, ?, ?)
+💾 事务提交成功
+            `;
+
+            updateBackendInfo({
+                formData: '文件数据 (二进制)',
+                fields: Object.fromEntries(formData.entries())
+            }, validation, dbOperation);
+        }
+
+        async function submitUrlEncoded() {
+            // 使用URL编码格式提交
+            const userData = {
+                name: document.getElementById('userName').value,
+                age: document.getElementById('userAge').value,
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRole').value,
+                bio: document.getElementById('userBio').value
+            };
+
+            const urlEncoded = new URLSearchParams(userData).toString();
+
+            updateRequestInfo('POST', '/api/users', 'application/x-www-form-urlencoded', userData);
+            
+            document.getElementById('requestData').textContent = `
+URL编码后的数据:
+${urlEncoded}
+
+原始数据对象:
+${JSON.stringify(userData, null, 2)}
+            `;
+        }
+
+        async function getUserList() {
+            // GET请求获取用户列表
+            updateRequestInfo('GET', '/api/users?page=1&limit=10&sort=created_at', 'N/A (GET请求)', {});
+            
+            document.getElementById('requestData').textContent = `
+GET /api/users?page=1&limit=10&sort=created_at HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Accept: application/json
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+            `;
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const response = mockAPI.getUsers();
+
+            const validation = `
+✅ 用户权限验证通过
+✅ 分页参数验证通过
+🔄 构建SQL查询条件
+🔄 执行数据库查询
+🔄 数据序列化处理
+            `;
+
+            const dbOperation = `
+📝 SQL: SELECT u.*, COUNT(*) OVER() as total_count 
+       FROM users u 
+       WHERE u.is_active = true 
+       ORDER BY u.created_at DESC 
+       LIMIT 10 OFFSET 0
+📊 查询结果: ${response.data.length} 条记录
+⚡ 查询耗时: 23ms
+            `;
+
+            updateBackendInfo({
+                query: 'SELECT users with pagination',
+                filters: { is_active: true },
+                pagination: { page: 1, limit: 10 }
+            }, validation, dbOperation);
+
+            const responseInfo = `
+                <span class="method-tag get">200 OK</span>
+                <strong>响应时间:</strong> 89ms<br>
+                <strong>Content-Type:</strong> application/json<br>
+                <strong>缓存控制:</strong> max-age=300<br>
+                <strong>数据大小:</strong> ${JSON.stringify(response).length} bytes
+            `;
+
+            document.getElementById('responseInfo').innerHTML = responseInfo;
+            document.getElementById('responseData').textContent = JSON.stringify(response, null, 2);
+
+            // 渲染用户列表
+            renderUserList(response.data);
+        }
+
+        // 页面加载时显示初始用户列表
+        window.onload = function() {
+            getUserList();
+        };
+    </script>
+</body>
+</html>

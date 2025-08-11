@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<!--
+  媒体录制工具网页
+  功能：提供音频录制、视频录制、屏幕录制和Canvas动画录制功能
+  设计原则：采用单一职责原则，每个录制器独立负责特定媒体类型的录制逻辑
+  界面特点：简化的操作流程，每个模块通过单个主要按钮控制录制状态
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>媒体录制工具</title>
+    <style>
+        .recorder-module {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px;
+            max-width: 500px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .status {
+            color: #666;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        /* 主要操作按钮样式 - 用于控制录制状态切换 */
+        .primary-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        /* 录制中状态样式 - 红色背景表示正在录制 */
+        .recording {
+            background-color: #f44336;
+        }
+        /* 准备保存状态样式 - 蓝色背景表示可保存 */
+        .ready-to-save {
+            background-color: #2196F3;
+        }
+        video, canvas {
+            border: 1px solid #000;
+            margin-top: 10px;
+            max-width: 100%;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>媒体录制工具</h1>
+    <div class="container">
+        <!-- 音频录制模块 - 负责麦克风音频的录制和保存 -->
+        <div class="recorder-module" id="audio-recorder">
+            <h2>音频录制</h2>
+            <button id="audio-record-btn" class="primary-btn">开始录制</button>
+            <div class="status" id="audio-status">就绪</div>
+            <audio id="audio-preview" controls></audio>
+        </div>
+
+        <!-- 视频录制模块 - 负责摄像头视频和音频的录制和保存 -->
+        <div class="recorder-module" id="video-recorder">
+            <h2>视频录制</h2>
+            <button id="video-record-btn" class="primary-btn">开始录制</button>
+            <div class="status" id="video-status">就绪</div>
+            <video id="video-preview" controls></video>
+        </div>
+
+        <!-- 屏幕录制模块 - 负责屏幕内容的录制、截图和保存 -->
+        <div class="recorder-module" id="screen-recorder">
+            <h2>屏幕录制</h2>
+            <button id="screen-record-btn" class="primary-btn">开始录制</button>
+            <button id="capture-screen" disabled>截图(JPEG)</button>
+            <div class="status" id="screen-status">就绪</div>
+            <video id="screen-preview" controls></video>
+        </div>
+
+        <!-- Canvas动画录制模块 - 负责运行和录制Canvas动画 -->
+        <div class="recorder-module" id="canvas-recorder">
+            <h2>Canvas动画录制</h2>
+            <button id="canvas-animate-btn">开始动画</button>
+            <button id="canvas-record-btn" class="primary-btn" disabled>开始录制</button>
+            <div class="status" id="canvas-status">就绪</div>
+            <canvas id="animation-canvas" width="400" height="300"></canvas>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 基础录制器类 - 实现通用录制逻辑
+         * 职责：封装媒体流获取、录制控制和文件保存的通用功能
+         * 设计：采用模板方法模式，子类实现特定媒体类型的录制细节
+         */
+        class BaseRecorder {
+
+
+            /**
+             * 构造函数
+             * @param {HTMLVideoElement|HTMLAudioElement} previewElement - 预览媒体的元素
+             * @param {HTMLElement} statusElement - 显示状态信息的元素
+             */
+            constructor(previewElement, statusElement) {
+                this.previewElement = previewElement;
+                this.statusElement = statusElement;
+                this.mediaRecorder = null;
+                this.recordedChunks = [];
+                this.isRecording = false;
+            }
+
+            /**
+             * 更新状态显示
+             * @param {string} message - 要显示的状态信息
+             */
+            updateStatus(message) {
+                this.statusElement.textContent = message;
+            }
+
+            /**
+             * 设置媒体流
+             * @param {MediaStreamConstraints} constraints - 媒体流约束条件
+             * @returns {boolean} - 媒体流设置是否成功
+             */
+            async setupMediaStream(constraints) {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.previewElement.srcObject = this.stream;
+                    return true;
+                } catch (error) {
+                    this.updateStatus(`错误: ${error.message}`);
+                    console.error(error);
+                    return false;
+                }
+            }
+
+            /**
+             * 开始录制媒体
+             * @param {string} mimeType - 录制的媒体类型格式
+             */
+            startRecording(mimeType) {
+                if (!this.stream) {
+                    this.updateStatus("未找到媒体流");
+                    return;
+                }
+
+                this.recordedChunks = [];
+                this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
+
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedChunks.push(event.data);
+                    }
+                };
+
+                this.mediaRecorder.onstop = () => this.handleRecordingStop();
+                this.mediaRecorder.start();
+                this.isRecording = true;
+                this.updateStatus("正在录制...");
+            }
+
+            /**
+             * 停止录制媒体
+             */
+            stopRecording() {
+                if (!this.mediaRecorder || !this.isRecording) return;
+
+                this.mediaRecorder.stop();
+                this.stream.getTracks().forEach(track => track.stop());
+                this.isRecording = false;
+                this.updateStatus("录制已停止");
+            }
+
+            /**
+             * 处理录制停止事件 - 由子类实现具体逻辑
+             * 子类应在此方法中处理录制数据并准备保存
+             */
+            handleRecordingStop() {
+                // 由子类实现
+            }
+
+            /**
+             * 保存录制的媒体文件
+             * @param {Blob} blob - 录制的媒体数据
+             * @param {string} fileName - 保存的文件名
+             * @param {string} mimeType - 媒体类型
+             */
+            saveRecording(blob, fileName, mimeType) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+        }
+
+        /**
+         * 音频录制器 - 处理麦克风音频的录制
+         * 继承BaseRecorder，实现音频特有功能
+         */
+        class AudioRecorder extends BaseRecorder {
+            /**
+             * 构造函数
+             * 初始化Canvas上下文和动画状态
+             */
+            constructor() {
+                super(document.getElementById('audio-preview'), document.getElementById('audio-status'));
+                this.initializeButtons();
+            }
+
+            /**
+             * 初始化按钮事件监听
+             */
+            initializeButtons() {
+                this.recordButton = document.getElementById('audio-record-btn');
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
+            }
+
+            /**
+             * 切换录制状态
+             * 根据当前状态依次切换：开始录制 → 停止录制 → 保存文件
+             */
+            toggleRecording() {
+                if (!this.isRecording && !this.audioBlob) {
+                    this.start();
+                } else if (this.isRecording) {
+                    this.stop();
+                } else if (this.audioBlob) {
+                    this.save();
+                }
+            }
+
+            /**
+             * 开始音频录制
+             * 设置音频媒体流并启动录制
+             */
+            async start() {
+                const success = await this.setupMediaStream({ audio: true, video: false });
+                if (success) {
+                    this.startRecording('audio/webm; codecs=opus');
+                    this.recordButton.textContent = '停止录制';
+                    this.recordButton.classList.add('recording');
+                }
+            }
+
+            /**
+             * 停止音频录制
+             * 停止录制并准备保存文件
+             */
+            stop() {
+                super.stopRecording();
+                this.recordButton.textContent = '保存音频';
+                this.recordButton.classList.remove('recording');
+                this.recordButton.classList.add('ready-to-save');
+            }
+
+            handleRecordingStop() {
+                const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+                this.audioBlob = blob;
+                this.previewElement.src = URL.createObjectURL(blob);
+            }
+
+            /**
+             * 保存音频文件
+             * 将录制的音频数据保存为WebM格式文件
+             */
+            save() {
+                if (!this.audioBlob) return;
+                // 注意：浏览器原生不支持直接录制MP3，这里使用webm格式
+                this.saveRecording(this.audioBlob, 'recording_audio.webm', 'audio/webm');
+                this.audioBlob = null;
+                this.recordButton.textContent = '开始录制';
+                this.recordButton.classList.remove('ready-to-save');
+                this.updateStatus('就绪');
+            }
+        }
+
+        /**
+         * 视频录制器 - 处理摄像头视频和音频的录制
+         * 继承BaseRecorder，实现视频特有功能
+         */
+        class VideoRecorder extends BaseRecorder {
+            constructor() {
+                super(document.getElementById('video-preview'), document.getElementById('video-status'));
+                this.initializeButtons();
+            }
+
+            initializeButtons() {
+                this.recordButton = document.getElementById('video-record-btn');
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
+            }
+
+            toggleRecording() {
+                if (!this.isRecording && !this.videoBlob) {
+                    this.start();
+                } else if (this.isRecording) {
+                    this.stop();
+                } else if (this.videoBlob) {
+                    this.save();
+                }
+            }
+
+            async start() {
+                const success = await this.setupMediaStream({ audio: true, video: true });
+                if (success) {
+                    this.startRecording('video/mp4');
+                    this.recordButton.textContent = '停止录制';
+                    this.recordButton.classList.add('recording');
+                }
+            }
+
+            stop() {
+                super.stopRecording();
+                this.recordButton.textContent = '保存视频';
+                this.recordButton.classList.remove('recording');
+                this.recordButton.classList.add('ready-to-save');
+            }
+
+            handleRecordingStop() {
+                const blob = new Blob(this.recordedChunks, { type: 'video/mp4' });
+                this.videoBlob = blob;
+                this.previewElement.src = URL.createObjectURL(blob);
+            }
+
+            save() {
+                if (!this.videoBlob) return;
+                this.saveRecording(this.videoBlob, 'recording_video.mp4', 'video/mp4');
+                this.videoBlob = null;
+                this.recordButton.textContent = '开始录制';
+                this.recordButton.classList.remove('ready-to-save');
+                this.updateStatus('就绪');
+            }
+        }
+
+        /**
+         * 屏幕录制器 - 处理屏幕内容的录制
+         * 继承BaseRecorder，实现屏幕录制特有功能
+         */
+        class ScreenRecorder extends BaseRecorder {
+            constructor() {
+                super(document.getElementById('screen-preview'), document.getElementById('screen-status'));
+                this.initializeButtons();
+            }
+
+            initializeButtons() {
+                this.recordButton = document.getElementById('screen-record-btn');
+                this.captureButton = document.getElementById('capture-screen');
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
+                this.captureButton.addEventListener('click', () => this.capture());
+            }
+
+            toggleRecording() {
+                if (!this.isRecording && !this.screenBlob) {
+                    this.start();
+                } else if (this.isRecording) {
+                    this.stop();
+                } else if (this.screenBlob) {
+                    this.save();
+                }
+            }
+
+            async start() {
+                try {
+                    this.stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                    this.previewElement.srcObject = this.stream;
+                    this.startRecording('video/mp4');
+                    this.recordButton.textContent = '停止录制';
+                    this.recordButton.classList.add('recording');
+                    this.captureButton.disabled = false;
+                    this.updateStatus("正在录制屏幕...");
+                } catch (error) {
+                    this.updateStatus(`错误: ${error.message}`);
+                    console.error(error);
+                }
+            }
+
+            stop() {
+                super.stopRecording();
+                this.recordButton.textContent = '保存视频';
+                this.recordButton.classList.remove('recording');
+                this.recordButton.classList.add('ready-to-save');
+                this.captureButton.disabled = true;
+            }
+
+            handleRecordingStop() {
+                const blob = new Blob(this.recordedChunks, { type: 'video/mp4' });
+                this.screenBlob = blob;
+                this.previewElement.src = URL.createObjectURL(blob);
+            }
+
+            /**
+             * 捕获屏幕截图
+             * 将当前屏幕预览内容保存为JPEG图片
+             */
+            capture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.previewElement.videoWidth;
+                canvas.height = this.previewElement.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(this.previewElement, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => {
+                    this.saveRecording(blob, 'screenshot.jpg', 'image/jpeg');
+                }, 'image/jpeg');
+            }
+
+            save() {
+                if (!this.screenBlob) return;
+                this.saveRecording(this.screenBlob, 'recording_screen.mp4', 'video/mp4');
+                this.screenBlob = null;
+                this.recordButton.textContent = '开始录制';
+                this.recordButton.classList.remove('ready-to-save');
+                this.updateStatus('就绪');
+            }
+        }
+
+        /**
+         * Canvas动画录制器 - 处理Canvas动画的运行和录制
+         * 职责：管理Canvas动画生命周期并录制动画内容
+         */
+        class CanvasRecorder {
+            constructor() {
+                this.canvas = document.getElementById('animation-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.statusElement = document.getElementById('canvas-status');
+                this.isAnimating = false;
+                this.isRecording = false;
+                this.animationFrameId = null;
+                this.recordedFrames = [];
+                this.mediaRecorder = null;
+                this.stream = this.canvas.captureStream(30);
+                this.initializeButtons();
+                this.animationState = { x: 50, y: 150, dx: 5, dy: 2 };
+            }
+
+            initializeButtons() {
+                this.animateButton = document.getElementById('canvas-animate-btn');
+                this.recordButton = document.getElementById('canvas-record-btn');
+                this.animateButton.addEventListener('click', () => this.toggleAnimation());
+                this.recordButton.addEventListener('click', () => this.toggleRecording());
+            }
+
+            /**
+             * 切换动画状态
+             * 开始或停止Canvas动画
+             */
+            toggleAnimation() {
+                if (!this.isAnimating) {
+                    this.startAnimation();
+                } else {
+                    this.stopAnimation();
+                }
+            }
+
+            updateStatus(message) {
+                this.statusElement.textContent = message;
+            }
+
+            /**
+             * 开始Canvas动画
+             * 启动动画循环并更新UI状态
+             */
+            startAnimation() {
+                if (this.isAnimating) return;
+                this.isAnimating = true;
+                this.animateButton.textContent = '停止动画';
+                this.recordButton.disabled = false;
+                this.updateStatus("动画运行中...");
+                this.animate();
+            }
+
+            /**
+             * 停止Canvas动画
+             * 停止动画循环并重置UI状态
+             */
+            stopAnimation() {
+                if (!this.isAnimating) return;
+                this.isAnimating = false;
+                cancelAnimationFrame(this.animationFrameId);
+                this.animateButton.textContent = '开始动画';
+                this.recordButton.disabled = true;
+                if (this.isRecording) this.toggleRecording();
+                this.updateStatus("动画已停止");
+            }
+
+            /**
+             * 动画循环函数
+             * 更新动画状态并绘制每一帧
+             */
+            animate() {
+                if (!this.isAnimating) return;
+
+                // 清除画布
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 更新动画状态
+                this.animationState.x += this.animationState.dx;
+                this.animationState.y += this.animationState.dy;
+
+                // 边界检测
+                if (this.animationState.x + 50 > this.canvas.width || this.animationState.x < 0) {
+                    this.animationState.dx = -this.animationState.dx;
+                }
+                if (this.animationState.y + 50 > this.canvas.height || this.animationState.y < 0) {
+                    this.animationState.dy = -this.animationState.dy;
+                }
+
+                // 绘制动画元素
+                this.ctx.beginPath();
+                this.ctx.arc(this.animationState.x, this.animationState.y, 25, 0, Math.PI * 2);
+                this.ctx.fillStyle = 'blue';
+                this.ctx.fill();
+                this.ctx.closePath();
+
+                // 如果正在录制，捕获当前帧
+                if (this.isRecording) {
+                    // 已经通过captureStream捕获，无需额外处理
+                }
+
+                this.animationFrameId = requestAnimationFrame(() => this.animate());
+            }
+
+            toggleRecording() {
+                if (this.isRecording) {
+                    this.stopRecording();
+                } else {
+                    this.startRecording();
+                }
+            }
+
+            /**
+             * 开始录制动画
+             * 初始化媒体录制器并开始捕获Canvas内容
+             */
+            startRecording() {
+                this.isRecording = true;
+                this.recordedFrames = [];
+                this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'video/mp4' });
+
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedFrames.push(event.data);
+                    }
+                };
+
+                this.mediaRecorder.onstop = () => {
+                    const blob = new Blob(this.recordedFrames, { type: 'video/mp4' });
+                    this.animationBlob = blob;
+                    this.recordButton.textContent = '保存动画';
+                    this.recordButton.classList.add('ready-to-save');
+                };
+
+                this.mediaRecorder.start();
+                this.recordButton.textContent = '停止录制';
+                this.recordButton.classList.add('recording');
+                this.updateStatus("正在录制动画...");
+            }
+
+            stopRecording() {
+                this.isRecording = false;
+                this.mediaRecorder.stop();
+                this.updateStatus("动画录制已停止");
+            }
+
+            save() {
+                if (!this.animationBlob) return;
+                const url = URL.createObjectURL(this.animationBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'animation.mp4';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                this.animationBlob = null;
+                this.recordButton.textContent = '开始录制';
+                this.recordButton.classList.remove('recording', 'ready-to-save');
+                this.updateStatus('动画已保存');
+            }
+        }
+
+        /**
+         * 页面加载完成后初始化所有录制器
+         * 为每个媒体类型创建对应的录制器实例
+         */
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new AudioRecorder();
+            new VideoRecorder();
+            new ScreenRecorder();
+            new CanvasRecorder();
+        });
+    </script>
+</body>
+<!-- 由于仅给出结束标签，推测可能前面代码有未闭合的大括号，这里无法补充完整，仅保留原结束标签 -->
+</html>

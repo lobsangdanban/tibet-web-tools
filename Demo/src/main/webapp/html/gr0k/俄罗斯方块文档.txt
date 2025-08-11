@@ -1,0 +1,440 @@
+我将为您创建一个简单的俄罗斯方块（Tetris）网页游戏，使用纯 HTML、CSS（静态 Tailwind CSS，避免 CDN 问题）和 JavaScript，不依赖外部框架，符合您之前对纯网页的偏好。游戏将包含藏传佛教审美元素（曼陀罗背景，红金配色），以保持与之前任务的文化一致性。这是一个新请求，与之前的藏文数据标注网页无关，因此将使用新的 `artifact_id`。以下是游戏的设计和实现细节。
+
+### 功能特点
+1. **核心游戏机制**：
+   - 经典俄罗斯方块玩法：随机下落的方块（7 种经典形状：I, O, T, S, Z, J, L），玩家控制方块移动、旋转并堆叠。
+   - 消除满行，增加分数。
+   - 游戏结束条件：方块堆叠到顶部。
+2. **操作方式**：
+   - 键盘控制：左/右箭头移动，向上箭头旋转，向下箭头加速下落，空格键直接落到底部。
+   - 触控支持：移动端通过按钮控制（左、右、下、旋转）。
+3. **界面**：
+   - 游戏画布（10x20 格子）显示游戏区域。
+   - 显示分数、下一块预览和游戏状态（开始/暂停/结束）。
+   - 使用 Tailwind CSS 进行样式设计，包含藏传佛教风格的红金配色和曼陀罗背景。
+4. **文化审美**：
+   - 背景使用曼陀罗图案（占位图，生产环境需替换为真实藏传佛教设计）。
+   - 字体和配色（红色 #8B0000，金色 #FFD700）与藏传佛教主题一致。
+5. **语言**：
+   - 界面使用中文，与前述任务保持一致。
+   - 支持简单的游戏提示和状态消息。
+
+### 技术方法
+- **HTML**：包含游戏画布（canvas）、分数显示、下一块预览区域和控制按钮。
+- **CSS**：使用静态 Tailwind CSS 文件（`styles.css`），通过 Tailwind CLI 生成，保持红金配色和曼陀罗背景。
+- **JavaScript**：
+   - 使用 HTML5 Canvas 绘制游戏网格、方块和预览。
+   - 实现方块生成、移动、旋转、碰撞检测和行消除逻辑。
+   - 处理键盘和触控输入。
+   - 管理游戏状态（运行、暂停、结束）和分数。
+- **藏文支持**：虽然游戏主要为中文界面，但使用 Noto Serif Tibetan 字体以支持可能的藏文提示或标签。
+- **假设**：
+   - `styles.css` 已通过 Tailwind CLI 生成，位于同一目录。
+   - 曼陀罗背景使用占位图，生产环境需替换。
+   - 游戏为单机版，无需后端或 API 集成。
+   - 不包含音频，以简化实现（可根据需要添加）。
+
+### 文物（Artifact）：游戏代码
+以下是完整的 `index.html`，包含俄罗斯方块游戏的 HTML、CSS 和 JavaScript实现，使用中文界面和藏传佛教风格。
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>俄罗斯方块</title>
+  <link href="./styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to bottom, #8B0000, #FFD700);
+      font-family: 'Arial', 'Noto Serif Tibetan', sans-serif;
+    }
+    .mandala-bg {
+      background-image: url('https://via.placeholder.com/1500x1500?text=曼陀罗图案');
+      background-size: cover;
+      opacity: 0.1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    canvas {
+      border: 2px solid #FFD700;
+    }
+  </style>
+</head>
+<body>
+  <div class="relative min-h-screen">
+    <div class="mandala-bg"></div>
+    <div class="container mx-auto p-4">
+      <h1 class="text-4xl font-bold text-center text-yellow-300 mb-6">
+        俄罗斯方块
+      </h1>
+      <div class="bg-white bg-opacity-80 p-6 rounded-lg shadow-lg mb-6 flex flex-col md:flex-row justify-center items-start">
+        <div class="mr-4">
+          <canvas id="gameCanvas" width="300" height="600"></canvas>
+        </div>
+        <div class="flex flex-col space-y-4">
+          <div>
+            <h2 class="text-2xl font-semibold text-yellow-600">分数</h2>
+            <p id="score" class="text-gray-800">0</p>
+          </div>
+          <div>
+            <h2 class="text-2xl font-semibold text-yellow-600">下一块</h2>
+            <canvas id="nextPieceCanvas" width="120" height="120"></canvas>
+          </div>
+          <div>
+            <h2 class="text-2xl font-semibold text-yellow-600">状态</h2>
+            <p id="gameStatus" class="text-gray-800">按“开始”玩游戏</p>
+          </div>
+          <div class="flex space-x-4">
+            <button id="startBtn" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+              开始/暂停
+            </button>
+            <button id="resetBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+              重置
+            </button>
+          </div>
+          <div class="flex space-x-2 md:hidden">
+            <button id="leftBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">左</button>
+            <button id="rightBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">右</button>
+            <button id="downBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">下</button>
+            <button id="rotateBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">旋转</button>
+          </div>
+        </div>
+      </div>
+      <p class="text-gray-700 text-center">
+        操作：←/→ 移动，↑ 旋转，↓ 加速，空格 落到底部
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const nextCanvas = document.getElementById('nextPieceCanvas');
+    const nextCtx = nextCanvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const gameStatus = document.getElementById('gameStatus');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    const downBtn = document.getElementById('downBtn');
+    const rotateBtn = document.getElementById('rotateBtn');
+
+    const GRID_WIDTH = 10;
+    const GRID_HEIGHT = 20;
+    const BLOCK_SIZE = 30;
+    const COLORS = ['#FFD700', '#DC2626', '#2563EB', '#059669', '#D97706', '#7C3AED', '#DB2777'];
+
+    const SHAPES = [
+      [[1, 1, 1, 1]], // I
+      [[1, 1], [1, 1]], // O
+      [[1, 1, 1], [0, 1, 0]], // T
+      [[1, 1, 0], [0, 1, 1]], // S
+      [[0, 1, 1], [1, 1, 0]], // Z
+      [[1, 1, 1], [1, 0, 0]], // J
+      [[1, 1, 1], [0, 0, 1]] // L
+    ];
+
+    let board = Array(GRID_HEIGHT).fill().map(() => Array(GRID_WIDTH).fill(0));
+    let currentPiece = null;
+    let nextPiece = null;
+    let score = 0;
+    let isGameRunning = false;
+    let gameLoop = null;
+
+    function createPiece() {
+      const index = Math.floor(Math.random() * SHAPES.length);
+      return {
+        shape: SHAPES[index],
+        color: COLORS[index],
+        x: Math.floor((GRID_WIDTH - SHAPES[index][0].length) / 2),
+        y: 0
+      };
+    }
+
+    function drawBoard() {
+      ctx.fillStyle = '#1F2937';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+          if (board[y][x]) {
+            ctx.fillStyle = board[y][x];
+            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+          }
+        }
+      }
+    }
+
+    function drawPiece(piece) {
+      ctx.fillStyle = piece.color;
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            ctx.fillRect((piece.x + x) * BLOCK_SIZE, (piece.y + y) * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+          }
+        }
+      }
+    }
+
+    function drawNextPiece() {
+      nextCtx.fillStyle = '#1F2937';
+      nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+      nextCtx.fillStyle = nextPiece.color;
+      for (let y = 0; y < nextPiece.shape.length; y++) {
+        for (let x = 0; x < nextPiece.shape[y].length; x++) {
+          if (nextPiece.shape[y][x]) {
+            nextCtx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+          }
+        }
+      }
+    }
+
+    function collide(piece) {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            const boardX = piece.x + x;
+            const boardY = piece.y + y;
+            if (boardX < 0 || boardX >= GRID_WIDTH || boardY >= GRID_HEIGHT || (boardY >= 0 && board[boardY][boardX])) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function mergePiece(piece) {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            board[piece.y + y][piece.x + x] = piece.color;
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let linesCleared = 0;
+      for (let y = GRID_HEIGHT - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell !== 0)) {
+          board.splice(y, 1);
+          board.unshift(Array(GRID_WIDTH).fill(0));
+          linesCleared++;
+          y++;
+        }
+      }
+      score += linesCleared * 100;
+      scoreDisplay.textContent = score;
+    }
+
+    function rotatePiece(piece) {
+      const newShape = piece.shape[0].map((_, i) => piece.shape.map(row => row[i]).reverse());
+      const newPiece = { ...piece, shape: newShape };
+      if (!collide(newPiece)) {
+        piece.shape = newShape;
+      }
+    }
+
+    function movePiece(dx, dy) {
+      const newPiece = { ...currentPiece, x: currentPiece.x + dx, y: currentPiece.y + dy };
+      if (!collide(newPiece)) {
+        currentPiece.x = newPiece.x;
+        currentPiece.y = newPiece.y;
+        return true;
+      }
+      return false;
+    }
+
+    function dropPiece() {
+      if (!movePiece(0, 1)) {
+        mergePiece(currentPiece);
+        clearLines();
+        currentPiece = nextPiece;
+        nextPiece = createPiece();
+        if (collide(currentPiece)) {
+          gameOver();
+        }
+        drawNextPiece();
+      }
+    }
+
+    function hardDrop() {
+      while (movePiece(0, 1)) {}
+      dropPiece();
+    }
+
+    function gameOver() {
+      isGameRunning = false;
+      clearInterval(gameLoop);
+      gameStatus.textContent = '游戏结束！按“重置”重新开始';
+      startBtn.textContent = '开始';
+    }
+
+    function update() {
+      if (!isGameRunning) return;
+      dropPiece();
+      drawBoard();
+      drawPiece(currentPiece);
+    }
+
+    function startGame() {
+      if (!isGameRunning) {
+        if (gameStatus.textContent === '游戏结束！按“重置”重新开始') return;
+        isGameRunning = true;
+        startBtn.textContent = '暂停';
+        gameStatus.textContent = '游戏进行中';
+        currentPiece = createPiece();
+        nextPiece = createPiece();
+        drawNextPiece();
+        gameLoop = setInterval(update, 1000);
+      } else {
+        isGameRunning = false;
+        clearInterval(gameLoop);
+        startBtn.textContent = '继续';
+        gameStatus.textContent = '已暂停';
+      }
+    }
+
+    function resetGame() {
+      board = Array(GRID_HEIGHT).fill().map(() => Array(GRID_WIDTH).fill(0));
+      score = 0;
+      scoreDisplay.textContent = score;
+      isGameRunning = false;
+      clearInterval(gameLoop);
+      startBtn.textContent = '开始';
+      gameStatus.textContent = '按“开始”玩游戏';
+      currentPiece = null;
+      nextPiece = null;
+      drawBoard();
+      nextCtx.fillStyle = '#1F2937';
+      nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!isGameRunning) return;
+      if (e.key === 'ArrowLeft') movePiece(-1, 0);
+      if (e.key === 'ArrowRight') movePiece(1, 0);
+      if (e.key === 'ArrowDown') movePiece(0, 1);
+      if (e.key === 'ArrowUp') rotatePiece(currentPiece);
+      if (e.key === ' ') hardDrop();
+      drawBoard();
+      drawPiece(currentPiece);
+    });
+
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    leftBtn.addEventListener('click', () => isGameRunning && movePiece(-1, 0) && drawBoard() && drawPiece(currentPiece));
+    rightBtn.addEventListener('click', () => isGameRunning && movePiece(1, 0) && drawBoard() && drawPiece(currentPiece));
+    downBtn.addEventListener('click', () => isGameRunning && movePiece(0, 1) && drawBoard() && drawPiece(currentPiece));
+    rotateBtn.addEventListener('click', () => isGameRunning && rotatePiece(currentPiece) && drawBoard() && drawPiece(currentPiece));
+
+    resetGame();
+  </script>
+</body>
+</html>
+```
+
+### Tailwind CSS 设置说明
+与前述任务一致，生成 `styles.css` 文件的步骤如下：
+1. **安装 Tailwind CLI**：
+   ```bash
+   npm install -g tailwindcss
+   ```
+2. **创建 `tailwind.config.js`**：
+   ```javascript
+   /** @type {import('tailwindcss').Config} */
+   module.exports = {
+     content: ['./index.html'],
+     theme: {
+       extend: {
+         colors: {
+           yellow: { 300: '#FFD700', 500: '#EAB308', 600: '#D97706' },
+           red: { 600: '#DC2626', 700: '#B91C1C' },
+           gray: { 400: '#9CA3AF', 700: '#4B5563', 800: '#1F2937' },
+           blue: { 600: '#2563EB', 700: '#1E40AF' },
+         },
+       },
+     },
+     plugins: [],
+   };
+   ```
+3. **创建 `input.css`**：
+   ```css
+   @tailwind base;
+   @tailwind components;
+   @tailwind utilities;
+   ```
+4. **生成 `styles.css`**：
+   ```bash
+   npx tailwindcss -i ./input.css -o ./styles.css --minify
+   ```
+5. **文件结构**：
+   ```
+   project/
+   ├── index.html
+   ├── styles.css
+   ├── tailwind.config.js
+   ├── input.css
+   ```
+
+### 使用说明
+1. **保存文件**：将 `index.html` 和 `styles.css` 放入同一目录。
+2. **在浏览器中打开**：直接在浏览器（推荐 Chrome 以支持 Canvas 和键盘事件）中打开 `index.html`。
+3. **游戏操作**：
+   - **键盘**：
+     - 左箭头：向左移动方块。
+     - 右箭头：向右移动方块。
+     - 下箭头：加速下落。
+     - 上箭头：旋转方块。
+     - 空格键：方块直接落到底部。
+   - **触控（移动端）**：
+     - 点击“左”“右”“下”“旋转”按钮控制方块。
+   - **控制按钮**：
+     - “开始/暂停”：启动或暂停游戏。
+     - “重置”：重置游戏状态。
+4. **游戏目标**：
+   - 堆叠方块，消除满行以获得分数。
+   - 避免方块堆叠到顶部，否则游戏结束。
+5. **查看信息**：
+   - 分数显示在“分数”区域。
+   - 下一个方块显示在“下一块”画布中。
+   - 游戏状态（运行、暂停、结束）显示在“状态”区域。
+
+### 设计说明
+- **藏传佛教审美**：
+  - 背景使用曼陀罗图案（占位图，生产环境需替换为真实藏传佛教设计）。
+  - 配色采用红色 (#8B0000)、金色 (#EfD700)，与藏传佛教主题一致。
+  - 使用 Noto Serif Tibetan 字体，支持可能的藏文提示。
+- **游戏逻辑**：
+  - 实现 7 种经典俄罗斯方块形状，随机生成。
+  - 支持移动、旋转、加速下落和硬着陆（直接落底）。
+  - 碰撞检测确保方块不越界或重叠。
+  - 消除满行增加 100 分/行。
+  - 游戏结束当方块堆叠到顶部。
+- **响应式设计**：
+  - 桌面端使用键盘控制，移动端显示触控按钮。
+  - Tailwind CSS 确保布局适配不同屏幕尺寸。
+- **语言**：
+  - 界面使用中文（标题、按钮、提示等）。
+  - 游戏提示简洁，例如“按‘开始’玩游戏”。
+
+### 注意事项
+- **浏览器兼容性**：Chrome 提供最佳 Canvas 和键盘事件支持。Firefox/Safari 可能需要测试触控按钮和 Canvas 渲染。
+- **文化敏感性**：曼陀罗背景为占位图，生产环境应使用真实、尊重文化的藏传佛教图案。
+- **性能**：静态 Tailwind CSS 确保快速加载，Canvas 渲染适合简单游戏。
+- **扩展性**：
+  - 可添加音效（例如方块下落或消除音效）以增强体验。
+  - 可添加难度等级（调整下落速度）。
+  - 可集成高分榜（需后端支持）。
+- **可访问性**：生产环境应为按钮添加 ARIA 属性（如 `aria-label`），提升屏幕阅读器支持。
+- **无音频**：为简化实现，未包含音效。若需添加，可使用 `Audio` API 加载音效文件。
+
+此网页提供了一个简单的俄罗斯方块游戏，采用纯 HTML、CSS 和 JavaScript 实现，支持键盘和触控操作，使用中文界面，融入藏传佛教审美，适合快速部署和游玩。

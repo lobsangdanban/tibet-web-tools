@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="bo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文打字速度测试</title>
+    <style>
+        body {
+            font-family: "Microsoft Himalaya", "Tibetan Machine Uni", "Jomolhari", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1000px;
+        }
+
+        .text-display {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            min-height: 150px;
+            font-size: 1.5rem;
+            line-height: 2;
+            text-align: justify;
+            direction: ltr;
+            unicode-bidi: bidi-override;
+        }
+
+        .input-area {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1.5rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+
+        .input-area:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .stat-item {
+            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .correct {
+            color: #28a745;
+        }
+
+        .incorrect {
+            color: #dc3545;
+            text-decoration: underline;
+        }
+
+        .tibetan-instructions {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stats-table {
+            flex: 1;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-table h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .character-cell {
+            font-family: "Microsoft Himalaya", "Tibetan Machine Uni", "Jomolhari", Arial, sans-serif;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tibetan-instructions">
+            使用说明：<br>
+            1. 请确保您的系统已安装藏文输入法<br>
+            2. 点击"开始测试"按钮开始测试<br>
+            3. 使用藏文输入法输入显示的文本<br>
+            4. 正确输入显示绿色，错误输入显示红色<br>
+            5. 完成输入后自动显示测试结果
+        </div>
+        <div class="text-display" id="sample-text"></div>
+        <textarea class="input-area" id="user-input" placeholder="请使用藏文输入法开始输入..." disabled></textarea>
+        <div class="stats">
+            <div class="stat-item">时间: <span id="time-spent">0:00</span></div>
+            <div class="stat-item">正确率: <span id="accuracy">0%</span></div>
+            <div class="stat-item">错误率: <span id="error-rate">0%</span></div>
+        </div>
+        <button id="start-test">开始测试</button>
+
+        <div class="stats-container">
+            <div class="stats-table">
+                <h3>错误字符统计</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>藏文字符</th>
+                            <th>错误次数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="error-stats">
+                    </tbody>
+                </table>
+            </div>
+            <div class="stats-table">
+                <h3>字符频率统计</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>藏文字符</th>
+                            <th>出现次数</th>
+                            <th>频率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="frequency-stats">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 藏文示例文本数组
+        const sampleTexts = [
+            "བཀྲ་ཤིས་བདེ་ལེགས།",
+            "ཡབ་ཡུམ་ལ་ཕྱག་འཚལ་ལོ།",
+            "བོད་ཀྱི་སྐད་ཡིག་འདི་ཡིན།",
+            "ཉི་མ་ཤར་ཕྱོགས་ནས་ཤར་བ་དང་།",
+            "བོད་ཀྱི་རི་བོ་ཧི་མ་ལ་ཡ་ཡིན།",
+            "ཆོས་ཀྱི་བདག་པོ་ཤཀྱ་ཐུབ་པ་ཡིན།",
+            "བོད་ཀྱི་ཡུལ་སྐད་དང་ཡི་གེ་འདི་ཡིན།",
+            "ཉི་མ་ཤར་ཕྱོགས་ནས་ཤར་བ་དང་།",
+            "ཟླ་བ་ནུབ་ཕྱོགས་ནས་ནུབ་པ་ཡིན།",
+            "རྒྱ་གར་ཡུལ་དུ་ཆོས་ཀྱི་བདག་པོ་ཤར་ཕྱོགས་ནས་ཤར་བ་ཡིན།"
+        ];
+
+        class TypingTest {
+            constructor() {
+                this.sampleText = document.getElementById('sample-text');
+                this.userInput = document.getElementById('user-input');
+                this.startButton = document.getElementById('start-test');
+                
+                this.isTestActive = false;
+                this.startTime = null;
+                this.errorCount = 0;
+                this.totalChars = 0;
+                this.timerInterval = null;
+                this.errorStats = new Map(); // 存储错误字符统计
+                this.frequencyStats = new Map(); // 存储字符频率统计
+                this.currentText = ''; // 当前测试文本
+
+                this.init();
+            }
+
+            init() {
+                // 禁用粘贴功能
+                this.userInput.addEventListener('paste', (e) => e.preventDefault());
+                
+                // 绑定开始测试按钮事件
+                this.startButton.addEventListener('click', () => this.startTest());
+                
+                // 绑定输入检查事件
+                this.userInput.addEventListener('input', () => this.checkInput());
+                
+                // 添加键盘事件监听
+                this.userInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            startTest() {
+                if (this.isTestActive) return;
+                
+                const randomIndex = Math.floor(Math.random() * sampleTexts.length);
+                this.currentText = sampleTexts[randomIndex];
+                this.sampleText.textContent = this.currentText;
+                
+                this.userInput.value = '';
+                this.userInput.disabled = false;
+                this.startButton.textContent = '重新开始';
+                this.isTestActive = true;
+                this.startTime = new Date();
+                this.errorCount = 0;
+                this.totalChars = 0;
+                this.errorStats.clear(); // 清空错误统计
+                
+                this.startTimer();
+                this.updateFrequencyStats(); // 更新频率统计
+            }
+
+            checkInput() {
+                if (!this.isTestActive) return;
+                
+                const sampleChars = this.sampleText.textContent.split('');
+                const inputChars = this.userInput.value.split('');
+                let html = '';
+                
+                sampleChars.forEach((char, i) => {
+                    if (i < inputChars.length) {
+                        if (char === inputChars[i]) {
+                            html += `<span class="correct">${char}</span>`;
+                        } else {
+                            html += `<span class="incorrect">${char}</span>`;
+                            this.errorCount++;
+                            // 更新错误统计
+                            this.errorStats.set(char, (this.errorStats.get(char) || 0) + 1);
+                        }
+                    } else {
+                        html += char;
+                    }
+                });
+                
+                this.sampleText.innerHTML = html;
+                this.totalChars = inputChars.length;
+                
+                this.updateStats();
+                this.updateErrorStatsTable(); // 更新错误统计表格
+                
+                if (inputChars.length === sampleChars.length) {
+                    this.endTest();
+                }
+            }
+
+            updateStats() {
+                const accuracy = ((this.totalChars - this.errorCount) / this.totalChars * 100) || 0;
+                const errorRate = (this.errorCount / this.totalChars * 100) || 0;
+                
+                document.getElementById('accuracy').textContent = `${accuracy.toFixed(2)}%`;
+                document.getElementById('error-rate').textContent = `${errorRate.toFixed(2)}%`;
+            }
+
+            startTimer() {
+                const timerElement = document.getElementById('time-spent');
+                const startTime = new Date();
+                
+                this.timerInterval = setInterval(() => {
+                    const currentTime = new Date();
+                    const timeDiff = new Date(currentTime - startTime);
+                    const minutes = timeDiff.getMinutes();
+                    const seconds = timeDiff.getSeconds();
+                    timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                }, 1000);
+            }
+
+            endTest() {
+                this.isTestActive = false;
+                this.userInput.disabled = true;
+                this.startButton.textContent = '开始测试';
+                clearInterval(this.timerInterval);
+                
+                const endTime = new Date();
+                const timeSpent = (endTime - this.startTime) / 1000;
+                const wordsPerMinute = (this.totalChars / 5) / (timeSpent / 60);
+                
+                alert(`测试完成!\n
+                    用时: ${timeSpent.toFixed(2)}秒\n
+                    打字速度: ${wordsPerMinute.toFixed(2)} WPM\n
+                    正确率: ${((this.totalChars - this.errorCount) / this.totalChars * 100).toFixed(2)}%`);
+            }
+
+            updateErrorStatsTable() {
+                const tbody = document.getElementById('error-stats');
+                tbody.innerHTML = '';
+                
+                // 将错误统计转换为数组并排序
+                const sortedErrors = Array.from(this.errorStats.entries())
+                    .sort((a, b) => b[1] - a[1]);
+                
+                sortedErrors.forEach(([char, count]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="character-cell">${char}</td>
+                        <td>${count}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            updateFrequencyStats() {
+                const tbody = document.getElementById('frequency-stats');
+                tbody.innerHTML = '';
+                
+                // 计算字符频率
+                const charCount = new Map();
+                const totalChars = this.currentText.length;
+                
+                this.currentText.split('').forEach(char => {
+                    charCount.set(char, (charCount.get(char) || 0) + 1);
+                });
+                
+                // 将频率统计转换为数组并排序
+                const sortedFreq = Array.from(charCount.entries())
+                    .sort((a, b) => b[1] - a[1]);
+                
+                sortedFreq.forEach(([char, count]) => {
+                    const frequency = ((count / totalChars) * 100).toFixed(2);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="character-cell">${char}</td>
+                        <td>${count}</td>
+                        <td>${frequency}%</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // 创建TypingTest实例
+        const typingTest = new TypingTest();
+    </script>
+</body>
+</html> 

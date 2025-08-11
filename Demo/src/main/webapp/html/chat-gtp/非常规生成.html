@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>~:Flux of the Void:~</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { position: absolute; top: 0; left: 0; }
+  </style>
+</head>
+<body>
+<canvas id="voidCanvas"></canvas>
+<script>
+const voidCanvas = document.getElementById('voidCanvas');
+const ctx = voidCanvas.getContext('2d');
+voidCanvas.width = window.innerWidth;
+voidCanvas.height = window.innerHeight;
+
+let tendrils = [];
+let pulse = 0;
+
+function spawnTendril() {
+  return {
+    x: Math.random() * voidCanvas.width,
+    y: Math.random() * voidCanvas.height,
+    angle: Math.random() * 2 * Math.PI,
+    length: 10 + Math.random() * 50,
+    speed: 0.5 + Math.random() * 2,
+    hue: Math.random() * 360,
+    memory: []
+  };
+}
+
+function flowOfConsciousness() {
+  pulse += 0.01;
+  ctx.fillStyle = `rgba(0, 0, 0, 0.1)`;
+  ctx.fillRect(0, 0, voidCanvas.width, voidCanvas.height);
+
+  if (Math.random() < 0.1) tendrils.push(spawnTendril());
+
+  tendrils.forEach((tendril, index) => {
+    tendril.x += Math.cos(tendril.angle) * tendril.speed;
+    tendril.y += Math.sin(tendril.angle) * tendril.speed;
+    tendril.angle += (Math.random() - 0.5) * 0.2;
+    tendril.memory.push({x: tendril.x, y: tendril.y});
+    if (tendril.memory.length > 50) tendril.memory.shift();
+
+    ctx.beginPath();
+    ctx.strokeStyle = `hsl(${tendril.hue + Math.sin(pulse) * 50}, 80%, 50%)`;
+    ctx.lineWidth = 2 + Math.sin(pulse + index) * 2;
+    tendril.memory.forEach((point, i) => {
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+
+    tendrils.forEach((other, oIndex) => {
+      if (index !== oIndex) {
+        let dist = Math.hypot(tendril.x - other.x, tendril.y - other.y);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = `hsla(${tendril.hue + other.hue}, 70%, 60%, 0.3)`;
+          ctx.moveTo(tendril.x, tendril.y);
+          ctx.lineTo(other.x, other.y);
+          ctx.stroke();
+          tendril.angle += Math.sin(pulse + dist * 0.01) * 0.05;
+        }
+      }
+    });
+
+    if (tendril.x < 0 || tendril.x > voidCanvas.width || tendril.y < 0 || tendril.y > voidCanvas.height) {
+      tendrils.splice(index, 1);
+    }
+  });
+
+  requestAnimationFrame(flowOfConsciousness);
+}
+
+voidCanvas.addEventListener('click', (e) => {
+  let tendril = spawnTendril();
+  tendril.x = e.clientX;
+  tendril.y = e.clientY;
+  tendril.speed *= 2;
+  tendrils.push(tendril);
+});
+
+window.addEventListener('resize', () => {
+  voidCanvas.width = window.innerWidth;
+  voidCanvas.height = window.innerHeight;
+});
+
+flowOfConsciousness();
+</script>
+</body>
+</html>

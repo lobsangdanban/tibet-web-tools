@@ -1,0 +1,19 @@
+{
+  "samples": [
+    {
+      "id": 1,
+      "text": "This is a sample text for annotation.",
+      "annotations": []
+    },
+    {
+      "id": 2,
+      "text": "Another example of text that needs to be annotated.",
+      "annotations": []
+    },
+    {
+      "id": 3,
+      "text": "This text is for testing the annotation tool.",
+      "annotations": []
+    }
+  ]
+}

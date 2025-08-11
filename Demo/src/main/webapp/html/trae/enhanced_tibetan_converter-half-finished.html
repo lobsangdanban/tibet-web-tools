@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强版藏文数字转换器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .converter-section, .reverse-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .reverse-section {
+            border-left: 5px solid #28a745;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .convert-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-width: 120px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:active {
+            transform: translateY(0);
+        }
+
+        .reverse-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .reverse-btn:hover {
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result.has-content {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .result.error {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .tibetan-text {
+            font-family: 'Microsoft Himalaya', 'Tibetan Machine Uni', monospace;
+            font-size: 1.8em;
+            color: #d63384;
+            font-weight: bold;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .number-text {
+            font-size: 1.5em;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+
+        .test-cases {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .test-cases h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+
+        .test-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-number {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+            max-width: 40%;
+        }
+
+        .test-result {
+            font-family: 'Microsoft Himalaya', 'Tibetan Machine Uni', monospace;
+            color: #d63384;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        .batch-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #fff3cd;
+            border-radius: 15px;
+            border-left: 5px solid #ffc107;
+        }
+
+        .batch-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .info-section {
+            background: #d1ecf1;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .info-section h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #0c5460;
+            line-height: 1.6;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .tab-btn:not(.active) {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>增强版藏文数字转换器</h1>
+            <p class="subtitle">双向转换：阿拉伯数字 ⇄ 藏文数字</p>
+        </div>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('forward')">数字转藏文</button>
+            <button class="tab-btn" onclick="switchTab('reverse')">藏文转数字</button>
+            <button class="tab-btn" onclick="switchTab('ultra')">超大数字</button>
+        </div>
+
+        <!-- 正向转换 -->
+        <div id="forward-tab" class="tab-content active">
+            <div class="converter-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="numberInput">输入数字：</label>
+                        <input type="text" id="numberInput" placeholder="请输入要转换的数字">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button class="convert-btn" onclick="convertSingle()">转换</button>
+                    </div>
+                </div>
+                
+                <div class="result" id="singleResult">
+                    <span style="color: #999;">转换结果将显示在这里...</span>
+                </div>
+            </div>
+
+            <div class="batch-section">
+                <h3 style="color: #856404; margin-bottom: 15px;">批量转换</h3>
+                <label for="batchInput">输入多个数字（用逗号分隔）：</label>
+                <textarea class="batch-input" id="batchInput" placeholder="例如: 0, 1, 10, 123, 1000"></textarea>
+                <button class="convert-btn" onclick="convertBatch()">批量转换</button>
+                <div class="result" id="batchResult">
+                    <span style="color: #999;">批量转换结果将显示在这里...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 反向转换 -->
+        <div id="reverse-tab" class="tab-content">
+            <div class="reverse-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="tibetanInput">输入藏文数字：</label>
+                        <input type="text" id="tibetanInput" placeholder="例如: སྟོང་གཅིག་ཉིས་བརྒྱ་སུམ་ཅུ་སོ་གཅིག">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button class="convert-btn reverse-btn" onclick="convertReverse()">反向转换</button>
+                    </div>
+                </div>
+                
+                <div class="result" id="reverseResult">
+                    <span style="color: #999;">反向转换结果将显示在这里...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 超大数字 -->
+        <div id="ultra-tab" class="tab-content">
+            <div class="converter-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="ultraInput">输入超大数字：</label>
+                        <input type="text" id="ultraInput" placeholder="例如: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button class="convert-btn" onclick="convertUltra()">转换超大数</button>
+                    </div>
+                </div>
+                
+                <div class="result" id="ultraResult">
+                    <span style="color: #999;">超大数转换结果将显示在这里...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-cases">
+            <h3>测试用例</h3>
+            <div class="test-grid" id="testGrid">
+                <!-- 测试用例将在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h4>使用说明</h4>
+            <p>
+                此转换器支持双向转换，严格按照藏文数字规则实现。支持从0到极大数字的转换。
+                特殊处理了零、10、100的读法，以及十位数的特殊形式。
+                反向转换可以将藏文数字文本还原为阿拉伯数字。
+                超大数字功能支持佛教传统中的大数表达方式。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 增强版藏文数字转换器
+         */
+        class EnhancedTibetanNumberConverter {
+            constructor() {
+                // 基础数字 1-9
+                this.basicNumbers = {
+                    1: 'གཅིག',
+                    2: 'གཉིས', 
+                    3: 'གསུམ',
+                    4: 'བཞི',
+                    5: 'ལྔ',
+                    6: 'དྲུག',
+                    7: 'བདུན',
+                    8: 'བརྒྱད',
+                    9: 'དགུ'
+                };
+
+                // 反向映射
+                this.reverseBasicNumbers = {};
+                for (let [num, tibetan] of Object.entries(this.basicNumbers)) {
+                    this.reverseBasicNumbers[tibetan] = parseInt(num);
+                }
+
+                // 十位数的特殊读法
+                this.tensSpecial = {
+                    20: 'རྩ',
+                    30: 'སོ',
+                    40: 'ཞེ',
+                    50: 'ང',
+                    60: 'རེ',
+                    70: 'དོན',
+                    80: 'གྱ',
+                    90: 'གོ'
+                };
+
+                // 常规单位表（支持到10^8）
+                this.units = [
+                    { value: 1, name: '' },
+                    { value: 10, name: 'བཅུ' },
+                    { value: 100, name: 'བརྒྱ' },
+                    { value: 1000, name: 'སྟོང' },
+                    { value: 10000, name: 'ཁྲི' },
+                    { value: 100000, name: 'འབུམ' },
+                    { value: 1000000, name: 'ས་ཡ' },
+                    { value: 10000000, name: 'བྱེ་བ' },
+                    { value: 100000000, name: 'དུང་ཕྱུར' }
+                ];
+
+                // 构建反向映射表
+                this.reverseUnits = {};
+                for (let unit of this.units) {
+                    if (unit.name) {
+                        this.reverseUnits[unit.name] = unit.value;
+                    }
+                }
+            }
+
+            convert(number) {
+                const input = number.toString().trim();
+                
+                // 检查是否为数字
+                if (!/^\d+$/.test(input)) {
+                    return '请输入有效数字';
+                }
+
+                const num = parseInt(input);
+                if (isNaN(num) || num < 0) {
+                    return '请输入有效数字';
+                }
+
+                if (num === 0) {
+                    return 'ཀླད་གོར།';
+                }
+
+                return this._convertNumber(num) + '།';
+            }
+
+            convertUltra(numberStr) {
+                const input = numberStr.toString().trim();
+                
+                // 检查是否为数字
+                if (!/^\d+$/.test(input)) {
+                    return '请输入有效数字';
+                }
+
+                if (input === '0') {
+                    return 'ཀླད་གོར།';
+                }
+
+                return this._convertLargeNumberString(input) + '།';
+            }
+
+            _convertLargeNumberString(numStr) {
+                // 对于超大数字的处理
+                const num = parseFloat(numStr);
+                if (num >= 1e12) {
+                    return this._getUltraUnitName(numStr);
+                }
+                return this._convertNumber(parseInt(numStr));
+            }
+
+            _getUltraUnitName(numStr) {
+                const ultraUnits = [
+                    { value: 1e63, name: 'གྲངས་མེད' },
+                    { value: 1e60, name: 'བཏང་སྙོམས་ཆེན་པོ' },
+                    { value: 1e57, name: 'བཏང་སྙོམས' },
+                    { value: 1e54, name: 'དགའ་བ་ཆེན་པོ' },
+                    { value: 1e51, name: 'དགའ་བ' },
+                    { value: 1e48, name: 'སྙིང་རྗེ་ཆེན་པོ' },
+                    { value: 1e45, name: 'སྙིང་རྗེ' },
+                    { value: 1e42, name: 'བྱམས་པ་ཆེན་པོ' },
+                    { value: 1e39, name: 'བྱམས་པ' },
+                    { value: 1e36, name: 'སྟོབས་མིག་ཆེན་པོ' },
+                    { value: 1e33, name: 'སྟོབས་མིག' },
+                    { value: 1e30, name: 'རྣམ་བྱུང་ཆེན་པོ' },
+                    { value: 1e27, name: 'རྣམ་བྱུང' },
+                    { value: 1e24, name: 'བརྡ་ཤེས་ཆེན་པོ' },
+                    { value: 1e21, name: 'བརྡ་ཤེས' },
+                    { value: 1e18, name: 'སྟོབས་འཁོར་ཆེན་པོ' },
+                    { value: 1e15, name: 'སྟོབས་འཁོར' },
+                    { value: 1e12, name: 'རབ་བཀྲམ' }
+                ];
+
+                const num = parseFloat(numStr);
+                for (let unit of ultraUnits) {
+                    if (num >= unit.value) {
+                        return unit.name;
+                    }
+                }
+                return 'དུང་ཕྱུར'; // fallback
+            }
+
+            _convertNumber(num) {
+                if (num === 0) return '';
+                
+                if (num <= 9) {
+                    return this.basicNumbers[num];
+                }
+
+                if (num === 10) {
+                    return 'བཅུ་ཐམ་པ';
+                }
+                if (num === 100) {
+                    return 'བརྒྱ་ཐམ་པ';
+                }
+
+                if (num < 100) {
+                    return this._convertTens(num);
+                }
+
+                return this._convertLargeNumber(num);
+            }
+
+            _convertTens(num) {
+                const tens = Math.floor(num / 10);
+                const ones = num % 10;
+
+                if (tens === 1) {
+                    if (ones === 5) return 'བཅོ་ལྔ';
+                    if (ones === 8) return 'བཅོ་བརྒྱད';
+                    return 'བཅུ་' + this.basicNumbers[ones];
+                } else if (tens === 2) {
+                    if (ones === 0) {
+                        return 'ཉི་ཤུ';
+                    } else {
+                        return 'ཉི་ཤུ་རྩ་' + this.basicNumbers[ones];
+                    }
+                } else {
+                    const tensName = this.basicNumbers[tens] + '་བཅུ';
+                    if (ones === 0) {
+                        return tensName;
+                    } else {
+                        const specialTens = this.tensSpecial[tens * 10];
+                        if (specialTens) {
+                            return tensName + '་' + specialTens + '་' + this.basicNumbers[ones];
+                        } else {
+                            return tensName + '་' + this.basicNumbers[ones];
+                        }
+                    }
+                }
+            }
+
+            _convertLargeNumber(num) {
+                let unitIndex = this.units.length - 1;
+                while (unitIndex > 0 && num < this.units[unitIndex].value) {
+                    unitIndex--;
+                }
+
+                const unit = this.units[unitIndex];
+                const quotient = Math.floor(num / unit.value);
+                const remainder = num % unit.value;
+
+                let result = '';
+
+                if (unit.value >= 1000) {
+                    result = unit.name + '་' + this.basicNumbers[quotient];
+                } else if (unit.value === 100) {
+                    if (quotient === 1) {
+                        if (remainder === 0) {
+                            result = 'བརྒྱ་ཐམ་པ';
+                        } else {
+                            result = 'བརྒྱ';
+                        }
+                    } else {
+                        result = this._getHundredPrefix(quotient) + '་བརྒྱ';
+                    }
+                } else if (unit.value === 10) {
+                    return this._convertTens(num);
+                }
+
+                if (remainder > 0) {
+                    const remainderText = this._convertNumber(remainder);
+                    if (remainderText) {
+                        result += '་' + remainderText;
+                    }
+                }
+
+                return result;
+            }
+
+            _getHundredPrefix(num) {
+                if (num === 2) return 'གཉིས';
+                if (num === 3) return 'གསུམ';
+                if (num === 4) return 'བཞི';
+                if (num === 5) return 'ལྔ';
+                if (num === 6) return 'དྲུག';
+                if (num === 7) return 'བདུན';
+                if (num === 8) return 'བརྒྱད';
+                if (num === 9) return 'དགུ';
+                return this.basicNumbers[num] || '';
+            }
+
+            // 反向转换功能（简化版）
+            reverseConvert(tibetanText) {
+                const text = tibetanText.trim().replace(/།$/, '');
+                
+                if (text === 'ཀླད་གོར') {
+                    return '0';
+                }
+
+                // 简单的反向转换逻辑
+                let result = 0;
+                let parts = text.split('་');
+                
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    
+                    // 查找基础数字
+                    for (let [tibetan, num] of Object.entries(this.reverseBasicNumbers)) {
+                        if (part === tibetan) {
+                            result += num;
+                            break;
+                        }
+                    }
+                    
+                    // 查找单位
+                    for (let [tibetan, value] of Object.entries(this.reverseUnits)) {
+                        if (part === tibetan) {
+                            result *= value;
+                            break;
+                        }
+                    }
+                }
+                
+                return result > 0 ? result.toString() : '无法识别';
+            }
+        }
+
+        // 创建转换器实例
+        const converter = new EnhancedTibetanNumberConverter();
+
+        // 标签页切换功能
+        function switchTab(tabName) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 移除所有按钮的活动状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 显示选中的标签页
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 激活对应的按钮
+            event.target.classList.add('active');
+        }
+
+        // 单个数字转换
+        function convertSingle() {
+            const input = document.getElementById('numberInput').value;
+            const result = converter.convert(input);
+            
+            const resultDiv = document.getElementById('singleResult');
+            resultDiv.innerHTML = `<span class="tibetan-text">${result}</span>`;
+            resultDiv.classList.add('has-content');
+        }
+
+        // 批量转换
+        function convertBatch() {
+            const input = document.getElementById('batchInput').value;
+            const numbers = input.split(',').map(n => n.trim()).filter(n => n);
+            
+            let results = [];
+            numbers.forEach(num => {
+                const tibetan = converter.convert(num);
+                results.push(`${num} → <span class="tibetan-text">${tibetan}</span>`);
+            });
+            
+            const resultDiv = document.getElementById('batchResult');
+            resultDiv.innerHTML = results.join('<br>');
+            resultDiv.classList.add('has-content');
+        }
+
+        // 反向转换
+        function convertReverse() {
+            const input = document.getElementById('tibetanInput').value;
+            const result = converter.reverseConvert(input);
+            
+            const resultDiv = document.getElementById('reverseResult');
+            resultDiv.innerHTML = `<span class="number-text">${result}</span>`;
+            resultDiv.classList.add('has-content');
+        }
+
+        // 超大数字转换
+        function convertUltra() {
+            const input = document.getElementById('ultraInput').value;
+            const result = converter.convertUltra(input);
+            
+            const resultDiv = document.getElementById('ultraResult');
+            resultDiv.innerHTML = `<span class="tibetan-text">${result}</span>`;
+            resultDiv.classList.add('has-content');
+        }
+
+        // 生成测试用例
+        function generateTestCases() {
+            const testNumbers = [0, 1, 5, 10, 15, 20, 25, 50, 100, 123, 456, 1000, 1234, 10000, 100000, 1000000];
+            const testGrid = document.getElementById('testGrid');
+            
+            testNumbers.forEach(num => {
+                const tibetan = converter.convert(num);
+                const testItem = document.createElement('div');
+                testItem.className = 'test-item';
+                testItem.innerHTML = `
+                    <span class="test-number">${num}</span>
+                    <span class="test-result">${tibetan}</span>
+                `;
+                testGrid.appendChild(testItem);
+            });
+        }
+
+        // 页面加载完成后生成测试用例
+        document.addEventListener('DOMContentLoaded', function() {
+            generateTestCases();
+        });
+
+        // 支持回车键转换
+        document.getElementById('numberInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertSingle();
+            }
+        });
+
+        document.getElementById('tibetanInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertReverse();
+            }
+        });
+
+        document.getElementById('ultraInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertUltra();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HarmonyLabel · 用爱标注万物</title>
+    <style>
+        :root {
+            --love-red: #FF6B8B;
+            --peace-blue: #8BD3DD;
+            --warm-yellow: #FFE8B4;
+            --earth-green: #B5EAD7;
+            --pure-white: #FFFDFA;
+            --soft-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --gentle-radius: 12px;
+            --breath-animation: breath 6s ease-in-out infinite;
+        }
+
+        @keyframes breath {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        body {
+            font-family: 'Harmony Sans', -apple-system, sans-serif;
+            background: var(--pure-white);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* 爱心导航 */
+        .love-nav {
+            height: 80px;
+            background: linear-gradient(135deg, var(--love-red), var(--peace-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--soft-shadow);
+        }
+
+        .nav-heart {
+            font-size: 28px;
+            margin-right: 15px;
+            animation: var(--breath-animation);
+        }
+
+        /* 主工作区 */
+        .love-container {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: calc(100vh - 80px);
+            padding: 20px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 爱心工具区 */
+        .tool-garden {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: var(--gentle-radius);
+            padding: 25px 15px;
+            box-shadow: var(--soft-shadow);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .tool-flower {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .tool-flower::before {
+            content: "";
+            position: absolute;
+            left: -15px;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(to bottom, var(--love-red), var(--peace-blue));
+            border-radius: 3px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .tool-flower:hover::before {
+            opacity: 1;
+        }
+
+        /* 通用爱心按钮 */
+        .love-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: var(--gentle-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            color: #555;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .love-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            color: var(--love-red);
+        }
+
+        .love-btn.active {
+            background: var(--warm-yellow);
+            color: #333;
+        }
+
+        .love-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* 主画布区 */
+        .love-canvas {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: var(--gentle-radius);
+            padding: 30px;
+            box-shadow: var(--soft-shadow);
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: var(--breath-animation);
+        }
+
+        /* 波形花园 */
+        .wave-garden {
+            height: 180px;
+            background: linear-gradient(135deg, var(--peace-blue), var(--earth-green));
+            border-radius: var(--gentle-radius);
+            margin: 25px 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wave-garden::after {
+            content: "🎧";
+            font-size: 40px;
+            opacity: 0.3;
+        }
+
+        /* 爱心控制区 */
+        .control-heart {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .main-heart-btn {
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            background: linear-gradient(135deg, var(--love-red), var(--warm-yellow));
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(255,107,139,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .main-heart-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(255,107,139,0.4);
+        }
+
+        .second-heart-btn {
+            padding: 15px 25px;
+            border-radius: 50px;
+            border: 1px solid var(--peace-blue);
+            background: white;
+            color: var(--peace-blue);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .second-heart-btn:hover {
+            background: rgba(139,211,221,0.1);
+            transform: translateY(-2px);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .love-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .tool-garden {
+                order: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 爱心导航 -->
+    <nav class="love-nav">
+        <span class="nav-heart">❤️</span>
+        <h1 style="color:white;font-weight:400">HarmonyLabel</h1>
+    </nav>
+
+    <!-- 主工作区 -->
+    <div class="love-container">
+        <!-- 工具花园 -->
+        <aside class="tool-garden">
+            <div class="tool-flower">
+                <h3 style="margin-top:0;color:var(--love-red)">🌼 标注方式</h3>
+                <button class="love-btn active">
+                    <span class="love-icon">🎤</span>
+                    <span>语音标注</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">📜</span>
+                    <span>文本标注</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">🖼️</span>
+                    <span>图像标注</span>
+                </button>
+            </div>
+
+            <div class="tool-flower">
+                <h3 style="color:var(--peace-blue)">🌱 爱心工具</h3>
+                <button class="love-btn">
+                    <span class="love-icon">💞</span>
+                    <span>情感标注</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">🌍</span>
+                    <span>文化标注</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">✨</span>
+                    <span>能量标注</span>
+                </button>
+            </div>
+
+            <div class="tool-flower">
+                <h3 style="color:var(--warm-yellow)">🕊️ 和平辅助</h3>
+                <button class="love-btn">
+                    <span class="love-icon">🤖</span>
+                    <span>AI爱心建议</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">🔍</span>
+                    <span>和谐检查</span>
+                </button>
+                <button class="love-btn">
+                    <span class="love-icon">🌐</span>
+                    <span>全球翻译</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主画布 -->
+        <main class="love-canvas">
+            <h2 style="margin-top:0;color:var(--love-red)">🎧 正在标注: 世界和平宣言</h2>
+            <p style="color:#666">请用爱心标注这段语音中的情感共鸣点</p>
+            
+            <div class="wave-garden"></div>
+            
+            <div style="background:rgba(255,255,255,0.8);padding:20px;border-radius:var(--gentle-radius);margin-top:20px">
+                <h4 style="margin-top:0;color:var(--peace-blue)">当前标注结果</h4>
+                <p><span style="color:var(--love-red)">❤️</span> <strong>00:12-00:24</strong> "我们同属一个人类大家庭" - 强烈团结感</p>
+                <p><span style="color:var(--peace-blue)">💙</span> <strong>00:35-00:42</strong> "共享这个美丽的星球" - 深层连接感</p>
+            </div>
+
+            <div class="control-heart">
+                <button class="main-heart-btn">
+                    <span style="margin-right:8px">💖</span> 保存爱心标注
+                </button>
+                <button class="second-heart-btn">
+                    <span style="margin-right:8px">🔄</span> 重新感受
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 爱心交互逻辑
+        document.querySelectorAll('.love-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.love-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 添加爱心反馈效果
+                const heart = document.createElement('div');
+                heart.innerHTML = '❤️';
+                heart.style.position = 'absolute';
+                heart.style.fontSize = '20px';
+                heart.style.animation = 'float 2s ease-out forwards';
+                heart.style.left = Math.random() * 80 + 10 + '%';
+                heart.style.top = '70%';
+                heart.style.opacity = '0.8';
+                heart.style.zIndex = '100';
+                
+                document.body.appendChild(heart);
+                
+                setTimeout(() => {
+                    heart.remove();
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>

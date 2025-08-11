@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汇编冒泡排序推箱子</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #app {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 1em;
+            color: #ffdb58;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        }
+        #gameCanvas {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1em;
+            background-color: #1f1f1f;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: auto;
+            max-height: 600px;
+            aspect-ratio: 8 / 6;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1em;
+        }
+        button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+            margin: 0 0.5em;
+            cursor: pointer; /* 确保有 pointer 样式 */
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 1px 1px 0px #386641;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:active {
+            background-color: #388e3c;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        #message {
+            font-size: 1em;
+            color: #fff;
+            margin-bottom: 1em;
+            min-height: 1.5em;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        #codeDisplay {
+            background-color: #282828;
+            border: 1px solid #ddd;
+            padding: 1em;
+            margin-bottom: 1em;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+            border-radius: 5px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+            color: #b9f6ca;
+            text-shadow: 0 0 5px rgba(185, 246, 202, 0.3);
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        @media screen and (max-width: 600px) {
+            #app {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.75em;
+            }
+            #gameCanvas {
+                max-height: 400px;
+            }
+            button {
+                font-size: 0.8em;
+                padding: 0.5em;
+            }
+            #message {
+                font-size: 0.9em;
+            }
+            #codeDisplay {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>汇编语言推箱子：冒泡排序演示</h1>
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="message"></div>
+            <div id="codeDisplay"></div>
+        </div>
+        <div id="controls">
+            <button id="resetButton">重置</button>
+            <button id="startButton">开始排序</button>
+            <button id="stepButton">单步执行</button>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageDisplay = document.getElementById('message');
+        const codeDisplay = document.getElementById('codeDisplay');
+        const resetButton = document.getElementById('resetButton');
+        const startButton = document.getElementById('startButton');
+        const stepButton = document.getElementById('stepButton');
+
+        const TILE_SIZE = 64;
+        const WALL_COLOR = '#8B4513';
+        const PLAYER_COLOR = '#FFD700';
+        const BOX_COLOR = '#B22222';
+        const EMPTY_COLOR = '#1f1f1f';
+        const PATH_COLOR = '#ADD8E6';
+        const COMPARE_COLOR = '#FFFF00';
+        const SWAP_COLOR = '#FF4500';
+
+        let level = {
+            width: 8,
+            height: 6,
+            board: [
+                [1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 2, 0, 2, 0, 2, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 2, 2, 2, 2, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            playerPos: { x: 1, y: 1 },
+            boxes: [{ x: 2, y: 2 }, { x: 4, y: 2 }, { x: 6, y: 2 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }],
+            path: [],
+            message: ""
+        };
+
+        let gameStep = 0;
+        let sorted = false;
+        let comparing = false;
+        let swapping = false;
+        let selectedBox1 = null;
+        let selectedBox2 = null;
+        let swapStep = 0;
+        let gameStep2 = 0;
+
+        let code = [
+            "BubbleSort:",
+            "    mov ecx, array_length - 1  ; 外层循环: ecx = 数组长度 - 1",
+            "outer_loop:",
+            "    push ecx                    ; 保存 ecx",
+            "    mov esi, 0                  ; esi = 0 (数组索引)",
+            "    mov edx, 0                  ; 交换标志 edx = 0",
+            "inner_loop:",
+            "    cmp esi, ecx                ; 比较 esi 和 ecx",
+            "    jge inner_loop_end          ; 如果 esi >= ecx, 内层循环结束",
+            "    mov eax, [array + esi * 4]  ; eax = array[esi]",
+            "    mov ebx, [array + (esi + 1) * 4]; ebx = array[esi + 1]",
+            "    cmp eax, ebx                ; 比较 eax 和 ebx",
+            "    jle no_swap                 ; 如果 eax <= ebx, 不交换",
+            "    ; 交换 array[esi] 和 array[esi + 1]",
+            "    mov [array + esi * 4], ebx  ; array[esi] = ebx",
+            "    mov [array + (esi + 1) * 4], eax; array[esi + 1] = eax",
+            "    mov edx, 1                  ; 设置交换标志 edx = 1",
+            "no_swap:",
+            "    inc esi                     ; esi++",
+            "    jmp inner_loop              ; 跳转到内层循环开始",
+            "inner_loop_end:",
+            "    cmp edx, 0                  ; 检查交换标志 edx",
+            "    jz sorted_end               ; 如果 edx == 0, 数组已排序",
+            "    pop ecx                     ; 恢复 ecx",
+            "    loop outer_loop             ; 外层循环",
+            "sorted_end:",
+            "    ret",
+            "",
+            "; 数据段",
+            "array dd 5, 1, 4, 2, 8, 3",
+            "array_length equ ($ - array) / 4"
+        ];
+
+        function drawWall(x, y) {
+            ctx.fillStyle = WALL_COLOR;
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = '#703805';
+            ctx.fillRect(x * TILE_SIZE + 4, y * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+        }
+
+        function drawPlayer(x, y) {
+            ctx.fillStyle = PLAYER_COLOR;
+            ctx.beginPath();
+            ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#FFC300';
+            ctx.beginPath();
+            ctx.arc(x * TILE_SIZE + TILE_SIZE / 2 + 10, y * TILE_SIZE + TILE_SIZE / 2 - 10, TILE_SIZE / 6, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawBox(x, y, color = BOX_COLOR) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = '#A01E1E';
+            ctx.fillRect(x * TILE_SIZE + 4, y * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+            ctx.fillStyle = '#D33232';
+            ctx.fillRect(x * TILE_SIZE + TILE_SIZE / 4, y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
+        }
+
+        function drawEmpty(x, y) {
+            ctx.fillStyle = EMPTY_COLOR;
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+
+        function drawPath(x, y) {
+            ctx.fillStyle = PATH_COLOR;
+            ctx.fillRect(x * TILE_SIZE + TILE_SIZE / 4, y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let y = 0; y < level.height; y++) {
+                for (let x = 0; x < level.width; x++) {
+                    switch (level.board[y][x]) {
+                        case 1: drawWall(x, y); break;
+                        case 0: drawEmpty(x, y); break;
+                    }
+                }
+            }
+            level.path.forEach(p => drawPath(p.x, p.y));
+            level.boxes.forEach((box, index) => {
+                let color = BOX_COLOR;
+                if (comparing && (index === selectedBox1 || index === selectedBox2)) {
+                    color = COMPARE_COLOR;
+                }
+                if (swapping && (index === selectedBox1 || index === selectedBox2)) {
+                    color = SWAP_COLOR;
+                }
+                drawBox(box.x, box.y, color);
+            });
+            drawPlayer(level.playerPos.x, level.playerPos.y);
+        }
+
+        function updateMessage(message) {
+            level.message = message;
+            messageDisplay.textContent = message;
+        }
+
+        function updateCodeDisplay(highlightLines = []) {
+            let codeHTML = code.map((line, index) => {
+                if (highlightLines.includes(index)) {
+                    return `<span style="background-color: rgba(255, 255, 0, 0.3);">${line}</span><br>`;
+                }
+                return `${line}<br>`;
+            }).join('');
+            codeDisplay.innerHTML = codeHTML;
+        }
+
+        function resetGame() {
+            level = {
+                width: 8,
+                height: 6,
+                board: [
+                    [1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 2, 0, 2, 0, 2, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 2, 2, 2, 2, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                playerPos: { x: 1, y: 1 },
+                boxes: [{ x: 2, y: 2 }, { x: 4, y: 2 }, { x: 6, y: 2 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }],
+                path: [],
+                message: ""
+            };
+            gameStep = 0;
+            sorted = false;
+            comparing = false;
+            swapping = false;
+            selectedBox1 = null;
+            selectedBox2 = null;
+            swapStep = 0;
+            gameStep2 = 0;
+            updateMessage("重置游戏，点击开始排序");
+            updateCodeDisplay();
+            drawBoard();
+            startButton.textContent = "开始排序";
+            stepButton.textContent = "单步执行";
+            startButton.disabled = false;
+            stepButton.disabled = false;
+        }
+
+        function movePlayer(dx, dy) {
+            if (sorted || comparing || swapping) return;
+
+            let newX = level.playerPos.x + dx;
+            let newY = level.playerPos.y + dy;
+
+            if (level.board[newY]?.[newX] === 0) {
+                level.playerPos = { x: newX, y: newY };
+                level.path.push({ x: newX, y: newY });
+                drawBoard();
+            } else if (level.boxes.some(box => box.x === newX && box.y === newY)) {
+                let nextX = newX + dx;
+                let nextY = newY + dy;
+                if (level.board[nextY]?.[nextX] === 0 &&
+                    !level.boxes.some(box => box.x === nextX && box.y === nextY)) {
+                    level.boxes.forEach(box => {
+                        if (box.x === newX && box.y === newY) {
+                            box.x = nextX;
+                            box.y = nextY;
+                        }
+                    });
+                    level.playerPos = { x: newX, y: newY };
+                    level.path.push({ x: newX, y: newY });
+                    drawBoard();
+                }
+            }
+        }
+
+        function isSorted(array) {
+            for (let i = 0; i < array.length - 1; i++) {
+                if (array[i] > array[i + 1]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function sortStep() {
+            if (sorted) {
+                updateMessage("数组已排序完成！");
+                return;
+            }
+            if (comparing) {
+                if (level.boxes[selectedBox1].x > level.boxes[selectedBox2].x) {
+                    swapping = true;
+                    swapStep = 0;
+                }
+                comparing = false;
+                selectedBox1 = null;
+                selectedBox2 = null;
+            } else if (swapping) {
+                let dx = level.boxes[selectedBox2].x - level.boxes[selectedBox1].x;
+                let dy = level.boxes[selectedBox2].y - level.boxes[selectedBox1].y;
+                if (swapStep < 4) {
+                    level.boxes[selectedBox1].x += Math.round(dx / 4);  // 使用 Math.round
+                    level.boxes[selectedBox2].x -= Math.round(dx / 4);  // 使用 Math.round
+                    level.boxes[selectedBox1].y += Math.round(dy / 4);  // 使用 Math.round
+                    level.boxes[selectedBox2].y -= Math.round(dy / 4);  // 使用 Math.round
+                    swapStep++;
+                    drawBoard();
+                } else {
+                    let temp = level.boxes[selectedBox1];
+                    level.boxes[selectedBox1] = level.boxes[selectedBox2];
+                    level.boxes[selectedBox2] = temp;
+                    swapping = false;
+                    swapStep = 0;
+                }
+            } else {
+                if (gameStep < level.boxes.length - 1) {
+                    if (gameStep2 < level.boxes.length - 1 - gameStep) {
+                        selectedBox1 = gameStep2;
+                        selectedBox2 = gameStep2 + 1;
+                        comparing = true;
+                        gameStep2++;
+                    } else {
+                        gameStep++;
+                        gameStep2 = 0;
+                    }
+                } else {
+                    sorted = true;
+                }
+            }
+            let array = level.boxes.map(b => b.x);
+            if (isSorted(array)) {
+                sorted = true;
+                updateMessage("排序完成！");
+                startButton.textContent = "重新开始";
+                stepButton.disabled = true;
+            } else {
+                updateMessage(`正在排序，第 ${gameStep + 1} 轮, 比较 ${gameStep2 + 1} / ${level.boxes.length - gameStep}`);
+            }
+            drawBoard();
+            highlightCode();
+        }
+
+        function highlightCode() {
+            let highlightLines = [];
+            if (sorted) {
+                highlightLines.push(20, 21);
+            } else if (swapping) {
+                highlightLines.push(12, 13, 14);
+            } else if (comparing) {
+                highlightLines.push(8, 9, 10);
+            } else if (gameStep < level.boxes.length - 1) {
+                if (gameStep2 == 0)
+                    highlightLines.push(1, 2, 3, 4);
+                highlightLines.push(5, 6, 7);
+            } else
+                highlightLines.push(20, 21);
+
+            updateCodeDisplay(highlightLines);
+        }
+
+        function startGame() {
+            if (sorted) {
+                resetGame();
+            }
+            gameStep = 0;
+            gameStep2 = 0;
+            sorted = false;
+            startButton.textContent = "重新开始";
+            stepButton.disabled = false;
+            sortStep();
+        }
+
+        // 确保在 window.onload 事件中初始化游戏和绑定事件监听器
+        window.onload = function() {
+            canvas.width = level.width * TILE_SIZE;
+            canvas.height = level.height * TILE_SIZE;
+            resetGame();
+
+            resetButton.addEventListener('click', resetGame);
+            startButton.addEventListener('click', startGame);
+            stepButton.addEventListener('click', sortStep);
+        };
+    </script>
+</body>
+</html>

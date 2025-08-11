@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文矢量处理工具</title>
+    <style>
+        :root {
+            --tibetan-red: #9D2933;
+            --tibetan-orange: #D2691E;
+            --tibetan-gold: #DAA520;
+            --tibetan-blue: #4682B4;
+            --tibetan-cream: #F5F5DC;
+            --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
+            --rounded-md: 8px;
+        }
+
+        body {
+            font-family: 'Noto Sans Tibetan', 'Microsoft YaHei', sans-serif;
+            background-color: var(--tibetan-cream);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* 顶部导航 */
+        .header {
+            background: linear-gradient(135deg, var(--tibetan-red), var(--tibetan-orange));
+            color: white;
+            padding: 15px 20px;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-weight: 500;
+            font-size: 20px;
+        }
+
+        /* 主布局 */
+        .main-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: calc(100vh - 55px);
+        }
+
+        /* 侧边工具栏 */
+        .sidebar {
+            background: rgba(255,255,255,0.9);
+            padding: 20px 15px;
+            border-right: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+        }
+
+        .tool-section h3 {
+            color: var(--tibetan-red);
+            font-size: 15px;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* 藏式按钮 */
+        .tibetan-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: var(--rounded-md);
+            color: #555;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .tibetan-btn:hover {
+            background: var(--tibetan-blue);
+            color: white;
+            border-color: var(--tibetan-blue);
+        }
+
+        .tibetan-btn.active {
+            background: var(--tibetan-gold);
+            color: white;
+            border-color: var(--tibetan-gold);
+        }
+
+        /* 主工作区 */
+        .workspace {
+            padding: 25px;
+        }
+
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .workspace-title {
+            color: var(--tibetan-red);
+            margin: 0;
+        }
+
+        /* 输入输出区域 */
+        .io-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: var(--rounded-md);
+            padding: 15px;
+            box-shadow: var(--shadow-light);
+            height: 300px;
+            overflow: auto;
+        }
+
+        .panel-header {
+            color: var(--tibetan-orange);
+            font-size: 15px;
+            margin: 0 0 10px 0;
+        }
+
+        /* 控制按钮区 */
+        .control-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .primary-btn {
+            background: var(--tibetan-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--rounded-md);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .primary-btn:hover {
+            opacity: 0.9;
+        }
+
+        .secondary-btn {
+            background: white;
+            color: var(--tibetan-red);
+            border: 1px solid var(--tibetan-red);
+            padding: 10px 20px;
+            border-radius: var(--rounded-md);
+            cursor: pointer;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+            
+            .io-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="header">
+        <h1>藏文矢量处理工具</h1>
+    </div>
+
+    <!-- 主布局 -->
+    <div class="main-container">
+        <!-- 侧边工具栏 -->
+        <div class="sidebar">
+            <div class="tool-section">
+                <h3>输入设置</h3>
+                <button class="tibetan-btn active">📝 文本输入</button>
+                <button class="tibetan-btn">📁 文件导入</button>
+                <button class="tibetan-btn">⏏️ 剪贴板粘贴</button>
+            </div>
+
+            <div class="tool-section">
+                <h3>处理选项</h3>
+                <button class="tibetan-btn">✒️ 笔画优化</button>
+                <button class="tibetan-btn">🔄 连笔处理</button>
+                <button class="tibetan-btn">📐 尺寸调整</button>
+            </div>
+
+            <div class="tool-section">
+                <h3>输出设置</h3>
+                <button class="tibetan-btn">🖨️ GCode生成</button>
+                <button class="tibetan-btn">📥 SVG导出</button>
+                <button class="tibetan-btn">📊 预览模式</button>
+            </div>
+        </div>
+
+        <!-- 主工作区 -->
+        <div class="workspace">
+            <div class="workspace-header">
+                <h2 class="workspace-title">藏文处理工作区</h2>
+            </div>
+
+            <!-- 输入输出面板 -->
+            <div class="io-panel">
+                <div class="panel">
+                    <h3 class="panel-header">输入藏文</h3>
+                    <textarea style="width:100%; height:85%; border:none; resize:none; font-family:'Noto Sans Tibetan'; font-size:16px;" placeholder="在此输入藏文...">ཀཁག</textarea>
+                </div>
+                
+                <div class="panel">
+                    <h3 class="panel-header">生成GCode</h3>
+                    <pre style="font-family:monospace; font-size:13px; margin:0; white-space:pre-wrap;">G21 ; 毫米单位
+G90 ; 绝对坐标
+G28 ; 回原点
+G1 Z2 F100 ; 抬笔
+G1 X0 Y0 F150 ; 移动到起点
+G1 Z0 F50 ; 下笔
+; 开始书写字符 ཀ
+G1 X0 Y0 F50
+G1 X0.5 Y1 F30
+G1 X1 Y0 F40
+G1 Z2 F100 ; 抬笔
+; 开始书写字符 ཁ
+G1 X1.2 Y0 F150
+G1 Z0 F50 ; 下笔
+G1 X1.5 Y0.7 F30
+G1 X1.9 Y0.7 F40
+G1 X2.2 Y0 F30
+G1 Z2 F100 ; 抬笔
+M2 ; 程序结束</pre>
+                </div>
+            </div>
+
+            <!-- 控制按钮 -->
+            <div class="control-bar">
+                <button class="primary-btn">生成矢量路径</button>
+                <button class="secondary-btn">导出GCode文件</button>
+                <button class="secondary-btn">重置工作区</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 按钮交互逻辑
+        document.querySelectorAll('.tibetan-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 移除同组按钮的active类
+                const btnGroup = this.parentElement.querySelectorAll('.tibetan-btn');
+                btnGroup.forEach(b => b.classList.remove('active'));
+                
+                // 为当前按钮添加active类
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

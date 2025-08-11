@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧宫殿 - 数理逻辑修行游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .game-title {
+            font-size: 3em;
+            background: linear-gradient(45deg, #ffd700, #ff8c00, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .game-subtitle {
+            font-size: 1.3em;
+            color: #b8860b;
+            margin-bottom: 20px;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            border-color: rgba(255, 215, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .main-game-area {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .game-board-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .mode-btn {
+            background: linear-gradient(45deg, #4a4a4a, #2a2a2a);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            color: #000;
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 70px);
+            grid-template-rows: repeat(8, 70px);
+            gap: 3px;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 66px;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .cell.selected {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .cell.number-theory {
+            background: linear-gradient(45deg, rgba(255, 0, 100, 0.2), rgba(255, 0, 150, 0.1));
+            border-color: rgba(255, 0, 100, 0.4);
+        }
+
+        .cell.geometry {
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 255, 0.1));
+            border-color: rgba(0, 255, 255, 0.4);
+        }
+
+        .cell.arithmetic {
+            background: linear-gradient(45deg, rgba(0, 255, 0, 0.2), rgba(0, 200, 0, 0.1));
+            border-color: rgba(0, 255, 0, 0.4);
+        }
+
+        .cell.logic {
+            background: linear-gradient(45deg, rgba(255, 128, 0, 0.2), rgba(255, 100, 0, 0.1));
+            border-color: rgba(255, 128, 0, 0.4);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .challenge-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .challenge-title {
+            font-size: 1.4em;
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .challenge-content {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .timer-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .timer {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .hint-panel {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.primary {
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            color: #000;
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+
+        .answer-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0f0c29, #302b63);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #ffd700;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+        }
+
+        .modal-title {
+            font-size: 2em;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .modal-text {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .pulse { animation: pulse 0.6s ease-in-out; }
+        .shake { animation: shake 0.5s ease-in-out; }
+
+        .floating-score {
+            position: absolute;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffd700;
+            pointer-events: none;
+            animation: floatUp 2s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+
+        .combo-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            color: #000;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">智慧宫殿</h1>
+            <p class="game-subtitle">数论·几何·速算·因明 四艺修行之道</p>
+            
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-value" id="level">1</div>
+                    <div class="stat-label">修行境界</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="wisdom">0</div>
+                    <div class="stat-label">智慧积分</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="combo">0</div>
+                    <div class="stat-label">连击数</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="accuracy">100%</div>
+                    <div class="stat-label">准确率</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-game-area">
+            <div class="game-board-container">
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="number-theory">数论分解</button>
+                    <button class="mode-btn" data-mode="geometry">几何推理</button>
+                    <button class="mode-btn" data-mode="arithmetic">速算训练</button>
+                    <button class="mode-btn" data-mode="logic">因明逻辑</button>
+                </div>
+                
+                <div class="game-board" id="gameBoard"></div>
+                
+                <div class="controls">
+                    <button class="btn primary" onclick="game.newChallenge()">新挑战</button>
+                    <button class="btn success" onclick="game.checkAnswer()">验证答案</button>
+                    <button class="btn" onclick="game.getHint()">获取提示</button>
+                    <button class="btn danger" onclick="game.reset()">重置</button>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="challenge-panel">
+                    <div class="challenge-title" id="challengeTitle">数论分解挑战</div>
+                    <div class="challenge-content" id="challengeContent">
+                        将数字 84 分解为质因数的乘积
+                    </div>
+                    
+                    <div class="timer-container">
+                        <span>⏱️</span>
+                        <div class="timer" id="timer">60</div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    
+                    <input type="text" class="answer-input" id="answerInput" placeholder="请输入你的答案...">
+                    
+                    <div class="hint-panel" id="hintPanel">
+                        提示：从最小的质数开始尝试整除
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">挑战完成！</div>
+            <div class="modal-text" id="modalText">恭喜你完成了这个挑战！</div>
+            <button class="btn primary" onclick="game.closeModal()">继续修行</button>
+        </div>
+    </div>
+
+    <div class="combo-indicator" id="comboIndicator">
+        连击 x5!
+    </div>
+
+    <script>
+        class WisdomPalaceGame {
+            constructor() {
+                this.currentMode = 'number-theory';
+                this.level = 1;
+                this.wisdom = 0;
+                this.combo = 0;
+                this.accuracy = 100;
+                this.totalAttempts = 0;
+                this.correctAnswers = 0;
+                this.timer = 60;
+                this.timerInterval = null;
+                this.currentChallenge = null;
+                this.selectedCells = [];
+                
+                this.challenges = {
+                    'number-theory': [
+                        { question: "将 84 分解为质因数", answer: "2²×3×7", hint: "从2开始：84÷2=42，42÷2=21，21÷3=7" },
+                        { question: "找出 120 的所有质因数", answer: "2³×3×5", hint: "120 = 8×15 = 8×3×5" },
+                        { question: "分解 210 为质因数乘积", answer: "2×3×5×7", hint: "210是前4个质数的乘积" },
+                        { question: "将 144 写成质因数幂的形式", answer: "2⁴×3²", hint: "144 = 12² = (4×3)² = (2²×3)²" }
+                    ],
+                    'geometry': [
+                        { question: "已知：∠A=∠B，∠B=∠C，求证：∠A=∠C", answer: "等量代换", hint: "这是欧几里得几何的传递性公理" },
+                        { question: "三角形内角和定理的证明依据", answer: "平行公理", hint: "通过作平行线，利用平行线性质" },
+                        { question: "垂直定义：两直线相交成直角", answer: "90°", hint: "直角的度数定义" },
+                        { question: "同位角相等的前提条件", answer: "两直线平行", hint: "平行线的性质定理" }
+                    ],
+                    'arithmetic': [
+                        { question: "快速计算：97 × 103", answer: "9991", hint: "利用 (100-3)(100+3) = 100² - 9" },
+                        { question: "速算：25 × 48", answer: "1200", hint: "25 × 4 = 100，所以 25 × 48 = 25 × 4 × 12" },
+                        { question: "心算：123 + 456 + 789", answer: "1368", hint: "先算百位：100+400+700=1200，再算其他" },
+                        { question: "巧算：999 × 37", answer: "36963", hint: "999 = 1000 - 1，所以 999×37 = 37000 - 37" }
+                    ],
+                    'logic': [
+                        { question: "大前提：凡人皆有死\n小前提：苏格拉底是人\n结论：？", answer: "苏格拉底有死", hint: "这是因明三支论证的经典例子" },
+                        { question: "若 P→Q 且 Q→R，则 P→？", answer: "R", hint: "这是逻辑推理的传递性" },
+                        { question: "宗：声是无常\n因：所作性故\n同喻：？", answer: "如瓶等", hint: "瓶等器物都是所作且无常的" },
+                        { question: "否定后件推理：若P则Q，非Q，故？", answer: "非P", hint: "这是有效的推理形式" }
+                    ]
+                };
+                
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.setupEventListeners();
+                this.newChallenge();
+                this.updateDisplay();
+            }
+
+            createBoard() {
+                const board = document.getElementById('gameBoard');
+                board.innerHTML = '';
+                
+                for (let i = 0; i < 64; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.index = i;
+                    cell.addEventListener('click', (e) => this.handleCellClick(e));
+                    board.appendChild(cell);
+                }
+            }
+
+            setupEventListeners() {
+                // 模式切换
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentMode = btn.dataset.mode;
+                        this.newChallenge();
+                    });
+                });
+
+                // 回车键提交答案
+                document.getElementById('answerInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.checkAnswer();
+                    }
+                });
+            }
+
+            newChallenge() {
+                this.stopTimer();
+                this.selectedCells = [];
+                
+                const challenges = this.challenges[this.currentMode];
+                this.currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+                
+                document.getElementById('challengeTitle').textContent = this.getModeTitle();
+                document.getElementById('challengeContent').textContent = this.currentChallenge.question;
+                document.getElementById('hintPanel').textContent = `提示：${this.currentChallenge.hint}`;
+                document.getElementById('answerInput').value = '';
+                
+                this.generateBoardContent();
+                this.startTimer();
+                this.updateProgressBar();
+            }
+
+            getModeTitle() {
+                const titles = {
+                    'number-theory': '数论分解修行',
+                    'geometry': '欧氏几何推理',
+                    'arithmetic': '四则速算训练',
+                    'logic': '因明逻辑辩证'
+                };
+                return titles[this.currentMode];
+            }
+
+            generateBoardContent() {
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                });
+
+                // 根据不同模式生成不同内容
+                let content = [];
+                switch (this.currentMode) {
+                    case 'number-theory':
+                        content = ['2', '3', '5', '7', '11', '13', '17', '19', '×', '²', '³', '⁴', '84', '120', '210', '144'];
+                        break;
+                    case 'geometry':
+                        content = ['∠A', '∠B', '∠C', '=', '∥', '⊥', '°', '90', '180', '平行', '垂直', '相等', '公理', '定理'];
+                        break;
+                    case 'arithmetic':
+                        content = ['×', '+', '-', '÷', '97', '103', '25', '48', '123', '456', '789', '999', '37', '100'];
+                        break;
+                    case 'logic':
+                        content = ['宗', '因', '喻', '→', '∧', '∨', '¬', 'P', 'Q', 'R', '前提', '结论', '推理', '逻辑'];
+                        break;
+                }
+
+                // 随机分布内容
+                const positions = this.getRandomPositions(content.length);
+                content.forEach((item, index) => {
+                    if (positions[index] < 64) {
+                        const cell = cells[positions[index]];
+                        cell.textContent = item;
+                        cell.classList.add(this.currentMode);
+                    }
+                });
+            }
+
+            getRandomPositions(count) {
+                const positions = [];
+                while (positions.length < count) {
+                    const pos = Math.floor(Math.random() * 64);
+                    if (!positions.includes(pos)) {
+                        positions.push(pos);
+                    }
+                }
+                return positions;
+            }
+
+            handleCellClick(event) {
+                const cell = event.target;
+                const index = parseInt(cell.dataset.index);
+
+                if (!cell.textContent) return;
+
+                if (cell.classList.contains('selected')) {
+                    cell.classList.remove('selected');
+                    this.selectedCells = this.selectedCells.filter(i => i !== index);
+                } else {
+                    cell.classList.add('selected');
+                    this.selectedCells.push(index);
+                }
+
+                cell.classList.add('pulse');
+                setTimeout(() => cell.classList.remove('pulse'), 600);
+
+                // 自动填充到输入框
+                this.updateAnswerInput();
+            }
+
+            updateAnswerInput() {
+                const selectedContent = this.selectedCells
+                    .map(index => document.querySelector(`[data-index="${index}"]`).textContent)
+                    .join('');
+                document.getElementById('answerInput').value = selectedContent;
+            }
+
+            startTimer() {
+                this.timer = 60;
+                document.getElementById('timer').textContent = this.timer;
+                
+                this.timerInterval = setInterval(() => {
+                    this.timer--;
+                    document.getElementById('timer').textContent = this.timer;
+                    this.updateProgressBar();
+                    
+                    if (this.timer <= 0) {
+                        this.timeUp();
+                    }
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            updateProgressBar() {
+                const progress = ((60 - this.timer) / 60) * 100;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+
+            checkAnswer() {
+                this.totalAttempts++;
+                const userAnswer = document.getElementById('answerInput').value.trim();
+                const isCorrect = this.isAnswerCorrect(userAnswer);
+
+                if (isCorrect) {
+                    this.correctAnswers++;
+                    this.combo++;
+                    this.wisdom += this.calculateScore();
+                    this.showSuccess();
+                    
+                    if (this.combo >= 5) {
+                        this.showComboIndicator();
+                    }
+                    
+                    setTimeout(() => {
+                        this.level++;
+                        this.newChallenge();
+                    }, 2000);
+                } else {
+                    this.combo = 0;
+                    this.showError();
+                }
+
+                this.updateAccuracy();
+                this.updateDisplay();
+            }
+
+            isAnswerCorrect(userAnswer) {
+                const correctAnswer = this.currentChallenge.answer.toLowerCase();
+                const normalizedUser = userAnswer.toLowerCase().replace(/\s+/g, '');
+                const normalizedCorrect = correctAnswer.replace(/\s+/g, '');
+                
+                return normalizedUser === normalizedCorrect || 
+                       normalizedUser.includes(normalizedCorrect) ||
+                       normalizedCorrect.includes(normalizedUser);
+            }
+
+            calculateScore() {
+                let baseScore = 100;
+                let timeBonus = Math.max(0, this.timer * 2);
+                let comboBonus = this.combo * 50;
+                return baseScore + timeBonus + comboBonus;
+            }
+
+            showSuccess() {
+                this.showModal('修行有成！', `正确答案！获得 ${this.calculateScore()} 智慧积分`, true);
+                this.showFloatingScore(`+${this.calculateScore()}`);
+            }
+
+            showError() {
+                this.showModal('继续精进', `答案不正确，正确答案是：${this.currentChallenge.answer}`, false);
+                document.querySelectorAll('.cell.selected').forEach(cell => {
+                    cell.classList.add('shake');
+                    setTimeout(() => cell.classList.remove('shake'), 500);
+                });
+            }
+
+            showModal(title, text, isSuccess) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalText').textContent = text;
+                document.getElementById('resultModal').style.display = 'flex';
+            }
+
+            closeModal() {
+                document.getElementById('resultModal').style.display = 'none';
+            }
+
+            showFloatingScore(score) {
+                const floating = document.createElement('div');
+                floating.className = 'floating-score';
+                floating.textContent = score;
+                floating.style.left = '50%';
+                floating.style.top = '200px';
+                document.body.appendChild(floating);
+                
+                setTimeout(() => {
+                    document.body.removeChild(floating);
+                }, 2000);
+            }
+
+            showComboIndicator() {
+                const indicator = document.getElementById('comboIndicator');
+                indicator.textContent = `连击 x${this.combo}!`;
+                indicator.style.display = 'block';
+                
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 3000);
+            }
+
+            timeUp() {
+                this.stopTimer();
+                this.combo = 0;
+                this.showModal('时间到！', `正确答案是：${this.currentChallenge.answer}\n继续努力修行！`, false);
+            }
+
+            updateAccuracy() {
+                this.accuracy = this.totalAttempts > 0 ? 
+                    Math.round((this.correctAnswers / this.totalAttempts) * 100) : 100;
+            }
+
+            updateDisplay() {
+                document.getElementById('level').textContent = this.level;
+                document.getElementById('wisdom').textContent = this.wisdom;
+                document.getElementById('combo').textContent = this.combo;
+                document.getElementById('accuracy').textContent = `${this.accuracy}%`;
+            }
+
+            getHint() {
+                const hintCost = 50;
+                if (this.wisdom >= hintCost) {
+                    this.wisdom -= hintCost;
+                    this.updateDisplay();
+                    
+                    // 高亮相关的棋盘元素
+                    this.highlightHintCells();
+                    
+                    // 显示更详细的提示
+                    document.getElementById('hintPanel').innerHTML = 
+                        `<strong>详细提示：</strong><br>${this.currentChallenge.hint}<br><br>
+                         <em style="color: #ffd700;">已消耗 ${hintCost} 智慧积分</em>`;
+                } else {
+                    this.showModal('智慧不足', '需要至少50智慧积分才能获取提示', false);
+                }
+            }
+
+            highlightHintCells() {
+                const cells = document.querySelectorAll('.cell');
+                
+                // 根据当前模式和挑战高亮相关元素
+                switch (this.currentMode) {
+                    case 'number-theory':
+                        // 高亮质数和运算符
+                        cells.forEach(cell => {
+                            if (['2', '3', '5', '7', '×', '²', '³'].includes(cell.textContent)) {
+                                cell.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
+                                setTimeout(() => {
+                                    cell.style.boxShadow = '';
+                                }, 3000);
+                            }
+                        });
+                        break;
+                    case 'geometry':
+                        cells.forEach(cell => {
+                            if (['=', '∠', '°', '90', '180'].includes(cell.textContent)) {
+                                cell.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.8)';
+                                setTimeout(() => {
+                                    cell.style.boxShadow = '';
+                                }, 3000);
+                            }
+                        });
+                        break;
+                    case 'arithmetic':
+                        cells.forEach(cell => {
+                            if (['×', '+', '-', '100'].includes(cell.textContent)) {
+                                cell.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.8)';
+                                setTimeout(() => {
+                                    cell.style.boxShadow = '';
+                                }, 3000);
+                            }
+                        });
+                        break;
+                    case 'logic':
+                        cells.forEach(cell => {
+                            if (['→', 'P', 'Q', 'R', '前提', '结论'].includes(cell.textContent)) {
+                                cell.style.boxShadow = '0 0 20px rgba(255, 128, 0, 0.8)';
+                                setTimeout(() => {
+                                    cell.style.boxShadow = '';
+                                }, 3000);
+                            }
+                        });
+                        break;
+                }
+            }
+
+            reset() {
+                this.stopTimer();
+                this.selectedCells = [];
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+                document.getElementById('answerInput').value = '';
+                this.newChallenge();
+            }
+        }
+
+        // 初始化游戏
+        let game;
+        window.addEventListener('DOMContentLoaded', function() {
+            game = new WisdomPalaceGame();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'n':
+                case 'N':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        game.newChallenge();
+                    }
+                    break;
+                case 'h':
+                case 'H':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        game.getHint();
+                    }
+                    break;
+                case 'r':
+                case 'R':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        game.reset();
+                    }
+                    break;
+            }
+        });
+
+        // 添加粒子效果背景
+        function createParticles() {
+            const particlesContainer = document.createElement('div');
+            particlesContainer.style.position = 'fixed';
+            particlesContainer.style.top = '0';
+            particlesContainer.style.left = '0';
+            particlesContainer.style.width = '100%';
+            particlesContainer.style.height = '100%';
+            particlesContainer.style.pointerEvents = 'none';
+            particlesContainer.style.zIndex = '-1';
+            document.body.appendChild(particlesContainer);
+
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.width = '2px';
+                particle.style.height = '2px';
+                particle.style.background = 'rgba(255, 215, 0, 0.3)';
+                particle.style.borderRadius = '50%';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                const duration = Math.random() * 20 + 10;
+                particle.style.animation = `float ${duration}s infinite linear`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // 添加浮动动画
+        const floatKeyframes = `
+            @keyframes float {
+                0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+                50% { transform: translateY(-20px) rotate(180deg); opacity: 0.5; }
+                100% { transform: translateY(0px) rotate(360deg); opacity: 1; }
+            }
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = floatKeyframes;
+        document.head.appendChild(style);
+
+        // 页面加载完成后创建粒子效果
+        window.addEventListener('load', createParticles);
+
+        // 添加音效反馈（使用Web Audio API模拟）
+        class AudioFeedback {
+            constructor() {
+                this.audioContext = null;
+                this.initAudio();
+            }
+
+            initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('音频上下文初始化失败');
+                }
+            }
+
+            playSuccess() {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.2);
+            }
+
+            playError() {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+            }
+        }
+
+        // 创建音效实例
+        const audioFeedback = new AudioFeedback();
+
+        // 在游戏成功和失败时播放音效
+        const originalShowSuccess = WisdomPalaceGame.prototype.showSuccess;
+        WisdomPalaceGame.prototype.showSuccess = function() {
+            audioFeedback.playSuccess();
+            originalShowSuccess.call(this);
+        };
+
+        const originalShowError = WisdomPalaceGame.prototype.showError;
+        WisdomPalaceGame.prototype.showError = function() {
+            audioFeedback.playError();
+            originalShowError.call(this);
+        };
+    </script>
+</body>
+</html>

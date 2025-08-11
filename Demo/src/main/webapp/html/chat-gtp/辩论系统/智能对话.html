@@ -1,0 +1,383 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智能对话 — 单页演示</title>
+  <style>
+    /* 简洁现代风格 */
+    :root{
+      --bg:#0f1724;
+      --card:#0b1320;
+      --accent:#6ee7b7;
+      --muted:#94a3b8;
+      --msg-user:#0b84ff;
+      --msg-assistant:#111827;
+      --radius:14px;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+    }
+    html,body{height:100%; margin:0; background:linear-gradient(180deg,#081025 0%, #041022 100%); color:#e6eef8;}
+    .app {
+      max-width:900px;
+      margin:24px auto;
+      padding:20px;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 10px 30px rgba(2,6,23,0.7);
+      min-height:80vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    header{
+      display:flex; align-items:center; gap:12px; margin-bottom:12px;
+    }
+    .logo{
+      width:48px; height:48px; border-radius:10px;
+      background:linear-gradient(135deg,var(--accent), #60a5fa); display:flex; align-items:center; justify-content:center;
+      font-weight:700; color:#042; box-shadow:0 6px 18px rgba(7,15,30,0.6);
+    }
+    h1{font-size:18px; margin:0; letter-spacing:0.2px}
+    p.lead{margin:0; font-size:12px; color:var(--muted)}
+
+    main.chat {
+      display:flex; gap:16px; margin-top:16px; flex:1; min-height:0;
+    }
+
+    /* 左侧 — 聊天区 */
+    .panel {
+      flex:1 1 0;
+      display:flex; flex-direction:column;
+      background:var(--card);
+      border-radius:12px;
+      padding:12px;
+      min-height:0;
+      overflow:hidden;
+    }
+    .messages {
+      overflow:auto; padding:8px; flex:1 1 auto; display:flex; flex-direction:column; gap:10px;
+    }
+    .msg { max-width:78%; padding:10px 12px; border-radius:12px; line-height:1.45; box-shadow:0 2px 8px rgba(2,6,23,0.5); }
+    .msg.user { margin-left:auto; background:linear-gradient(90deg,var(--msg-user), #1d7cff); color:white; border-bottom-right-radius:6px; }
+    .msg.assistant { margin-right:auto; background:var(--glass); color:#e6eef8; border-bottom-left-radius:6px; }
+    .meta { font-size:11px; color:var(--muted); margin-bottom:6px; }
+
+    /* 右侧 — 设置区 */
+    .sidebar {
+      width:300px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      border-radius:12px; padding:12px;
+      display:flex; flex-direction:column; gap:12px;
+    }
+    label{font-size:13px; color:var(--muted); margin-bottom:6px; display:block;}
+    textarea,input[type="text"],select{
+      width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; font-size:13px;
+    }
+    .controls { display:flex; gap:8px; align-items:center; }
+    button{
+      border:0; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    button.primary{ background:linear-gradient(90deg,var(--accent),#60a5fa); color:#012; }
+    button.ghost{ background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); }
+    footer.compose{ margin-top:12px; display:flex; gap:8px; align-items:center; }
+    .input-box{ flex:1; display:flex; gap:8px; align-items:center; }
+    .input-box input{ flex:1; padding:10px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:inherit; }
+    .small { font-size:12px; color:var(--muted); }
+
+    /* 响应式 */
+    @media (max-width:880px){
+      .sidebar{ display:none; }
+      .app{ margin:8px; padding:12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="智能对话演示">
+    <header>
+      <div class="logo" aria-hidden="true">AI</div>
+      <div>
+        <h1>智能对话 — 单页演示</h1>
+        <p class="lead">可离线保存测试；生产环境请使用安全后端代理以保护 API Key。</p>
+      </div>
+    </header>
+
+    <main class="chat" role="main">
+      <section class="panel" aria-labelledby="chat-heading">
+        <h2 id="chat-heading" style="display:none">聊天区</h2>
+
+        <div id="messages" class="messages" tabindex="0" aria-live="polite" aria-atomic="false">
+          <!-- 消息项由 JS 动态插入 -->
+        </div>
+
+        <footer class="compose" aria-label="消息编辑区">
+          <div class="input-box">
+            <input id="userInput" type="text" placeholder="输入消息，按回车发送（示例：你好！）" aria-label="输入消息" />
+          </div>
+          <button id="sendBtn" class="primary" aria-label="发送消息">发送</button>
+          <button id="clearBtn" class="ghost" aria-label="清空聊天">清空</button>
+        </footer>
+
+      </section>
+
+      <aside class="sidebar" aria-labelledby="settings-heading">
+        <h3 id="settings-heading" style="margin:0 0 6px 0">设置</h3>
+
+        <div>
+          <label for="systemPrompt">System Prompt（系统提示）</label>
+          <textarea id="systemPrompt" rows="3" placeholder="例如：你是一名中文客服，回答简洁友好。"></textarea>
+        </div>
+
+        <div>
+          <label for="endpointSelect">API 调用方式（建议生产使用后端代理）</label>
+          <select id="endpointSelect" aria-label="选择 API 调用方式">
+            <option value="direct">直接从浏览器调用 OpenAI（仅测试）</option>
+            <option value="proxy" selected>通过后端代理（推荐）</option>
+          </select>
+        </div>
+
+        <div id="directSettings" style="display:none">
+          <label for="apiKey">OpenAI API Key（仅测试）</label>
+          <input id="apiKey" type="text" placeholder="sk-xxxx...（不要在公网页面放置）" />
+          <div class="small">警告：将 API Key 放到前端会被任何访问者看到。</div>
+        </div>
+
+        <div>
+          <label for="modelSelect">模型</label>
+          <select id="modelSelect">
+            <option value="gpt-5-thinking-mini">gpt-5-thinking-mini</option>
+            <option value="gpt-4o-mini">gpt-4o-mini</option>
+          </select>
+        </div>
+
+        <div class="controls">
+          <button id="savePrompt" class="primary">保存设置</button>
+          <button id="loadExample" class="ghost">示例提示</button>
+        </div>
+
+        <hr style="border:none; height:1px; background:rgba(255,255,255,0.02); margin:8px 0" />
+
+        <div class="small">
+          推荐：在生产环境中使用后端代理接口（例如 `/api/chat`），由后端持有并注入 API Key，再转发请求到 OpenAI。
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    /* ------- 核心逻辑 ------- */
+    // UI 元素
+    const messagesEl = document.getElementById('messages');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const systemPromptEl = document.getElementById('systemPrompt');
+    const savePromptBtn = document.getElementById('savePrompt');
+    const loadExampleBtn = document.getElementById('loadExample');
+    const endpointSelect = document.getElementById('endpointSelect');
+    const directSettings = document.getElementById('directSettings');
+    const apiKeyInput = document.getElementById('apiKey');
+    const modelSelect = document.getElementById('modelSelect');
+
+    // 聊天上下文（保存在内存）
+    let chatHistory = [];
+
+    // 初始化
+    function init() {
+      // 加载默认 system prompt（如果有 localStorage）
+      const savedPrompt = localStorage.getItem('systemPrompt');
+      if (savedPrompt) systemPromptEl.value = savedPrompt;
+
+      // endpoint selector
+      endpointSelect.addEventListener('change', () => {
+        directSettings.style.display = endpointSelect.value === 'direct' ? 'block' : 'none';
+      });
+
+      // 事件
+      sendBtn.addEventListener('click', sendMessage);
+      userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+      clearBtn.addEventListener('click', clearChat);
+      savePromptBtn.addEventListener('click', () => {
+        localStorage.setItem('systemPrompt', systemPromptEl.value || '');
+        alert('系统提示已保存（保存在本地浏览器）');
+      });
+      loadExampleBtn.addEventListener('click', () => {
+        systemPromptEl.value = "你是一个中文助手，回答简洁、礼貌，适当给出示例。";
+      });
+
+      // 初始欢迎
+      pushAssistantMessage("你好！我是演示用的聊天助手。你可以输入问题开始对话。");
+    }
+
+    // UI 帮助函数
+    function pushUserMessage(text){
+      chatHistory.push({role:'user', content:text});
+      const el = document.createElement('div');
+      el.className = 'msg user';
+      el.textContent = text;
+      messagesEl.appendChild(el);
+      scrollMessagesToBottom();
+    }
+    function pushAssistantMessage(text, replace=false){
+      chatHistory.push({role:'assistant', content:text});
+      const el = document.createElement('div');
+      el.className = 'msg assistant';
+      el.innerHTML = textToHtml(text);
+      messagesEl.appendChild(el);
+      scrollMessagesToBottom();
+    }
+    function appendToLastAssistant(textChunk){
+      // 将流式返回的文本追加到最后一个 assistant 消息块
+      const nodes = messagesEl.querySelectorAll('.msg.assistant');
+      const last = nodes[nodes.length-1];
+      if (last) {
+        last.innerHTML = textToHtml(last.textContent + textChunk);
+      } else {
+        pushAssistantMessage(textChunk);
+      }
+      scrollMessagesToBottom();
+    }
+    function textToHtml(text){
+      // 简单将换行转为 <br>，并对代码块做基本高亮（保留）
+      return escapeHtml(text).replace(/\n/g, '<br>');
+    }
+    function escapeHtml(unsafe){
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+    function scrollMessagesToBottom(){
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function clearChat(){
+      chatHistory = [];
+      messagesEl.innerHTML = '';
+      pushAssistantMessage("已清空对话。需要时可开始新的聊天。");
+    }
+
+    // 发送消息主流程
+    async function sendMessage(){
+      const text = userInput.value.trim();
+      if (!text) return;
+      userInput.value = '';
+      pushUserMessage(text);
+
+      // 构建 messages payload（包含 system prompt）
+      const systemPrompt = systemPromptEl.value?.trim();
+      const messagesPayload = [];
+      if (systemPrompt) messagesPayload.push({role:'system', content: systemPrompt});
+      // 将历史对话包含在请求里（注意长度）
+      chatHistory.forEach(m => messagesPayload.push({role:m.role, content:m.content}));
+      // 新用户消息（已 push 到 chatHistory）
+      // models may have context length limits — in production you should trim older messages.
+
+      // 选择调用方式
+      if (endpointSelect.value === 'direct') {
+        // 直接从浏览器调用 OpenAI（仅测试）
+        const apiKey = apiKeyInput.value.trim();
+        if (!apiKey) { appendToLastAssistant("\n\n⚠️ 错误：未提供 API Key（direct 模式需要）。"); return; }
+        await callOpenAIDirect(messagesPayload, modelSelect.value, apiKey);
+      } else {
+        // 通过后端代理：推荐。需要你实现 /api/chat 接口。
+        // 这里示例调用 /api/chat（POST），请求体包含 { model, messages }，后端需持有并注入 API key 与 OpenAI 通信。
+        await callProxyEndpoint('/api/chat', { model: modelSelect.value, messages: messagesPayload });
+      }
+    }
+
+    /* ------- 调用 OpenAI（示例） ------- */
+
+    // 1) 直接从浏览器调用（仅测试 —— key 会暴露）
+    async function callOpenAIDirect(messages, model, apiKey){
+      // 我们尝试使用流式（SSE/Chunked）方式读取。若你的 API 不支持流式，改为非流模式。
+      try {
+        // 非流式示例（更兼容），注释掉流式片段以降低复杂度：
+        const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type':'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 800
+          })
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          appendToLastAssistant("\n\n⚠️ API 错误：" + resp.status + " " + resp.statusText + "\n" + text);
+          return;
+        }
+        const data = await resp.json();
+        const reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "[未收到回复]";
+        // 用 replace 的方式把最后的占位 assistant 消息替换为实际内容
+        appendToLastAssistant("\n" + reply);
+        // 把真实 assistant 消息也放到 chatHistory（已在 pushAssistantMessage 中）
+        chatHistory.push({role:'assistant', content: reply});
+      } catch (err) {
+        appendToLastAssistant("\n\n⚠️ 请求失败：" + (err.message || err));
+      }
+    }
+
+    // 2) 通过后端代理（推荐）：后端负责调用 OpenAI，并把响应返回给前端
+    // 假设后端接口支持两种行为：
+    // - 非流式：返回 JSON { reply: "..." }
+    // - 流式：返回 text/event-stream 或 chunked 文本分块（此示例使用非流式 JSON）
+    async function callProxyEndpoint(path, payload){
+      try {
+        // 显示一个临时 assistant 占位（会追加）
+        pushAssistantMessage("正在生成回复…");
+
+        const resp = await fetch(path, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          appendToLastAssistant("\n\n⚠️ 代理 API 错误：" + resp.status + " " + resp.statusText + "\n" + errText);
+          return;
+        }
+
+        // 备注：这里假设后端返回 { reply: "..." }
+        const data = await resp.json();
+        const reply = data.reply || "[代理未返回内容]";
+        appendToLastAssistant("\n" + reply);
+        chatHistory.push({role:'assistant', content: reply});
+      } catch (err) {
+        appendToLastAssistant("\n\n⚠️ 代理请求失败：" + (err.message || err));
+      }
+    }
+
+    // 可选：演示如何使用流式响应（如果你的后端/OPENAI 返回 chunked）
+    // 这里仅示例读取 response.body。要使用，请在 callProxyEndpoint / callOpenAIDirect 中使用读取流的逻辑。
+    async function streamExampleFetch(url, options){
+      const resp = await fetch(url, options);
+      if (!resp.ok) throw new Error("网络错误: " + resp.status);
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      while(!done){
+        const {value, done:doneReading} = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, {stream: true});
+          appendToLastAssistant(chunk); // 将分块追加到最后 assistant 消息
+        }
+      }
+    }
+
+    // 启动
+    init();
+  </script>
+</body>
+</html>

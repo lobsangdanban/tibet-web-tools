@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>test</title>
+  <style>
+	* {
+		margin:0px;
+		padding:0px;
+	}
+	header,section,footer{
+		width:1000px;
+		margin:0 auto;
+		background:black;
+	}
+	header,footer{
+		height:200px;
+	}
+	a{
+		
+	}
+	li{
+		list-style-type:none;
+	}
+	
+	section > div{
+		float:left;
+		background-color:blue;
+		height:300px;
+	}
+	.left{
+		width:700px;
+	}
+	.right{
+		width:300px;
+	}
+  </style>
+ </head>
+ <body>
+	<header>header</header>
+	<section>
+		<div class="left"></div>
+		<div class="right"></div>
+	</section>
+	<footer>footer</footer>
+ </body>
+</html>

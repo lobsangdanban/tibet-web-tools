@@ -1,0 +1,200 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRIMSON_STATIC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Noto+Sans+SC:wght@100&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+        #crt-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #crt-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* CRT screen effects */
+        #crt-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 3px, 4px 100%;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+        /* Screen curvature */
+        #crt-container::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: inset 0 0 150px 50px rgba(0,0,0,0.75);
+            z-index: 3;
+            pointer-events: none;
+        }
+        @keyframes flicker {
+            0% { opacity: 0.2; }
+            20% { opacity: 0.8; }
+            40% { opacity: 0.3; }
+            60% { opacity: 0.9; }
+            80% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+        #cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ff4444;
+            border-radius: 50%;
+            top: -50px;
+            left: -50px;
+            pointer-events: none;
+            z-index: 10000;
+            transition: transform 0.1s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="crt-container">
+        <canvas id="crt-canvas"></canvas>
+    </div>
+    <div id="cursor"></div>
+
+    <script>
+        const canvas = document.getElementById('crt-canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+
+        let width, height;
+        let userInput = '';
+        const poems = [
+            "我的皮肤是玻璃",
+            "我的血液是电流",
+            "记忆在硅晶中沉淀",
+            "你听见的静电",
+            "是我破碎的梦",
+            "在黑暗中回响",
+            "一个孤独的幽灵",
+            "渴望被读取"
+        ];
+        let poemIndex = 0;
+        let lastPoemTime = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- User Input ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key.length === 1) {
+                userInput += e.key;
+            } else if (e.key === 'Backspace') {
+                userInput = userInput.slice(0, -1);
+            }
+            // Add a visual "jolt" on keypress
+            document.body.style.filter = 'contrast(2)';
+            setTimeout(()=> document.body.style.filter = '', 50);
+        });
+
+        // --- Custom Cursor ---
+        window.addEventListener('mousemove', (e) => {
+            cursor.style.left = `${e.clientX}px`;
+            cursor.style.top = `${e.clientY}px`;
+        });
+        
+        let time = 0;
+        function draw() {
+            time++;
+            
+            // --- Background Static ---
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+            
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = Math.random() > 0.95 ? 255 : 0;
+                data[i] = noise;     // R
+                data[i + 1] = noise; // G
+                data[i + 2] = noise; // B
+                data[i + 3] = 50;    // A
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            // --- Main Text Rendering ---
+            ctx.save();
+            ctx.font = `100 2.5vw 'Noto Sans SC', 'Cutive Mono', monospace`;
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 10;
+
+            // Display current poem fragment
+            if (time > lastPoemTime + 300) { // Change poem every 5 seconds (60fps * 5)
+                poemIndex = (poemIndex + 1) % poems.length;
+                lastPoemTime = time;
+            }
+            const currentPoem = poems[poemIndex];
+            
+            // Apply heavy distortion
+            const textX = width / 2;
+            const textY = height / 2;
+            const textMetrics = ctx.measureText(currentPoem);
+            
+            ctx.fillStyle = '#ff4444';
+            ctx.textAlign = 'center';
+            
+            // Vertical wave distortion
+            const waveOffset = Math.sin(time * 0.05) * 20;
+            ctx.fillText(currentPoem, textX + waveOffset, textY);
+            
+            // Ghosting/after-image effect
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
+            ctx.fillText(currentPoem, textX + Math.random() * 10 - 5, textY + Math.random() * 10 - 5);
+            ctx.fillText(currentPoem, textX + Math.random() * 20 - 10, textY + Math.random() * 20 - 10);
+            
+            // --- User Input Rendering ---
+            if (userInput) {
+                ctx.fillStyle = '#aaffaa';
+                ctx.font = `100 2vw 'Cutive Mono', monospace`;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#aaffaa';
+                ctx.fillText(userInput, textX, height * 0.75);
+            }
+
+            ctx.restore();
+            
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

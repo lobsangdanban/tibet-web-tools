@@ -1,0 +1,139 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft Himalaya', 'Tibetan Machine Uni', serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+    font-size: 18px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 2rem;
+    font-size: 3rem;
+}
+
+.test-section {
+    margin-bottom: 2rem;
+}
+
+.btn {
+    display: block;
+    margin: 1rem auto;
+    padding: 1rem 2rem;
+    font-size: 1.5rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+.timer {
+    text-align: center;
+    font-size: 2.5rem;
+    margin: 1rem 0;
+    color: #e74c3c;
+}
+
+.text-display {
+    margin: 2rem 0;
+}
+
+.sample-text {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+    line-height: 2;
+}
+
+.user-input {
+    width: 100%;
+    height: 200px;
+    padding: 1.5rem;
+    font-size: 1.8rem;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    resize: none;
+    font-family: inherit;
+    line-height: 2;
+}
+
+.user-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.results-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #ddd;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+.error-analysis, .character-stats {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+h2, h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+#errorList, #characterList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.error-item, .character-item {
+    padding: 1rem;
+    background-color: white;
+    border-radius: 3px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 1.5rem;
+}
+
+.correct {
+    color: #27ae60;
+}
+
+.incorrect {
+    color: #e74c3c;
+    text-decoration: underline;
+} 

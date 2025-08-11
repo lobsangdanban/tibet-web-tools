@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>藏文打字速度测试 / Tibetan Typing Speed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #text-display {
+            font-size: 24px;
+            margin: 20px;
+            line-height: 1.5;
+            min-height: 100px;
+        }
+        #input-field {
+            width: 80%;
+            height: 100px;
+            font-size: 20px;
+            margin: 20px;
+            padding: 10px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        .superscript {
+            color: blue;
+        }
+        .subscript {
+            color: purple;
+        }
+        #stats {
+            margin: 20px;
+            font-size: 18px;
+        }
+        #mistype-stats {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 80%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>藏文打字速度测试 / Tibetan Typing Speed Test</h1>
+    <div id="stats">
+        <p>时间 / Time: <span id="timer">0</span> 秒/sec</p>
+        <p>速度 / Speed: <span id="wpm">0</span> 字/分钟 (chars/min)</p>
+        <p>正确率 / Accuracy: <span id="accuracy">0</span>%</p>
+        <p>错误率 / Error Rate: <span id="error-rate">0</span>%</p>
+    </div>
+    <div id="text-display"></div>
+    <textarea id="input-field" placeholder="点击开始后在此输入藏文... / Click Start to type Tibetan here..." disabled></textarea>
+    <button id="start-btn">开始测试 / Start Test</button>
+    <div id="mistype-stats"></div>
+
+    <script>
+        const sampleText = "བོད་ཡིག་ནི་བོད་རིགས་ཀྱི་སྐད་ཡིག་ཡིན། བོད་ཡིག་ནི་དབྱངས་གསལ་གྱི་ཡི་གེ་ཞིག་ཡིན།";
+        let startTime, timer;
+        let isTestActive = false;
+        let totalCharacters = 0;
+        let correctCharacters = 0;
+        let mistypeStats = {};
+
+        const textDisplay = document.getElementById('text-display');
+        const inputField = document.getElementById('input-field');
+        const startButton = document.getElementById('start-btn');
+        const timerDisplay = document.getElementById('timer');
+        const wpmDisplay = document.getElementById('wpm');
+        const accuracyDisplay = document.getElementById('accuracy');
+        const errorRateDisplay = document.getElementById('error-rate');
+        const mistypeStatsDiv = document.getElementById('mistype-stats');
+
+        function initializeTest() {
+            textDisplay.innerHTML = sampleText.split('').map(char => 
+                `<span class="char">${char}</span>`).join('');
+            inputField.value = '';
+            totalCharacters = 0;
+            correctCharacters = 0;
+            mistypeStats = {};
+            mistypeStatsDiv.innerHTML = '';
+            startTime = new Date();
+            isTestActive = true;
+            inputField.disabled = false;
+            inputField.focus();
+
+            timer = setInterval(updateStats, 1000);
+        }
+
+        function updateStats() {
+            const currentTime = Math.floor((new Date() - startTime) / 1000);
+            timerDisplay.textContent = currentTime;
+            const minutes = currentTime / 60;
+            const wpm = Math.round(totalCharacters / minutes) || 0;
+            wpmDisplay.textContent = wpm;
+        }
+
+        function checkCharacterType(char) {
+            // 简单判断是否为上加字或下加字的逻辑
+            const superscripts = ['ྐ', 'ྒ', 'ྔ', 'ྗ', 'ྙ', 'ྟ', 'ྡ', 'ྣ', 'ྤ', 'ྦ', 'ྨ', 'ྩ', 'ྫ', 'ྭ', 'ྱ', 'ྲ', 'ླ', 'ྷ'];
+            const subscripts = ['ྱ', 'ྲ', 'ླ', 'ྭ'];
+            
+            if (superscripts.includes(char)) return 'superscript';
+            if (subscripts.includes(char)) return 'subscript';
+            return 'normal';
+        }
+
+        inputField.addEventListener('input', (e) => {
+            if (!isTestActive) return;
+
+            const inputText = e.target.value;
+            totalCharacters = inputText.length;
+            correctCharacters = 0;
+
+            const characters = textDisplay.getElementsByClassName('char');
+            
+            for (let i = 0; i < characters.length; i++) {
+                if (i < inputText.length) {
+                    if (inputText[i] === sampleText[i]) {
+                        characters[i].className = `char correct ${checkCharacterType(sampleText[i])}`;
+                        correctCharacters++;
+                    } else {
+                        characters[i].className = `char incorrect ${checkCharacterType(sampleText[i])}`;
+                        const errorKey = `${sampleText[i]}→${inputText[i]}`;
+                        mistypeStats[errorKey] = (mistypeStats[errorKey] || 0) + 1;
+                    }
+                } else {
+                    characters[i].className = 'char';
+                }
+            }
+
+            updateAccuracyStats();
+
+            if (inputText.length === sampleText.length) {
+                endTest();
+            }
+        });
+
+        function updateAccuracyStats() {
+            const accuracy = Math.round((correctCharacters / totalCharacters) * 100) || 0;
+            const errorRate = 100 - accuracy;
+            accuracyDisplay.textContent = accuracy;
+            errorRateDisplay.textContent = errorRate;
+        }
+
+        function endTest() {
+            clearInterval(timer);
+            isTestActive = false;
+            inputField.disabled = true;
+            startButton.textContent = '重新开始 / Restart';
+            
+            // 显示错误统计表格
+            let tableHtml = `
+                <h3>错误统计 / Error Statistics</h3>
+                <table>
+                    <tr>
+                        <th>正确字符<br/>Correct Char</th>
+                        <th>错误输入<br/>Wrong Input</th>
+                        <th>次数<br/>Count</th>
+                    </tr>
+            `;
+            
+            Object.entries(mistypeStats)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([error, count]) => {
+                    const [correct, wrong] = error.split('→');
+                    tableHtml += `
+                        <tr>
+                            <td>${correct}</td>
+                            <td>${wrong}</td>
+                            <td>${count}</td>
+                        </tr>
+                    `;
+                });
+            
+            tableHtml += '</table>';
+            mistypeStatsDiv.innerHTML = tableHtml;
+        }
+
+        startButton.addEventListener('click', () => {
+            if (isTestActive) {
+                endTest();
+            }
+            initializeTest();
+        });
+    </script>
+</body>
+</html>
+<style>
+    table {
+        border-collapse: collapse;
+        margin: 15px 0;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .stats-container {
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+    }
+    .stats-table {
+        flex: 1;
+    }
+</style>
+
+<script>
+    // 添加正确字符统计对象
+    let correctCharStats = {};
+    
+    // 修改 inputField 事件监听器,统计正确字符
+    inputField.addEventListener('input', (e) => {
+        if (!isTestActive) return;
+
+        const inputText = e.target.value;
+        totalCharacters = inputText.length;
+        correctCharacters = 0;
+        correctCharStats = {}; // 重置正确字符统计
+
+        const characters = textDisplay.getElementsByClassName('char');
+        
+        for (let i = 0; i < characters.length; i++) {
+            if (i < inputText.length) {
+                if (inputText[i] === sampleText[i]) {
+                    characters[i].className = 'char correct';
+                    correctCharacters++;
+                    // 统计正确字符
+                    correctCharStats[inputText[i]] = (correctCharStats[inputText[i]] || 0) + 1;
+                } else {
+                    characters[i].className = 'char incorrect';
+                    // 记录错误字符
+                    const correctChar = sampleText[i];
+                    const wrongChar = inputText[i];
+                    const errorKey = `${correctChar}→${wrongChar}`;
+                    mistypeStats[errorKey] = (mistypeStats[errorKey] || 0) + 1;
+                }
+            } else {
+                characters[i].className = 'char';
+            }
+        }
+
+        updateAccuracyStats();
+
+        if (inputText.length === sampleText.length) {
+            endTest();
+        }
+    });
+
+    // 修改 endTest 函数,添加正确字符统计表格
+    function endTest() {
+        clearInterval(timer);
+        isTestActive = false;
+        inputField.disabled = true;
+        startButton.textContent = '重新开始 / Restart';
+        
+        // 创建容器div来并排显示两个表格
+        let containerHtml = '<div class="stats-container">';
+        
+        // 错误统计表格
+        let errorTableHtml = `
+            <div class="stats-table">
+                <h3>错误统计 / Error Statistics</h3>
+                <table>
+                    <tr>
+                        <th>正确字符<br/>Correct Char</th>
+                        <th>错误输入<br/>Wrong Input</th>
+                        <th>次数<br/>Count</th>
+                    </tr>
+        `;
+        
+        Object.entries(mistypeStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([error, count]) => {
+                const [correct, wrong] = error.split('→');
+                errorTableHtml += `
+                    <tr>
+                        <td>${correct}</td>
+                        <td>${wrong}</td>
+                        <td>${count}</td>
+                    </tr>
+                `;
+            });
+        
+        errorTableHtml += '</table></div>';
+
+        // 正确字符频率统计表格
+        let correctTableHtml = `
+            <div class="stats-table">
+                <h3>正确字符频率 / Correct Character Frequency</h3>
+                <table>
+                    <tr>
+                        <th>字符<br/>Character</th>
+                        <th>出现次数<br/>Frequency</th>
+                    </tr>
+        `;
+
+        Object.entries(correctCharStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([char, count]) => {
+                correctTableHtml += `
+                    <tr>
+                        <td>${char}</td>
+                        <td>${count}</td>
+                    </tr>
+                `;
+            });
+
+        correctTableHtml += '</table></div>';
+
+        // 组合所有HTML
+        containerHtml += errorTableHtml + correctTableHtml + '</div>';
+        mistypeStatsDiv.innerHTML = containerHtml;
+    }
+    // 添加保存统计数据的函数
+    function saveStatsToFile() {
+        // 准备要保存的文本内容
+        let content = "藏文打字测试统计数据 / Tibetan Typing Test Statistics\n";
+        content += "===========================================\n\n";
+        
+        // 添加基本统计信息
+        content += `测试时间 / Test Time: ${timerDisplay.textContent} 秒\n`;
+        content += `打字速度 / Typing Speed: ${wpmDisplay.textContent} 字/分钟\n`;
+        content += `正确率 / Accuracy: ${accuracyDisplay.textContent}%\n`;
+        content += `错误率 / Error Rate: ${errorRateDisplay.textContent}%\n\n`;
+
+        // 添加错误统计信息
+        content += "错误统计 / Error Statistics:\n";
+        content += "-------------------------------------------\n";
+        Object.entries(mistypeStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([error, count]) => {
+                const [correct, wrong] = error.split('→');
+                content += `正确字符 / Correct: ${correct}\t错误输入 / Wrong: ${wrong}\t次数 / Count: ${count}\n`;
+            });
+        
+        // 添加正确字符频率统计
+        content += "\n正确字符频率 / Correct Character Frequency:\n";
+        content += "-------------------------------------------\n";
+        Object.entries(correctCharStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([char, count]) => {
+                content += `字符 / Character: ${char}\t频率 / Frequency: ${count}\n`;
+            });
+
+        // 创建Blob对象
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        
+        // 创建下载链接
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        
+        // 设置文件名（使用当前时间戳）
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        a.download = `tibetan-typing-stats-${timestamp}.txt`;
+        
+        // 触发下载
+        document.body.appendChild(a);
+        a.click();
+        
+        // 清理
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    // 添加保存按钮到页面
+    const saveButton = document.createElement('button');
+    saveButton.textContent = '保存统计数据 / Save Statistics';
+    saveButton.style.marginTop = '20px';
+    saveButton.onclick = saveStatsToFile;
+    mistypeStatsDiv.appendChild(saveButton);
+    
+</script>
+
+
+

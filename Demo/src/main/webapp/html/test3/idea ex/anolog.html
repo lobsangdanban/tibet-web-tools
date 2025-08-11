@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 设置字符编码为 UTF-8 -->
+    <meta charset="UTF-8">
+    <!-- 设置视口，确保页面在不同设备上正确显示 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 设置页面标题 -->
+    <title>传感器数据波形展示</title>
+    <!-- 引入 Chart.js 库，用于绘制折线图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- 创建画布元素，用于绘制传感器数据的波形图 -->
+    <canvas id="sensorChart" width="800" height="400"></canvas>
+    <!-- 创建连接按钮，点击后尝试连接 Arduino 设备 -->
+    <button id="connectButton">连接 Arduino</button>
+
+    <script>
+        // 获取画布元素的 2D 上下文，用于绘制图表
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+
+        // 初始化传感器数据数组，用于存储从 Arduino 读取的温度数据
+        const sensorData = [];
+        // 设置图表中最多显示的数据点数
+        const maxDataPoints = 100;
+
+        // 创建 Chart.js 实例，绘制折线图
+        const sensorChart = new Chart(ctx, {
+            type: 'line', // 图表类型为折线图
+            data: {
+                labels: [], // 图表的 x 轴标签
+                datasets: [{
+                    label: '温度数据', // 数据集的标签
+                    data: sensorData, // 数据集，存储传感器数据
+                    borderColor: 'rgb(75, 192, 192)', // 折线的颜色
+                    tension: 0.1 // 折线的张力，控制曲线的平滑度
+                }]
+            },
+            options: {
+                responsive: false, // 图表不响应窗口大小变化
+                scales: {
+                    y: {
+                        beginAtZero: true // y 轴从 0 开始
+                    }
+                }
+            }
+        });
+
+        // 获取连接按钮元素
+        const connectButton = document.getElementById('connectButton');
+        // 声明串口端口对象
+        let port;
+        // 声明串口读取器对象
+        let reader;
+
+        // 为连接按钮添加点击事件监听器
+        connectButton.addEventListener('click', async () => {
+            // 检查浏览器是否支持 Web Serial API
+            if ('serial' in navigator) {
+                try {
+                    // 请求用户选择串口设备
+                    port = await navigator.serial.requestPort();
+                    // 打开串口设备，设置波特率为 9600
+                    await port.open({ baudRate: 9600 });
+                    // 获取串口读取器
+                    reader = port.readable.getReader();
+                    // 开始读取串口数据
+                    readSerialData();
+                } catch (error) {
+                    // 捕获并输出连接失败的错误信息
+                    console.error('连接失败:', error);
+                }
+            } else {
+                // 输出浏览器不支持 Web Serial API 的错误信息
+                console.error('浏览器不支持 Web Serial API');
+            }
+        });
+
+        // 异步函数，用于读取串口数据
+        async function readSerialData() {
+            while (true) {
+                // 读取串口数据
+                const { value, done } = await reader.read();
+                if (done) {
+                    // 如果读取完成，释放读取器锁并退出循环
+                    reader.releaseLock();
+                    break;
+                }
+                // 创建文本解码器，用于将二进制数据转换为字符串
+                const decoder = new TextDecoder();
+                // 将读取的数据转换为浮点数
+                const temperature = parseFloat(decoder.decode(value).trim());
+
+                if (!isNaN(temperature)) {
+                    // 如果数据是有效的温度值
+                    if (sensorData.length >= maxDataPoints) {
+                        // 如果数据点数超过最大值，移除最早的数据点
+                        sensorData.shift();
+                    }
+                    // 将新的温度数据添加到数组中
+                    sensorData.push(temperature);
+
+                    // 更新图表的 x 轴标签
+                    if (sensorChart.data.labels.length >= maxDataPoints) {
+                        // 如果标签数量超过最大值，移除最早的标签
+                        sensorChart.data.labels.shift();
+                    }
+                    // 添加新的标签
+                    sensorChart.data.labels.push(sensorChart.data.labels.length);
+
+                    // 更新图表
+                    sensorChart.update();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
+<!--
+// 模拟温度传感器引脚
+const int sensorPin = A0;
+
+void setup() {
+  // 初始化串口通信，波特率为 9600
+  Serial.begin(9600);
+}
+
+void loop() {
+  // 读取模拟引脚的值
+  int sensorValue = analogRead(sensorPin);
+  // 将模拟值转换为温度值（简单示例，实际需根据传感器校准）
+  float temperature = (sensorValue * 5.0 / 1023.0) * 100;
+
+  // 发送温度数据到串口
+  Serial.println(temperature);
+
+  // 延迟 1 秒
+  delay(1000);
+}
+-->
+

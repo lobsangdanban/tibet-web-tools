@@ -1,0 +1,414 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchaudio
+import librosa
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
+import pickle
+import os
+from typing import List, Tuple, Dict
+import logging
+
+# 设置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class TibetanASRDataset(Dataset):
+    """藏文语音识别数据集类"""
+    
+    def __init__(self, audio_files: List[str], transcripts: List[str], 
+                 vocab_dict: Dict[str, int], max_length: int = 1000):
+        self.audio_files = audio_files
+        self.transcripts = transcripts
+        self.vocab_dict = vocab_dict
+        self.max_length = max_length
+        
+    def __len__(self):
+        return len(self.audio_files)
+    
+    def __getitem__(self, idx):
+        # 加载音频文件
+        audio_path = self.audio_files[idx]
+        waveform, sample_rate = torchaudio.load(audio_path)
+        
+        # 转换为单声道
+        if waveform.shape[0] > 1:
+            waveform = torch.mean(waveform, dim=0, keepdim=True)
+        
+        # 提取MFCC特征
+        mfcc_transform = torchaudio.transforms.MFCC(
+            sample_rate=sample_rate,
+            n_mfcc=13,
+            melkwargs={'n_fft': 400, 'hop_length': 160, 'n_mels': 23}
+        )
+        mfcc = mfcc_transform(waveform)
+        mfcc = mfcc.squeeze(0).transpose(0, 1)  # [time, features]
+        
+        # 截断或填充到最大长度
+        if mfcc.shape[0] > self.max_length:
+            mfcc = mfcc[:self.max_length]
+        
+        # 转换文本为token序列
+        transcript = self.transcripts[idx]
+        tokens = [self.vocab_dict.get(char, self.vocab_dict['<UNK>']) 
+                 for char in transcript]
+        tokens = [self.vocab_dict['<SOS>']] + tokens + [self.vocab_dict['<EOS>']]
+        
+        return {
+            'audio': mfcc.float(),
+            'transcript': torch.tensor(tokens, dtype=torch.long),
+            'audio_length': mfcc.shape[0],
+            'transcript_length': len(tokens)
+        }
+
+def collate_fn(batch):
+    """批处理函数"""
+    audios = [item['audio'] for item in batch]
+    transcripts = [item['transcript'] for item in batch]
+    audio_lengths = [item['audio_length'] for item in batch]
+    transcript_lengths = [item['transcript_length'] for item in batch]
+    
+    # 填充音频序列
+    audios_padded = pad_sequence(audios, batch_first=True, padding_value=0.0)
+    
+    # 填充文本序列
+    transcripts_padded = pad_sequence(transcripts, batch_first=True, padding_value=0)
+    
+    return {
+        'audios': audios_padded,
+        'transcripts': transcripts_padded,
+        'audio_lengths': torch.tensor(audio_lengths),
+        'transcript_lengths': torch.tensor(transcript_lengths)
+    }
+
+class TibetanASRModel(nn.Module):
+    """藏文语音识别模型 - 基于编码器-解码器架构"""
+    
+    def __init__(self, input_dim: int = 13, hidden_dim: int = 256, 
+                 num_layers: int = 3, vocab_size: int = 1000, 
+                 dropout: float = 0.3):
+        super(TibetanASRModel, self).__init__()
+        
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.vocab_size = vocab_size
+        
+        # 编码器 - 双向LSTM
+        self.encoder = nn.LSTM(
+            input_size=input_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+            dropout=dropout if num_layers > 1 else 0,
+            bidirectional=True,
+            batch_first=True
+        )
+        
+        # 注意力机制
+        self.attention = nn.MultiheadAttention(
+            embed_dim=hidden_dim * 2,
+            num_heads=8,
+            dropout=dropout,
+            batch_first=True
+        )
+        
+        # 解码器
+        self.embedding = nn.Embedding(vocab_size, hidden_dim)
+        self.decoder = nn.LSTM(
+            input_size=hidden_dim,
+            hidden_size=hidden_dim * 2,
+            num_layers=num_layers,
+            dropout=dropout if num_layers > 1 else 0,
+            batch_first=True
+        )
+        
+        # 输出层
+        self.output_projection = nn.Linear(hidden_dim * 2, vocab_size)
+        self.dropout = nn.Dropout(dropout)
+        
+    def forward(self, audio_features, target_sequence=None, teacher_forcing_ratio=0.5):
+        batch_size = audio_features.size(0)
+        
+        # 编码器
+        encoder_outputs, (hidden, cell) = self.encoder(audio_features)
+        
+        # 如果是训练阶段且提供了目标序列
+        if target_sequence is not None and self.training:
+            return self._forward_train(encoder_outputs, target_sequence, 
+                                     hidden, cell, teacher_forcing_ratio)
+        else:
+            return self._forward_inference(encoder_outputs, hidden, cell)
+    
+    def _forward_train(self, encoder_outputs, target_sequence, hidden, cell, 
+                      teacher_forcing_ratio):
+        batch_size, max_length = target_sequence.size()
+        outputs = torch.zeros(batch_size, max_length, self.vocab_size, 
+                             device=target_sequence.device)
+        
+        # 初始化解码器状态
+        decoder_hidden = hidden
+        decoder_cell = cell
+        
+        # 第一个输入是<SOS>标记
+        decoder_input = target_sequence[:, 0].unsqueeze(1)
+        
+        for t in range(1, max_length):
+            # 嵌入当前输入
+            embedded = self.embedding(decoder_input)
+            embedded = self.dropout(embedded)
+            
+            # 解码器前向传播
+            decoder_output, (decoder_hidden, decoder_cell) = self.decoder(
+                embedded, (decoder_hidden, decoder_cell)
+            )
+            
+            # 注意力机制
+            attended_output, _ = self.attention(
+                decoder_output, encoder_outputs, encoder_outputs
+            )
+            
+            # 输出投影
+            output = self.output_projection(attended_output)
+            outputs[:, t-1] = output.squeeze(1)
+            
+            # Teacher forcing
+            use_teacher_forcing = torch.rand(1).item() < teacher_forcing_ratio
+            if use_teacher_forcing:
+                decoder_input = target_sequence[:, t].unsqueeze(1)
+            else:
+                decoder_input = output.argmax(dim=-1)
+        
+        return outputs
+    
+    def _forward_inference(self, encoder_outputs, hidden, cell, max_length=100):
+        batch_size = encoder_outputs.size(0)
+        
+        # 初始化输出序列
+        outputs = []
+        decoder_hidden = hidden
+        decoder_cell = cell
+        
+        # 开始标记
+        decoder_input = torch.ones(batch_size, 1, dtype=torch.long, 
+                                  device=encoder_outputs.device)  # <SOS>
+        
+        for _ in range(max_length):
+            embedded = self.embedding(decoder_input)
+            embedded = self.dropout(embedded)
+            
+            decoder_output, (decoder_hidden, decoder_cell) = self.decoder(
+                embedded, (decoder_hidden, decoder_cell)
+            )
+            
+            attended_output, _ = self.attention(
+                decoder_output, encoder_outputs, encoder_outputs
+            )
+            
+            output = self.output_projection(attended_output)
+            predicted = output.argmax(dim=-1)
+            
+            outputs.append(predicted)
+            decoder_input = predicted
+            
+            # 如果所有序列都生成了<EOS>标记，则停止
+            if (predicted == 2).all():  # 假设<EOS>的索引是2
+                break
+        
+        return torch.cat(outputs, dim=1)
+
+class TibetanASRTrainer:
+    """藏文语音识别模型训练器"""
+    
+    def __init__(self, model, train_loader, val_loader, device='cuda'):
+        self.model = model.to(device)
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.device = device
+        
+        # 优化器和损失函数
+        self.optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer, mode='min', factor=0.5, patience=5, verbose=True
+        )
+        self.criterion = nn.CrossEntropyLoss(ignore_index=0)  # 忽略填充标记
+        
+        self.best_val_loss = float('inf')
+        self.history = {'train_loss': [], 'val_loss': []}
+    
+    def train_epoch(self):
+        self.model.train()
+        total_loss = 0
+        num_batches = 0
+        
+        for batch in self.train_loader:
+            audios = batch['audios'].to(self.device)
+            transcripts = batch['transcripts'].to(self.device)
+            
+            self.optimizer.zero_grad()
+            
+            # 前向传播
+            outputs = self.model(audios, transcripts)
+            
+            # 计算损失
+            # 排除第一个标记（<SOS>）
+            loss = self.criterion(
+                outputs.reshape(-1, outputs.size(-1)),
+                transcripts[:, 1:].reshape(-1)
+            )
+            
+            # 反向传播
+            loss.backward()
+            
+            # 梯度裁剪
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            
+            self.optimizer.step()
+            
+            total_loss += loss.item()
+            num_batches += 1
+        
+        return total_loss / num_batches
+    
+    def validate(self):
+        self.model.eval()
+        total_loss = 0
+        num_batches = 0
+        
+        with torch.no_grad():
+            for batch in self.val_loader:
+                audios = batch['audios'].to(self.device)
+                transcripts = batch['transcripts'].to(self.device)
+                
+                outputs = self.model(audios, transcripts, teacher_forcing_ratio=0)
+                
+                loss = self.criterion(
+                    outputs.reshape(-1, outputs.size(-1)),
+                    transcripts[:, 1:].reshape(-1)
+                )
+                
+                total_loss += loss.item()
+                num_batches += 1
+        
+        return total_loss / num_batches
+    
+    def train(self, num_epochs=100, save_path='tibetan_asr_model.pth'):
+        logger.info(f"开始训练，共 {num_epochs} 个epochs")
+        
+        for epoch in range(num_epochs):
+            # 训练阶段
+            train_loss = self.train_epoch()
+            
+            # 验证阶段
+            val_loss = self.validate()
+            
+            # 更新学习率
+            self.scheduler.step(val_loss)
+            
+            # 记录历史
+            self.history['train_loss'].append(train_loss)
+            self.history['val_loss'].append(val_loss)
+            
+            logger.info(f"Epoch {epoch+1}/{num_epochs} - "
+                       f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+            
+            # 保存最佳模型
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                torch.save({
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                    'epoch': epoch,
+                    'val_loss': val_loss,
+                    'history': self.history
+                }, save_path)
+                logger.info(f"保存最佳模型到 {save_path}")
+
+def build_vocab(transcripts: List[str]) -> Dict[str, int]:
+    """构建词汇表"""
+    vocab = set()
+    for transcript in transcripts:
+        vocab.update(transcript)
+    
+    # 添加特殊标记
+    vocab_list = ['<PAD>', '<SOS>', '<EOS>', '<UNK>'] + sorted(list(vocab))
+    vocab_dict = {char: idx for idx, char in enumerate(vocab_list)}
+    
+    return vocab_dict
+
+def prepare_data(audio_dir: str, transcript_file: str):
+    """准备训练数据"""
+    # 读取转录文件
+    transcripts = []
+    audio_files = []
+    
+    with open(transcript_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) >= 2:
+                audio_file = os.path.join(audio_dir, parts[0])
+                transcript = parts[1]
+                
+                if os.path.exists(audio_file):
+                    audio_files.append(audio_file)
+                    transcripts.append(transcript)
+    
+    # 构建词汇表
+    vocab_dict = build_vocab(transcripts)
+    
+    # 划分训练集和验证集
+    split_idx = int(0.9 * len(audio_files))
+    train_audio = audio_files[:split_idx]
+    train_transcripts = transcripts[:split_idx]
+    val_audio = audio_files[split_idx:]
+    val_transcripts = transcripts[split_idx:]
+    
+    return (train_audio, train_transcripts, val_audio, val_transcripts, vocab_dict)
+
+def main():
+    """主训练函数"""
+    # 数据准备
+    audio_dir = "path/to/tibetan/audio/files"  # 替换为实际音频文件路径
+    transcript_file = "path/to/transcripts.txt"  # 替换为实际转录文件路径
+    
+    logger.info("准备数据...")
+    train_audio, train_transcripts, val_audio, val_transcripts, vocab_dict = \
+        prepare_data(audio_dir, transcript_file)
+    
+    # 保存词汇表
+    with open('tibetan_vocab.pkl', 'wb') as f:
+        pickle.dump(vocab_dict, f)
+    
+    logger.info(f"词汇表大小: {len(vocab_dict)}")
+    logger.info(f"训练样本数: {len(train_audio)}")
+    logger.info(f"验证样本数: {len(val_audio)}")
+    
+    # 创建数据集和数据加载器
+    train_dataset = TibetanASRDataset(train_audio, train_transcripts, vocab_dict)
+    val_dataset = TibetanASRDataset(val_audio, val_transcripts, vocab_dict)
+    
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, 
+                             collate_fn=collate_fn, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, 
+                           collate_fn=collate_fn, num_workers=4)
+    
+    # 创建模型
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = TibetanASRModel(
+        input_dim=13,
+        hidden_dim=256,
+        num_layers=3,
+        vocab_size=len(vocab_dict),
+        dropout=0.3
+    )
+    
+    logger.info(f"模型参数数量: {sum(p.numel() for p in model.parameters())}")
+    
+    # 创建训练器并开始训练
+    trainer = TibetanASRTrainer(model, train_loader, val_loader, device)
+    trainer.train(num_epochs=100)
+    
+    logger.info("训练完成！")
+
+if __name__ == "__main__":
+    main()

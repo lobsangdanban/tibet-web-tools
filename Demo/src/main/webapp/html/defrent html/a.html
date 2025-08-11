@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtLabel - 智能数据标注平台</title>
+    <style>
+        :root {
+            --primary: #2A3B4D;
+            --secondary: #F5F7F9;
+            --accent: #FF6B35;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui;
+            margin: 0;
+            background: var(--secondary);
+            color: var(--primary);
+        }
+
+        /* 导航系统 */
+        .nav-container {
+            background: var(--primary);
+            height: 60px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .nav-brand {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* 主工作区 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 15% 70% 15%;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* 工具面板 */
+        .tool-panel {
+            padding: 2rem;
+            background: white;
+            border-left: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* 标注卡片 */
+        .annotation-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: var(--transition);
+        }
+
+        .annotation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        /* 智能控件 */
+        .smart-control {
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+
+        .smart-control::after {
+            content: "";
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px solid var(--accent);
+            opacity: 0;
+            transition: var(--transition);
+            border-radius: 4px;
+        }
+
+        .smart-control:focus-within::after {
+            opacity: 1;
+        }
+
+        /* 动态效果 */
+        @keyframes glow {
+            0% { box-shadow: 0 0 0 0 rgba(255,107,53,0.3); }
+            100% { box-shadow: 0 0 0 8px rgba(255,107,53,0); }
+        }
+
+        .active-task {
+            animation: glow 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-container">
+        <div class="nav-brand">ArtLabel</div>
+    </nav>
+
+    <div class="workspace">
+        <!-- 左侧导航 -->
+        <aside class="tool-panel">
+            <div class="annotation-card">
+                <h3>标注工具</h3>
+                <div class="smart-control">
+                    <label>语音分段</label>
+                    <input type="range" min="0" max="100">
+                </div>
+                <div class="smart-control active-task">
+                    <label>实体识别</label>
+                    <select>
+                        <option>人物</option>
+                        <option>地点</option>
+                    </select>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主工作区 -->
+        <main>
+            <div class="annotation-card">
+                <h3>语音标注视图</h3>
+                <div style="height: 200px; background: #eee; border-radius: 4px;">
+                    <!-- 波形图占位 -->
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧属性栏 -->
+        <aside class="tool-panel">
+            <div class="annotation-card">
+                <h4>标签管理</h4>
+                <div class="smart-control">
+                    <label>情感标签</label>
+                    <input type="text" placeholder="输入新标签">
+                </div>
+            </div>
+        </aside>
+    </div>
+</body>
+</html>

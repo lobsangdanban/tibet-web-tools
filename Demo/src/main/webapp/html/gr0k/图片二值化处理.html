@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片二值化处理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            max-width: 100%;
+            margin: 10px 0;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="file"], input[type="number"], button {
+            margin: 10px;
+            padding: 8px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>照片二值化处理</h1>
+    <div class="controls">
+        <input type="file" id="imageInput" accept="image/*">
+        <div>
+            <label for="threshold">阈值: <span id="thresholdValue">128</span></label>
+            <input type="range" id="threshold" min="0" max="255" value="128">
+        </div>
+        <div>
+            <label for="width">宽度:</label>
+            <input type="number" id="width" min="1" placeholder="宽度" value="800">
+            <label for="height">高度:</label>
+            <input type="number" id="height" min="1" placeholder="高度" value="600">
+            <button onclick="resizeAndProcess()">应用尺寸</button>
+        </div>
+        <button id="saveButton" onclick="saveImage()" disabled>保存图片</button>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const thresholdSlider = document.getElementById('threshold');
+        const thresholdValue = document.getElementById('thresholdValue');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const saveButton = document.getElementById('saveButton');
+
+        let img = new Image();
+        let originalImageData = null;
+
+        // 允许跨域图像加载
+        img.crossOrigin = "Anonymous";
+
+        // 更新阈值显示并重新处理
+        thresholdSlider.addEventListener('input', () => {
+            thresholdValue.textContent = thresholdSlider.value;
+            if (originalImageData) {
+                binarizeImage(thresholdSlider.value);
+            }
+        });
+
+        // 处理图片上传
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        resizeAndProcess();
+                        saveButton.disabled = false; // 启用保存按钮
+                    };
+                    img.onerror = () => {
+                        alert('无法加载图片，请确保图片来源支持跨域访问或使用本地文件。');
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 调整尺寸并处理二值化
+        function resizeAndProcess() {
+            const width = parseInt(widthInput.value) || 800;
+            const height = parseInt(heightInput.value) || 600;
+
+            // 设置画布大小
+            canvas.width = width;
+            canvas.height = height;
+
+            // 绘制调整大小后的图片
+            ctx.drawImage(img, 0, 0, width, height);
+            // 保存调整大小后的图像数据
+            originalImageData = ctx.getImageData(0, 0, width, height);
+            // 进行二值化
+            binarizeImage(thresholdSlider.value);
+        }
+
+        // 二值化处理函数
+        function binarizeImage(threshold) {
+            if (!originalImageData) return;
+
+            const imageData = ctx.createImageData(originalImageData);
+            const data = originalImageData.data;
+            const newData = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const value = gray >= threshold ? 255 : 0;
+                newData[i] = value;     // R
+                newData[i + 1] = value; // G
+                newData[i + 2] = value; // B
+                newData[i + 3] = data[i + 3]; // A
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // 保存图片
+        function saveImage() {
+            if (!originalImageData) {
+                alert('请先上传并处理一张图片！');
+                return;
+            }
+            try {
+                const link = document.createElement('a');
+                link.download = 'binarized_image.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                alert('无法保存图片，可能是由于图像来源的跨域限制。请尝试使用本地图片或确保图片来源支持CORS。');
+                console.error('保存图片失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>

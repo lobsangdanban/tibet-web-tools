@@ -1,0 +1,194 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算机模拟</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">计算机模拟：寄存器、图灵机和状态机</h1>
+
+        <!-- 寄存器运算 -->
+        <div class="mb-8 p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">寄存器运算</h2>
+            <div class="flex space-x-4 mb-4">
+                <div>
+                    <label class="block">寄存器 A：</label>
+                    <input id="regA" type="number" value="0" class="border p-2 rounded w-24">
+                </div>
+                <div>
+                    <label class="block">寄存器 B：</label>
+                    <input id="regB" type="number" value="0" class="border p-2 rounded w-24">
+                </div>
+            </div>
+            <div class="space-x-2">
+                <button onclick="addRegisters()" class="bg-blue-500 text-white px-4 py-2 rounded">加法 (A + B)</button>
+                <button onclick="subtractRegisters()" class="bg-blue-500 text-white px-4 py-2 rounded">减法 (A - B)</button>
+                <button onclick="shiftLeftA()" class="bg-blue-500 text-white px-4 py-2 rounded">左移 A</button>
+            </div>
+            <p id="registerResult" class="mt-4">结果： </p>
+        </div>
+
+        <!-- 图灵机模拟 -->
+        <div class="mb-8 p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">图灵机（二进制反转）</h2>
+            <div class="mb-4">
+                <label class="block">磁带输入（例如：0011）：</label>
+                <input id="tapeInput" type="text" value="0011" class="border p-2 rounded w-48">
+                <button onclick="startTuringMachine()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">运行图灵机</button>
+            </div>
+            <div id="turingCanvas" class="mt-4"></div>
+            <p id="turingResult" class="mt-2">磁带： </p>
+        </div>
+
+        <!-- 状态机模拟 -->
+        <div class="p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">状态机（接受以“ab”结尾的字符串）</h2>
+            <div class="mb-4">
+                <label class="block">输入字符串（例如：aabbab）：</label>
+                <input id="stateInput" type="text" value="aabbab" class="border p-2 rounded w-48">
+                <button onclick="runStateMachine()" class="bg-purple-500 text-white px-4 py-2 rounded ml-2">运行状态机</button>
+            </div>
+            <div id="stateCanvas" class="mt-4"></div>
+            <p id="stateResult" class="mt-2">结果： </p>
+        </div>
+    </div>
+
+    <script>
+        // 寄存器运算
+        let regA = 0, regB = 0;
+        function addRegisters() {
+            regA = parseInt(document.getElementById('regA').value) || 0;
+            regB = parseInt(document.getElementById('regB').value) || 0;
+            let result = regA + regB;
+            document.getElementById('registerResult').innerText = `结果：${result} (A = ${regA}, B = ${regB})`;
+        }
+        function subtractRegisters() {
+            regA = parseInt(document.getElementById('regA').value) || 0;
+            regB = parseInt(document.getElementById('regB').value) || 0;
+            let result = regA - regB;
+            document.getElementById('registerResult').innerText = `结果：${result} (A = ${regA}, B = ${regB})`;
+        }
+        function shiftLeftA() {
+            regA = parseInt(document.getElementById('regA').value) || 0;
+            regA = regA << 1;
+            document.getElementById('regA').value = regA;
+            document.getElementById('registerResult').innerText = `结果：A 左移后为 ${regA}`;
+        }
+
+        // 图灵机模拟（将0反转为1，1反转为0）
+        let tape = [];
+        let head = 0;
+        let state = 'q0';
+        let turingInterval = null;
+        function startTuringMachine() {
+            // 清除现有定时器
+            if (turingInterval) clearInterval(turingInterval);
+
+            // 验证输入
+            let input = document.getElementById('tapeInput').value;
+            if (!/^[01]*$/.test(input)) {
+                document.getElementById('turingResult').innerText = '错误：输入只能包含0和1';
+                return;
+            }
+            if (input.length === 0) {
+                document.getElementById('turingResult').innerText = '错误：输入磁带不能为空';
+                return;
+            }
+            tape = input.split('').map(c => c === '0' ? '0' : '1');
+            head = 0;
+            state = 'q0';
+            document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (读写头位置：${head}, 状态：${state})`;
+            turingInterval = setInterval(turingStep, 500);
+        }
+        function turingStep() {
+            if (state === 'halt') {
+                document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (已停止)`;
+                clearInterval(turingInterval);
+                return;
+            }
+            if (head < 0 || head >= tape.length) {
+                state = 'halt';
+                document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (已停止：读写头超出范围)`;
+                clearInterval(turingInterval);
+                return;
+            }
+            if (state === 'q0') {
+                if (tape[head] === '0') {
+                    tape[head] = '1';
+                    head++;
+                } else if (tape[head] === '1') {
+                    tape[head] = '0';
+                    head++;
+                } else {
+                    state = 'halt';
+                }
+            }
+            document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (读写头位置：${head}, 状态：${state})`;
+        }
+
+        // 状态机模拟（接受以“ab”结尾的字符串）
+        let currentState = 'q0';
+        function runStateMachine() {
+            let input = document.getElementById('stateInput').value;
+            if (!/^[ab]*$/.test(input)) {
+                document.getElementById('stateResult').innerText = '错误：输入只能包含 a 和 b';
+                return;
+            }
+            currentState = 'q0';
+            for (let char of input) {
+                if (currentState === 'q0') {
+                    currentState = char === 'a' ? 'q1' : 'q0';
+                } else if (currentState === 'q1') {
+                    currentState = char === 'b' ? 'q2' : 'q0';
+                } else if (currentState === 'q2') {
+                    currentState = char === 'a' ? 'q1' : 'q0';
+                }
+            }
+            let accepted = currentState === 'q2' ? '接受' : '拒绝';
+            document.getElementById('stateResult').innerText = `结果：${accepted} (最终状态：${currentState})`;
+        }
+
+        // p5.js 可视化设置
+        function setup() {
+            let turingCanvas = createCanvas(400, 100);
+            turingCanvas.parent('turingCanvas');
+            let stateCanvas = createCanvas(400, 200);
+            stateCanvas.parent('stateCanvas');
+        }
+
+        function draw() {
+            // 图灵机可视化
+            background(255);
+            textSize(16);
+            fill(0);
+            text('图灵机磁带：', 10, 20);
+            for (let i = 0; i < tape.length; i++) {
+                fill(head === i ? 255 : 0, 0, 0);
+                rect(50 + i * 30, 40, 25, 25);
+                fill(0);
+                text(tape[i] || 'B', 55 + i * 30, 58);
+            }
+
+            // 状态机可视化
+            push();
+            translate(0, 100);
+            text('状态机（DFA）：', 10, 20);
+            fill(currentState === 'q0' ? 255 : 200, 0, 0);
+            ellipse(100, 100, 50, 50);
+            text('q0', 90, 105);
+            fill(currentState === 'q1' ? 255 : 200, 0, 0);
+            ellipse(200, 100, 50, 50);
+            text('q1', 190, 105);
+            fill(currentState === 'q2' ? 255 : 200, 0, 0);
+            ellipse(300, 100, 50, 50);
+            ellipse(300, 100, 40, 40); // 接受状态
+            text('q2', 290, 105);
+            pop();
+        }
+    </script>
+</body>
+</html>

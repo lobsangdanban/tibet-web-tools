@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="bo">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>garden</title>
+  <script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/superslide.2.1.js"></script>
+  <style>
+	html,body{
+		margin:0 auto;
+		height:auto;
+		background:#ccc;
+	}
+	header,section,footer{
+		margin:0 auto;
+		width:1000px;
+	}
+	header,footer{
+		height:200px;
+		background:#489  ;
+		margin-top:10px;
+	}
+	section {
+		overflow:hidden;
+	}
+	section > div{
+		float:left;
+		height:500px;
+		background:lightblue;
+		margin-top:10px;
+	}
+	.left{
+		width:300px;
+	}
+	.right{
+		width:690px;
+		margin-left:10px;
+		background:url(01.png) no-repeat;
+		background-size:contain;
+	}
+	.left-one{
+		height:200px;
+		width:200px;
+		background:pink;
+		font-size:30px;
+		color:green;
+		box-shadow:3px 5px 4px black;
+	}
+	.left-two{
+		height:200px;
+		width:200px;
+		background:pink;
+	}
+	.left-one:hover{
+		box-shadow:1px 2px 2px black;
+	}
+	.left > .left-one,.left-two{
+		margin:20px 20px;
+	}
+	.left button{
+		font-size:30px;
+		color:green;
+	}
+	/* right;  */
+	.content-type{
+		height:auto;
+		width:1000px;
+		background:#489;
+	}
+	.type-title{
+		height:100px;
+		width:500px;
+		background:#f09199;
+		font-size:30px;
+		color:#2b2b2b;
+		border-radius:0px 10px 10px 0;
+	}
+	.type-title > h1{
+		text-align:center;
+	}
+	.type-detail{
+		height:500px;
+		width:900px;
+		margin-left:50px;
+		margin-top:10px;
+		background:#489;
+		border:solid 1px black;
+		border-bottom:0px;
+	}
+	ul{
+		list-style:none;
+	}
+	footer{
+		background-color:#2b2b2b;
+		font-size:27px;
+		color:yellow;
+	}
+	footer > div{
+		float:left;
+		margin-top:30px;
+	}
+	.left-footer{
+		width:400px;
+		margin-left:80px;
+		padding-top:50px;
+	}
+	.right-footer{
+		margin-left:20px;
+		padding-left:80px;
+		padding-top:50px;
+		width:400px;
+		border-left:solid 1px yellow;
+		height:100px;
+
+	}
+	.type-detail > ul li{
+		width:170px;
+		height:170px;
+		background:white;
+		float:left;
+		margin:20px;
+		text-align:center;
+		border-radius:10px;
+		box-shadow:3px 5px 4px black;
+	}
+	.logo{
+		width:200px;
+		height:200px;
+		float:left;
+	}
+	.logo > img{
+		margin-top:90px;
+		margin-left:20px;
+	}
+	.menu{
+		height:100px;
+		width:700px;
+		padding-top:100px;
+		padding-left:100px;
+		float:left;
+	}
+	.menu > ul li{
+		background:black;
+		color:white;
+		margin-left:4px;
+		float:left;
+		width:100px;
+		height:70px;
+	}
+	.menu > ul li:hover{
+		background:white;
+		color:black;
+	}
+	.type-detail > ul li:hover{
+		box-shadow:1px 2px 2px black;
+	}
+  </style>
+ </head>
+ <body>
+ 	<header>
+	<div class="logo">
+		<img src="01.png" style="width:200px;">
+	</div>
+	<div class="menu">
+		<ul>
+			<li>aa</li>
+			<li>bb</li>
+			<li>cc</li>
+			<li>dd</li>
+		</ul>
+	</div>
+
+	</header>
+	<style type="text/css">		
+*{margin:0;padding:0;list-style:none;}
+body{background:#fff;font:normal 12px/22px 宋体;width:1000px;}
+img{border:0;}
+a{text-decoration:none;color:#333;}
+a:hover{color:#1974A1;}
+/* fullSlide */
+.fullSlide{width:100%;position:relative;height:410px;background:#000;}
+.fullSlide .bd{margin:0 auto;position:relative;z-index:0;overflow:hidden;}
+.fullSlide .bd ul{width:100% !important;}
+.fullSlide .bd li{width:100% !important;height:410px;overflow:hidden;text-align:center;}
+.fullSlide .bd li a{display:block;height:410px;}
+.fullSlide .hd{width:100%;position:absolute;z-index:1;bottom:0;left:0;height:30px;line-height:30px;}
+.fullSlide .hd ul{text-align:center;}
+.fullSlide .hd ul li{cursor:pointer;display:inline-block;*display:inline;zoom:1;width:42px;height:11px;margin:1px;overflow:hidden;background:#000;filter:alpha(opacity=50);opacity:0.5;line-height:999px;}
+.fullSlide .hd ul .on{background:#f00;}
+.fullSlide .prev,.fullSlide .next{display:block;position:absolute;z-index:1;top:50%;margin-top:-30px;left:15%;z-index:1;width:40px;height:60px;background:url(images/slider-arrow.png) -126px -137px #000 no-repeat;cursor:pointer;filter:alpha(opacity=50);opacity:0.5;display:none;}
+.fullSlide .next{left:auto;right:15%;background-position:-6px -137px;}
+</style>
+
+<div class="fullSlide">
+	<div class="bd">
+		<ul>
+			<li _src="url(images/1.jpg)" style="background:#E2025E center 0 no-repeat;"><a href="#"></a></li>
+			<li _src="url(images/2.jpg)" style="background:#DED5A1 center 0 no-repeat;"><a href="#"></a></li>
+			<li _src="url(images/3.jpg)" style="background:#B8CED1 center 0 no-repeat;"><a href="#"></a></li>
+			
+		</ul>
+	</div>
+	<div class="hd"><ul></ul></div>
+	<span class="prev"></span>
+	<span class="next"></span>
+</div><!--fullSlide end-->
+  
+  
+<script type="text/javascript">
+$(".fullSlide").hover(function(){
+    $(this).find(".prev,.next").stop(true, true).fadeTo("show", 0.5)
+},
+function(){
+    $(this).find(".prev,.next").fadeOut()
+});
+$(".fullSlide").slide({
+    titCell: ".hd ul",
+    mainCell: ".bd ul",
+    effect: "fold",
+    autoPlay: true,
+    autoPage: true,
+    trigger: "click",
+    startFun: function(i) {
+        var curLi = jQuery(".fullSlide .bd li").eq(i);
+        if ( !! curLi.attr("_src")) {
+            curLi.css("background-image", curLi.attr("_src")).removeAttr("_src")
+        }
+    }
+});
+</script>
+
+
+</div>
+	<section>
+		<div class = "left">
+			<div class="left-one" id="left-one" onmousedown="mousedown()" onmouseup="mouseup()">
+				go to edotor
+			</div>
+			<script>
+				function mousedown(event) {
+					var e = window.event;
+					var obj = e.srcElement;
+					obj.style.color = 'blue';
+				}
+ 
+				function mouseup(event) {
+					var e = window.event;
+					var obj = e.srcElement;
+					obj.style.color = 'green';
+				}
+			</script>
+			<div class="left-two">
+				<button>file upload</button>
+			</div>
+		</div>
+		<div class = "right">
+			
+		</div>
+		<div class="content-type">
+			<div class="type-title">
+				<h1>བོད་ཡིག་དགའ་ཚལ།</h1>
+			</div>
+			<div class="type-detail">
+				<ul>
+					<li>a</li>
+					<li>b</li>
+					<li>c</li>
+				</ul>
+				<ul>
+					<li>d</li>
+					<li>e</li>
+					<li>f</li>
+				</ul>
+			</div>
+		</div>
+	</section>
+	<footer>
+		<div class="left-footer">copyright 2020 kadogamr</div>
+		<div class="right-footer">Tel:123123132</div>
+	</footer>
+ </body>
+</html>

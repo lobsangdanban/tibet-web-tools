@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逻辑数学拼图游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .game-subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .puzzle-board {
+            display: grid;
+            grid-template-columns: repeat(6, 80px);
+            grid-template-rows: repeat(6, 80px);
+            gap: 2px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .cell.selected {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .cell.equation {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+        }
+
+        .cell.factor {
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+        }
+
+        .cell.geometry {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+        }
+
+        .cell.logic {
+            background: rgba(255, 128, 0, 0.2);
+            border-color: #ff8000;
+        }
+
+        .side-panel {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .challenge-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .challenge-title {
+            font-size: 1.3em;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .challenge-content {
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        .tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tool-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-btn.active {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+        }
+
+        .hint-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .completion-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 0.6s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">逻辑数学拼图</h1>
+            <p class="game-subtitle">融合因式分解、几何学和因明学的益智挑战</p>
+            
+            <div class="game-stats">
+                <div class="stat">
+                    <div class="stat-value" id="level">1</div>
+                    <div>关卡</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="score">0</div>
+                    <div>分数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="chains">0</div>
+                    <div>连锁</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="puzzle-board" id="board"></div>
+            
+            <div class="side-panel">
+                <div class="challenge-box">
+                    <div class="challenge-title" id="challenge-title">当前挑战</div>
+                    <div class="challenge-content" id="challenge-content">
+                        寻找能够分解为 (x+2)(x-3) 的二次表达式
+                    </div>
+                    <div class="hint-box" id="hint-box">
+                        提示：展开 (x+2)(x-3) = x² - x - 6
+                    </div>
+                </div>
+
+                <div class="tools">
+                    <button class="tool-btn" id="factor-tool">因式分解</button>
+                    <button class="tool-btn" id="equation-tool">方程求解</button>
+                    <button class="tool-btn" id="geometry-tool">几何推理</button>
+                    <button class="tool-btn" id="logic-tool">逻辑判断</button>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="newGame()">新游戏</button>
+                    <button class="btn success" onclick="checkSolution()">验证答案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="completion-message" id="completion-message">
+        恭喜！挑战完成！
+    </div>
+
+    <script>
+        class LogicMathPuzzle {
+            constructor() {
+                this.board = [];
+                this.selectedCells = [];
+                this.currentTool = null;
+                this.level = 1;
+                this.score = 0;
+                this.chains = 0;
+                this.challenges = [
+                    {
+                        type: 'factorization',
+                        title: '因式分解挑战',
+                        content: '寻找能够分解为 (x+2)(x-3) 的二次表达式',
+                        solution: ['x²', '-', 'x', '-', '6'],
+                        hint: '展开 (x+2)(x-3) = x² - x - 6'
+                    },
+                    {
+                        type: 'equation',
+                        title: '方程求解',
+                        content: '解方程 2x + 5 = 13，找出正确的步骤',
+                        solution: ['2x', '=', '8', 'x', '=', '4'],
+                        hint: '先减去5，再除以2'
+                    },
+                    {
+                        type: 'geometry',
+                        title: '几何推理',
+                        content: '直角三角形，两直角边为3和4，求斜边',
+                        solution: ['3²', '+', '4²', '=', '5²'],
+                        hint: '使用勾股定理：a² + b² = c²'
+                    },
+                    {
+                        type: 'logic',
+                        title: '逻辑推理',
+                        content: '所有A都是B，所有B都是C，推论？',
+                        solution: ['所有A', '都是', 'C'],
+                        hint: '这是传递性推理的经典例子'
+                    }
+                ];
+                this.currentChallenge = 0;
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.generatePuzzle();
+                this.setupEventListeners();
+                this.updateDisplay();
+            }
+
+            createBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                this.board = [];
+
+                for (let i = 0; i < 36; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.index = i;
+                    cell.addEventListener('click', (e) => this.handleCellClick(e));
+                    boardElement.appendChild(cell);
+                    this.board.push({
+                        element: cell,
+                        content: '',
+                        type: null,
+                        selected: false
+                    });
+                }
+            }
+
+            generatePuzzle() {
+                // 清空棋盘
+                this.board.forEach(cell => {
+                    cell.content = '';
+                    cell.type = null;
+                    cell.selected = false;
+                    cell.element.textContent = '';
+                    cell.element.className = 'cell';
+                });
+
+                const challenge = this.challenges[this.currentChallenge];
+                const symbols = ['x²', 'x', '2x', '3x', '+', '-', '×', '÷', '=', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(', ')', 'sin', 'cos', '∠', '°', '∴', '∵', '所有A', '都是', 'C', '有些', '不是'];
+
+                // 随机放置符号和数字
+                const positions = this.getRandomPositions(25);
+                positions.forEach((pos, index) => {
+                    if (index < symbols.length) {
+                        const cell = this.board[pos];
+                        cell.content = symbols[index];
+                        cell.element.textContent = symbols[index];
+                        
+                        // 根据内容类型设置样式
+                        if (symbols[index].includes('x') || symbols[index].includes('²')) {
+                            cell.type = 'factor';
+                            cell.element.classList.add('factor');
+                        } else if (['+', '-', '×', '÷', '='].includes(symbols[index])) {
+                            cell.type = 'equation';
+                            cell.element.classList.add('equation');
+                        } else if (['sin', 'cos', '∠', '°'].includes(symbols[index])) {
+                            cell.type = 'geometry';
+                            cell.element.classList.add('geometry');
+                        } else if (['∴', '∵', '所有A', '都是', 'C', '有些', '不是'].includes(symbols[index])) {
+                            cell.type = 'logic';
+                            cell.element.classList.add('logic');
+                        }
+                    }
+                });
+
+                this.updateChallenge();
+            }
+
+            getRandomPositions(count) {
+                const positions = [];
+                while (positions.length < count) {
+                    const pos = Math.floor(Math.random() * 36);
+                    if (!positions.includes(pos)) {
+                        positions.push(pos);
+                    }
+                }
+                return positions;
+            }
+
+            handleCellClick(event) {
+                const index = parseInt(event.target.dataset.index);
+                const cell = this.board[index];
+
+                if (!cell.content) return;
+
+                if (cell.selected) {
+                    cell.selected = false;
+                    cell.element.classList.remove('selected');
+                    this.selectedCells = this.selectedCells.filter(i => i !== index);
+                } else {
+                    cell.selected = true;
+                    cell.element.classList.add('selected');
+                    this.selectedCells.push(index);
+                }
+
+                // 添加脉冲动画
+                cell.element.classList.add('pulse');
+                setTimeout(() => {
+                    cell.element.classList.remove('pulse');
+                }, 600);
+            }
+
+            setupEventListeners() {
+                document.getElementById('factor-tool').addEventListener('click', () => this.selectTool('factor'));
+                document.getElementById('equation-tool').addEventListener('click', () => this.selectTool('equation'));
+                document.getElementById('geometry-tool').addEventListener('click', () => this.selectTool('geometry'));
+                document.getElementById('logic-tool').addEventListener('click', () => this.selectTool('logic'));
+            }
+
+            selectTool(tool) {
+                // 移除之前的激活状态
+                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                
+                // 激活当前工具
+                document.getElementById(`${tool}-tool`).classList.add('active');
+                this.currentTool = tool;
+
+                // 高亮相关类型的格子
+                this.board.forEach(cell => {
+                    cell.element.classList.remove('selected');
+                    if (cell.type === tool) {
+                        cell.element.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
+                    } else {
+                        cell.element.style.boxShadow = '';
+                    }
+                });
+            }
+
+            updateChallenge() {
+                const challenge = this.challenges[this.currentChallenge];
+                document.getElementById('challenge-title').textContent = challenge.title;
+                document.getElementById('challenge-content').textContent = challenge.content;
+                document.getElementById('hint-box').textContent = `提示：${challenge.hint}`;
+            }
+
+            updateDisplay() {
+                document.getElementById('level').textContent = this.level;
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('chains').textContent = this.chains;
+            }
+
+            checkSolution() {
+                const challenge = this.challenges[this.currentChallenge];
+                const selectedContent = this.selectedCells
+                    .sort((a, b) => a - b)
+                    .map(index => this.board[index].content);
+
+                const isCorrect = this.arraysEqual(selectedContent, challenge.solution);
+
+                if (isCorrect) {
+                    this.score += 100 * this.level;
+                    this.chains++;
+                    
+                    // 显示完成消息
+                    const message = document.getElementById('completion-message');
+                    message.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                        this.nextLevel();
+                    }, 2000);
+                } else {
+                    // 摇动选中的格子表示错误
+                    this.selectedCells.forEach(index => {
+                        const cell = this.board[index].element;
+                        cell.style.animation = 'shake 0.5s ease-in-out';
+                        setTimeout(() => {
+                            cell.style.animation = '';
+                        }, 500);
+                    });
+                }
+
+                this.updateDisplay();
+            }
+
+            arraysEqual(a, b) {
+                if (a.length !== b.length) return false;
+                return a.every((val, index) => val === b[index]);
+            }
+
+            nextLevel() {
+                this.level++;
+                this.currentChallenge = (this.currentChallenge + 1) % this.challenges.length;
+                this.selectedCells = [];
+                this.generatePuzzle();
+                this.updateDisplay();
+            }
+
+            newGame() {
+                this.level = 1;
+                this.score = 0;
+                this.chains = 0;
+                this.currentChallenge = 0;
+                this.selectedCells = [];
+                this.generatePuzzle();
+                this.updateDisplay();
+            }
+        }
+
+        // 初始化游戏
+        let game;
+        window.onload = function() {
+            game = new LogicMathPuzzle();
+        };
+
+        function newGame() {
+            game.newGame();
+        }
+
+        function checkSolution() {
+            game.checkSolution();
+        }
+
+        // 添加摇动动画的CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

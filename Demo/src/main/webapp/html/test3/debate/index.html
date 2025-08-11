@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏传因明辩论逻辑可视化</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- 引入 D3 库 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+</head>
+<body>
+    <div id="app">
+        <h1>藏传因明辩论逻辑可视化</h1>
+        <!-- 移除辩论格式说明部分 -->
+        <div id="main-container">
+            <div id="input-container">
+                <textarea id="logic-input" placeholder="输入藏传因明辩论逻辑"></textarea>
+                <div id="button-container">
+                    <button id="visualize-btn">可视化</button>
+                    <button id="undo-btn">撤销ཕྱིར་འཐེན།</button>
+                    <button id="redo-btn">重做</button>
+                    <button id="export-btn">导出图片</button>
+                    <button id="save-btn">保存</button>
+                    <button id="load-btn">加载</button>
+                </div>
+            </div>
+            <div id="visualization-container">
+                <div id="logic-tree"></div>
+                <div id="heatmap"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+ 
+</body>
+</html>

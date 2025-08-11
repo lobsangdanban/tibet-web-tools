@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味藏文语法乐园</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #d35400; /* 活泼的橙色 */
+        }
+        .module {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        .interactive {
+            background-color: #e6f7ff;
+            border-color: #91d5ff;
+        }
+        .quiz-question {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .quiz-options button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            border: 1px solid #4CAF50;
+            background-color: #f0fff0;
+            color: #4CAF50;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .quiz-options button:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .quiz-feedback {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        .example-sentence {
+            color: #007bff; /* 醒目的蓝色 */
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+        .fun-fact {
+            background-color: #fff8e1;
+            border-color: #ffecb3;
+            font-style: italic;
+            padding: 15px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>欢迎来到趣味藏文语法乐园！</h1>
+        <p>在这里，学习藏文语法就像玩游戏一样有趣！让我们一起探索藏文的奥秘吧！</p>
+
+        <div class="module">
+            <h2>藏文字母大冒险</h2>
+            <p>认识藏文字母和它们的发音，通过小游戏来记忆。</p>
+            <button onclick="alert('这里可以放一个字母配对或发音小游戏的链接')">开始字母游戏</button>
+        </div>
+
+        <div class="module interactive">
+            <h2>词语变形魔法屋</h2>
+            <p>学习藏文的格（རྣམ་དབྱེ）是如何改变词语的形态和意义的。</p>
+            <div class="quiz-question">请选择 <span class="example-sentence">ཁྱེད་</span> (您) 的宾格形式：</div>
+            <div class="quiz-options">
+                <button onclick="checkAnswer('ཁྱེད་ལ་', this)">ཁྱེད་ལ་</button>
+                <button onclick="checkAnswer('ཁྱེད་ཀྱི་', this)">ཁྱེད་ཀྱི་</button>
+                <button onclick="checkAnswer('ཁྱེད་ཀྱིས་', this)">ཁྱེད་ཀྱིས་</button>
+            </div>
+            <div id="answer-feedback-1" class="quiz-feedback"></div>
+        </div>
+
+        <div class="module interactive">
+            <h2>动词时态穿越门</h2>
+            <p>了解藏文动词的不同时态（过去、现在、将来）及其变化。</p>
+            <div class="quiz-question">请将动词 <span class="example-sentence">འགྲོ་</span> (去) 变成过去式：</div>
+            <div class="quiz-options">
+                <button onclick="checkAnswer('འགྲོ་གི་ཡོད་', this, 'answer-feedback-2')">འགྲོ་གི་ཡོད་</button>
+                <button onclick="checkAnswer('སོང་', this, 'answer-feedback-2')">སོང་</button>
+                <button onclick="checkAnswer('འགྲོ་རྒྱུ་རེད་', this, 'answer-feedback-2')">འགྲོ་རྒྱུ་རེད་</button>
+            </div>
+            <div id="answer-feedback-2" class="quiz-feedback"></div>
+        </div>
+
+        <div class="module">
+            <h2>趣味藏文句子工厂</h2>
+            <p>学习如何用不同的词语和语法结构来构建有趣的藏文句子。</p>
+            <button onclick="alert('这里可以放一个拖拽词语组成句子的互动游戏')">开始句子游戏</button>
+        </div>
+
+        <div class="module fun-fact">
+            <h2>你知道吗？</h2>
+            <p>藏文是一种非常古老的语言，有着丰富的文化和历史底蕴！</p>
+        </div>
+
+        <div class="module">
+            <h2>更多精彩内容，敬请期待！</h2>
+        </div>
+    </div>
+
+    <script>
+        function checkAnswer(correctAnswer, selectedButton, feedbackId = 'answer-feedback') {
+            const feedbackElement = document.getElementById(feedbackId);
+            const userAnswer = selectedButton.textContent;
+
+            if (userAnswer === correctAnswer) {
+                feedbackElement.textContent = "太棒了！答案正确！";
+                feedbackElement.className = "quiz-feedback correct";
+            } else {
+                feedbackElement.textContent = `错了哦，正确答案是：${correctAnswer}`;
+                feedbackElement.className = "quiz-feedback incorrect";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>藏文打字速度测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c'); /* 藏式背景图占位 */
+      background-size: cover;
+      background-attachment: fixed;
+      font-family: 'Noto Serif Tibetan', serif;
+    }
+    .tibetan-font {
+      font-family: 'Noto Serif Tibetan', serif;
+    }
+    #originalText, #inputText {
+      line-height: 1.8;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- 导航栏 -->
+  <nav class="bg-red-800 text-white p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl tibetan-font">藏文打字速度测试</h1>
+      <ul class="flex space-x-6">
+        <li><a href="#home" class="hover:text-yellow-300">首页</a></li>
+        <li><a href="#about" class="hover:text-yellow-300">关于</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <section id="home" class="py-16">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8 text-white bg-red-800 bg-opacity-75 p-4 rounded-lg">测试你的藏文打字速度</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 测试区域 -->
+        <div class="md:col-span-2 bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">输入测试</h3>
+          <!-- 原文显示 -->
+          <div id="originalText" class="bg-gray-100 p-4 rounded mb-4 tibetan-font"></div>
+          <!-- 输入框 -->
+          <textarea id="inputText" class="w-full p-4 border rounded mb-4 tibetan-font" rows="5" placeholder="在此输入藏文，按回车键结束..."></textarea>
+          <!-- 控制按钮 -->
+          <div class="flex space-x-4">
+            <button id="resetBtn" onclick="resetTest()" class="bg-red-600 text-white p-2 rounded hover:bg-red-700" disabled>重置</button>
+          </div>
+          <!-- 实时结果 -->
+          <div id="results" class="mt-4">
+            <p><strong>时间：</strong> <span id="time">0</span> 秒</p>
+            <p><strong>打字速度：</strong> <span id="cpm">0</span> CPM (每分钟字数)</p>
+            <p><strong>错误字数：</strong> <span id="errors">0</span></p>
+            <p><strong>准确率：</strong> <span id="accuracy">0%</span></p>
+          </div>
+        </div>
+        <!-- 历史记录 -->
+        <div class="bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">历史记录</h3>
+          <ul id="history" class="text-gray-600"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="about" class="py-16 bg-red-800 bg-opacity-75 text-white">
+    <div class="container mx-auto text-center">
+      <h2 class="text-3xl tibetan-font mb-8">关于本测试</h2>
+      <p class="text-lg max-w-2xl mx-auto">
+        输入藏文即可自动开始测试，实时显示打字速度、错误数和准确率。按回车键结束测试并保存结果，支持重置测试和查看历史记录。
+      </p>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="bg-red-800 text-white p-4 text-center">
+    <p>© 2025 藏文打字速度测试. 保留所有权利。</p>
+  </footer>
+
+  <script>
+    // 藏文样本（可替换为更复杂的文本）
+    const sampleTexts = [
+      "བོད་པའི་སྒྲ་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད་པའི་གནས་ཡོད།",
+      "བོད་པའི་སྐད་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད་པའི་གནས་ཡོད།",
+      "བོད་པའི་སྐད་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད།"
+    ];
+
+    let timer = null;
+    let startTime = 0;
+    let history = [];
+    let currentText = "";
+    let isTestRunning = false;
+
+    // 初始化
+    function initTest() {
+      currentText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+      document.getElementById("originalText").textContent = currentText;
+      document.getElementById("inputText").value = "";
+      document.getElementById("time").textContent = "0";
+      document.getElementById("cpm").textContent = "0";
+      document.getElementById("errors").textContent = "0";
+      document.getElementById("accuracy").textContent = "0%";
+      document.getElementById("resetBtn").disabled = true;
+      isTestRunning = false;
+      document.getElementById("inputText").focus();
+    }
+
+    // 更新计时器
+    function updateTimer() {
+      const time = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById("time").textContent = time;
+      updateResults();
+    }
+
+    // 更新结果
+    function updateResults() {
+      const input = document.getElementById("inputText").value;
+      const time = parseInt(document.getElementById("time").textContent);
+      const charCount = input.length;
+      const cpm = time > 0 ? Math.round((charCount / time) * 60) : 0;
+      let errors = 0;
+
+      // 逐字对比
+      for (let i = 0; i < Math.min(input.length, currentText.length); i++) {
+        if (input[i] !== currentText[i]) errors++;
+      }
+      errors += Math.abs(input.length - currentText.length); // 处理长度差异
+      const accuracy = currentText.length > 0 ? Math.round((1 - errors / currentText.length) * 100) : 0;
+
+      document.getElementById("cpm").textContent = cpm;
+      document.getElementById("errors").textContent = errors;
+      document.getElementById("accuracy").textContent = `${accuracy}%`;
+    }
+
+    // 结束测试
+    function endTest() {
+      if (!isTestRunning) return;
+      clearInterval(timer);
+      isTestRunning = false;
+      const input = document.getElementById("inputText").value;
+      const time = parseInt(document.getElementById("time").textContent);
+      if (time > 0 && input.trim()) {
+        const cpm = document.getElementById("cpm").textContent;
+        const errors = document.getElementById("errors").textContent;
+        const accuracy = document.getElementById("accuracy").textContent;
+        history.push(`测试 ${history.length + 1}: 时间: ${time}s, 速度: ${cpm} CPM, 错误: ${errors}, 准确率: ${accuracy}`);
+        updateHistory();
+      }
+      initTest();
+    }
+
+    // 重置测试
+    function resetTest() {
+      if (isTestRunning) {
+        clearInterval(timer);
+        const input = document.getElementById("inputText").value;
+        const time = parseInt(document.getElementById("time").textContent);
+        if (time > 0 && input.trim()) {
+          const cpm = document.getElementById("cpm").textContent;
+          const errors = document.getElementById("errors").textContent;
+          const accuracy = document.getElementById("accuracy").textContent;
+          history.push(`测试 ${history.length + 1}: 时间: ${time}s, 速度: ${cpm} CPM, 错误: ${errors}, 准确率: ${accuracy}`);
+          updateHistory();
+        }
+      }
+      initTest();
+    }
+
+    // 更新历史记录
+    function updateHistory() {
+      const historyList = document.getElementById("history");
+      historyList.innerHTML = "";
+      history.forEach(record => {
+        const li = document.createElement("li");
+        li.textContent = record;
+        historyList.appendChild(li);
+      });
+    }
+
+    // 输入监听
+    document.getElementById("inputText").addEventListener("input", function() {
+      if (!isTestRunning && this.value.trim()) {
+        isTestRunning = true;
+        document.getElementById("resetBtn").disabled = false;
+        startTime = Date.now();
+        timer = setInterval(updateTimer, 1000);
+      }
+      updateResults();
+    });
+
+    // 回车键监听
+    document.getElementById("inputText").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault(); // 防止换行
+        endTest();
+      }
+    });
+
+    // 初始化页面
+    initTest();
+  </script>
+</body>
+</html>

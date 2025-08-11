@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtLabel | 智能数据标注</title>
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #F8F9FA;
+            --text: #333333;
+            --light-gray: #E9ECEF;
+            --white: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --radius: 8px;
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--secondary);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* 简约导航 */
+        .navbar {
+            height: 60px;
+            background: var(--white);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-icon {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+
+        /* 主工作区 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: calc(100vh - 60px);
+        }
+
+        /* 左侧工具区 */
+        .toolbar {
+            background: var(--white);
+            padding: 20px;
+            border-right: 1px solid var(--light-gray);
+            overflow-y: auto;
+        }
+
+        .tool-section {
+            margin-bottom: 24px;
+        }
+
+        .tool-section h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+
+        .tool-btn:hover {
+            background: var(--light-gray);
+        }
+
+        .tool-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .tool-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        /* 主画布区 */
+        .canvas {
+            padding: 24px;
+            overflow: auto;
+        }
+
+        .canvas-container {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 标注卡片 */
+        .annotation-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .annotation-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 波形图 */
+        .waveform {
+            height: 120px;
+            background: linear-gradient(to right, #E9F2FF, #D4E5FF);
+            border-radius: var(--radius);
+            margin: 16px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 简洁按钮 */
+        .btn {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+            .toolbar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">✏️</span>
+            <span>ArtLabel</span>
+        </div>
+    </nav>
+
+    <!-- 主工作区 -->
+    <div class="workspace">
+        <!-- 左侧工具区 -->
+        <aside class="toolbar">
+            <div class="tool-section">
+                <h3>标注工具</h3>
+                <button class="tool-btn active">
+                    <span class="tool-icon">🎤</span>
+                    <span>语音标注</span>
+                </button>
+                <button class="tool-btn">
+                    <span class="tool-icon">📝</span>
+                    <span>文本标注</span>
+                </button>
+                <button class="tool-btn">
+                    <span class="tool-icon">🖼️</span>
+                    <span>图像标注</span>
+                </button>
+            </div>
+
+            <div class="tool-section">
+                <h3>标注操作</h3>
+                <button class="tool-btn">
+                    <span class="tool-icon">⏯️</span>
+                    <span>播放/暂停</span>
+                </button>
+                <button class="tool-btn">
+                    <span class="tool-icon">🔍</span>
+                    <span>放大/缩小</span>
+                </button>
+                <button class="tool-btn">
+                    <span class="tool-icon">✏️</span>
+                    <span>添加标注</span>
+                </button>
+            </div>
+
+            <div class="tool-section">
+                <h3>智能辅助</h3>
+                <button class="tool-btn">
+                    <span class="tool-icon">🤖</span>
+                    <span>AI预标注</span>
+                </button>
+                <button class="tool-btn">
+                    <span class="tool-icon">✅</span>
+                    <span>质量检查</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主画布区 -->
+        <main class="canvas">
+            <div class="canvas-container">
+                <!-- 语音标注视图 -->
+                <div class="annotation-card">
+                    <h2>语音标注 - 项目001</h2>
+                    <p>请标注说话人情感和关键内容</p>
+                    
+                    <div class="waveform">
+                        <!-- 波形图将通过JavaScript动态生成 -->
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn">开始标注</button>
+                        <button class="btn btn-outline">保存进度</button>
+                    </div>
+                </div>
+
+                <!-- 标注结果预览 -->
+                <div class="annotation-card">
+                    <h3>当前标注结果</h3>
+                    <div style="background: var(--light-gray); padding: 12px; border-radius: var(--radius); margin-top: 8px;">
+                        <p><strong>时间区间:</strong> 00:12 - 00:24</p>
+                        <p><strong>说话人:</strong> 男性</p>
+                        <p><strong>情感:</strong> 积极</p>
+                        <p><strong>内容:</strong> "我们很高兴宣布新产品发布"</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 这里可以添加交互逻辑
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

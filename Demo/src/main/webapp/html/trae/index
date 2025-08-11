@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文打字速度测试</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+#text-to-type {
+    font-size: 24px;
+    margin: 20px 0;
+}
+
+#input-field {
+    width: 300px;
+    padding: 10px;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+#timer {
+    font-size: 20px;
+    color: #666;
+}
+
+#result {
+    font-size: 20px;
+    color: green;
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+</style>
+<body>
+    <h1>藏文打字速度测试</h1>
+    <p id="text-to-type">བཀྲ་ཤིས་བདེ་ལེགས།</p>
+    <input type="text" id="input-field" placeholder="请在这里输入藏文">
+    <p id="timer">0:00</p>
+    <p id="result"></p>
+    <button id="start-button">开始测试</button>
+    <script src="script.js"></script>
+</body>
+<javascript>
+         
+const textToType = document.getElementById('text-to-type');
+const inputField = document.getElementById('input-field');
+const timer = document.getElementById('timer');
+const result = document.getElementById('result');
+const startButton = document.getElementById('start-button');
+
+let startTime;
+let interval;
+
+function startTest() {
+    startTime = new Date();
+    interval = setInterval(updateTimer, 1000);
+    inputField.disabled = false;
+    inputField.value = '';
+    inputField.focus();
+    startButton.disabled = true;
+}
+
+function updateTimer() {
+    const currentTime = new Date();
+    const elapsedTime = (currentTime - startTime) / 1000;
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = Math.floor(elapsedTime % 60);
+    timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function checkInput() {
+    const typedText = inputField.value;
+    const originalText = textToType.textContent;
+
+    if (typedText === originalText) {
+        clearInterval(interval);
+        const endTime = new Date();
+        const totalTime = (endTime - startTime) / 1000;
+        const words = originalText.split(' ').length;
+        const wpm = (words / (totalTime / 60)).toFixed(2);
+        result.textContent = `你的打字速度是 ${wpm} WPM`;
+        inputField.disabled = true;
+        startButton.disabled = false;
+    }
+}
+
+startButton.addEventListener('click', startTest);
+inputField.addEventListener('input', checkInput);
+</javascript>
+</html>
+
+

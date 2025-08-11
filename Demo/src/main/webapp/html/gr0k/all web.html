@@ -1,0 +1,638 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>藏文知识与打字综合平台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c'); /* 藏式背景占位 */
+      background-size: cover;
+      background-attachment: fixed;
+      font-family: 'Noto Serif Tibetan', serif;
+    }
+    .tibetan-font {
+      font-family: 'Noto Serif Tibetan', serif;
+    }
+    .hidden {
+      display: none;
+    }
+    #knowledgeGraph, #keywordGraph {
+      height: 500px;
+      border: 1px solid #e5e7eb;
+      background-color: white;
+    }
+    #originalText, #inputText {
+      line-height: 1.8;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- 导航栏 -->
+  <nav class="bg-red-800 text-white p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl tibetan-font">藏文知识与打字平台</h1>
+      <ul class="flex space-x-6">
+        <li><a href="#" onclick="showSection('login')" class="hover:text-yellow-300">登录</a></li>
+        <li><a href="#" onclick="showSection('register')" class="hover:text-yellow-300">注册</a></li>
+        <li><a href="#" onclick="showSection('knowledge')" class="hover:text-yellow-300">知识图谱</a></li>
+        <li><a href="#" onclick="showSection('keywords')" class="hover:text-yellow-300">关键词网络</a></li>
+        <li><a href="#" onclick="showSection('typing')" class="hover:text-yellow-300">打字测试</a></li>
+        <li><a href="#" onclick="logout()" class="hover:text-yellow-300">退出</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 注册 -->
+  <section id="register" class="py-16">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8 text-white bg-red-800 bg-opacity-75 p-4 rounded-lg">注册</h2>
+      <div class="max-w-md mx-auto bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+        <form id="registerForm">
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="username">用户名</label>
+            <input id="username" type="text" class="w-full p-2 border rounded" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="email">邮箱</label>
+            <input id="email" type="email" class="w-full p-2 border rounded" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="password">密码</label>
+            <input id="password" type="password" class="w-full p-2 border rounded" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="confirmPassword">确认密码</label>
+            <input id="confirmPassword" type="password" class="w-full p-2 border rounded" required>
+          </div>
+          <button type="submit" class="w-full bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">注册</button>
+        </form>
+        <p id="registerMessage" class="mt-4 text-center text-red-600"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 登录 -->
+  <section id="login" class="py-16 bg-red-800 bg-opacity-75 text-white">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8">登录</h2>
+      <div class="max-w-md mx-auto bg-white bg-opacity-90 p-6 rounded-lg shadow-lg text-gray-800">
+        <form id="loginForm">
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="loginEmail">邮箱</label>
+            <input id="loginEmail" type="email" class="w-full p-2 border rounded" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-lg tibetan-font mb-2" for="loginPassword">密码</label>
+            <input id="loginPassword" type="password" class="w-full p-2 border rounded" required>
+          </div>
+          <button type="submit" class="w-full bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">登录</button>
+        </form>
+        <p id="loginMessage" class="mt-4 text-center text-red-600"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 知识图谱 -->
+  <section id="knowledge" class="py-16 hidden">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8 text-white bg-red-800 bg-opacity-75 p-4 rounded-lg">知识图谱</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">熵的跨学科知识图谱</h3>
+          <div id="knowledgeGraph"></div>
+        </div>
+        <div class="bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">节点管理</h3>
+          <div id="nodeInfo" class="text-gray-600 mb-6">
+            <p>点击图谱中的节点以查看详细信息。</p>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-lg tibetan-font font-semibold mb-2">添加节点</h4>
+            <input id="nodeLabel" type="text" placeholder="节点名称" class="w-full p-2 mb-2 border rounded">
+            <input id="nodeDescription" type="text" placeholder="节点描述" class="w-full p-2 mb-2 border rounded">
+            <select id="nodeGroup" class="w-full p-2 mb-2 border rounded">
+              <option value="core">核心概念</option>
+              <option value="discipline">学科</option>
+              <option value="concept">具体概念</option>
+            </select>
+            <button onclick="addNode()" class="w-full bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">添加节点</button>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-lg tibetan-font font-semibold mb-2">添加边</h4>
+            <select id="edgeFrom" class="w-full p-2 mb-2 border rounded"></select>
+            <select id="edgeTo" class="w-full p-2 mb-2 border rounded"></select>
+            <input id="edgeLabel" type="text" placeholder="关系名称" class="w-full p-2 mb-2 border rounded">
+            <button onclick="addEdge()" class="w-full bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">添加边</button>
+          </div>
+          <div>
+            <h4 class="text-lg tibetan-font font-semibold mb-2">编辑/删除节点</h4>
+            <select id="editNodeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <input id="editNodeLabel" type="text" placeholder="新名称" class="w-full p-2 mb-2 border rounded">
+            <input id="editNodeDescription" type="text" placeholder="新描述" class="w-full p-2 mb-2 border rounded">
+            <select id="editNodeGroup" class="w-full p-2 mb-2 border rounded">
+              <option value="core">核心概念</option>
+              <option value="discipline">学科</option>
+              <option value="concept">具体概念</option>
+            </select>
+            <button onclick="updateNode()" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 mb-2">更新节点</button>
+            <button onclick="deleteNode()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除节点</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关键词网络 -->
+  <section id="keywords" class="py-16 hidden">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8 text-white bg-red-800 bg-opacity-75 p-4 rounded-lg">关键词网络</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">关键词网络图</h3>
+          <div id="keywordGraph"></div>
+        </div>
+        <div class="bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">关键词管理</h3>
+          <div class="mb-6">
+            <h4 class="text-lg tibetan-font font-semibold mb-2">添加关键词</h4>
+            <input id="keywordsInput" type="text" placeholder="输入关键词（空格分隔）" class="w-full p-2 mb-2 border rounded">
+            <button onclick="addKeywords()" class="w-full bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">确定</button>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-lg tibetan-font font-semibold mb-2">节点详情</h4>
+            <div id="keywordInfo" class="text-gray-600"></div>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-lg tibetan-font font-semibold mb-2">删除节点</h4>
+            <select id="deleteNodeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <button onclick="deleteKeywordNode()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除节点</button>
+          </div>
+          <div>
+            <h4 class="text-lg tibetan-font font-semibold mb-2">管理连接</h4>
+            <p class="text-sm text-gray-500 mb-2">点击两个节点创建连接，再次点击断开连接。</p>
+            <select id="deleteEdgeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <button onclick="deleteKeywordEdge()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除连接</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 打字测试 -->
+  <section id="typing" class="py-16 hidden">
+    <div class="container mx-auto">
+      <h2 class="text-3xl tibetan-font text-center mb-8 text-white bg-red-800 bg-opacity-75 p-4 rounded-lg">藏文打字速度测试</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-2 bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">输入测试</h3>
+          <div id="originalText" class="bg-gray-100 p-4 rounded mb-4 tibetan-font"></div>
+          <textarea id="inputText" class="w-full p-4 border rounded mb-4 tibetan-font" rows="5" placeholder="在此输入藏文，按回车键结束..."></textarea>
+          <div class="flex space-x-4">
+            <button id="resetBtn" onclick="resetTest()" class="bg-red-600 text-white p-2 rounded hover:bg-red-700" disabled>重置</button>
+          </div>
+          <div id="results" class="mt-4">
+            <p><strong>时间：</strong> <span id="time">0</span> 秒</p>
+            <p><strong>打字速度：</strong> <span id="cpm">0</span> CPM (每分钟字数)</p>
+            <p><strong>错误字数：</strong> <span id="errors">0</span></p>
+            <p><strong>准确率：</strong> <span id="accuracy">0%</span></p>
+          </div>
+        </div>
+        <div class="bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl tibetan-font font-semibold mb-4">历史记录</h3>
+          <ul id="history" class="text-gray-600"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="bg-red-800 text-white p-4 text-center">
+    <p>© 2025 藏文知识与打字平台. 保留所有权利。</p>
+  </footer>
+
+  <script>
+    // 页面切换
+    function showSection(sectionId) {
+      const token = localStorage.getItem("token");
+      if (sectionId !== "login" && sectionId !== "register" && !token) {
+        alert("请先登录！");
+        showSection("login");
+        return;
+      }
+      document.querySelectorAll("section").forEach(section => {
+        section.classList.add("hidden");
+      });
+      document.getElementById(sectionId).classList.remove("hidden");
+      if (sectionId === "knowledge") initKnowledgeGraph();
+      if (sectionId === "keywords") initKeywordNetwork();
+      if (sectionId === "typing") initTypingTest();
+    }
+
+    // 退出登录
+    function logout() {
+      localStorage.removeItem("token");
+      showSection("login");
+    }
+
+    // 注册
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const message = document.getElementById("registerMessage");
+
+      if (password !== confirmPassword) {
+        message.textContent = "密码不匹配！";
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:3000/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          message.textContent = "注册成功！请登录。";
+          document.getElementById("registerForm").reset();
+          showSection("login");
+        } else {
+          message.textContent = data.message || "注册失败！";
+        }
+      } catch (error) {
+        message.textContent = "网络错误，请稍后重试！";
+      }
+    });
+
+    // 登录
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      const message = document.getElementById("loginMessage");
+
+      try {
+        const response = await fetch("http://localhost:3000/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          localStorage.setItem("token", data.token);
+          message.textContent = "登录成功！";
+          document.getElementById("loginForm").reset();
+          showSection("knowledge");
+        } else {
+          message.textContent = data.message || "登录失败！";
+        }
+      } catch (error) {
+        message.textContent = "网络错误，请稍后重试！";
+      }
+    });
+
+    // 知识图谱
+    let knowledgeNodes = new vis.DataSet([
+      { id: 1, label: "熵", group: "core", color: "#3b82f6", description: "系统无序度的度量" },
+      { id: 2, label: "物理学", group: "discipline", description: "研究自然界基本规律" },
+      { id: 3, label: "信息论", group: "discipline", description: "研究信息的度量与传递" },
+      { id: 4, label: "生物学", group: "discipline", description: "研究生命系统" },
+      { id: 5, label: "热力学第二定律", group: "concept", description: "熵在孤立系统中趋向最大" },
+      { id: 6, label: "香农熵", group: "concept", description: "衡量信息的不确定性" },
+      { id: 7, label: "代谢与生态", group: "concept", description: "熵与生物系统能量流动相关" }
+    ]);
+    let knowledgeEdges = new vis.DataSet([
+      { from: 1, to: 2, label: "应用于" },
+      { from: 1, to: 3, label: "应用于" },
+      { from: 1, to: 4, label: "应用于" },
+      { from: 2, to: 5, label: "包含" },
+      { from: 3, to: 6, label: "包含" },
+      { from: 4, to: 7, label: "包含" }
+    ]);
+    let knowledgeNetwork = null;
+
+    function initKnowledgeGraph() {
+      const container = document.getElementById("knowledgeGraph");
+      const data = { nodes: knowledgeNodes, edges: knowledgeEdges };
+      const options = {
+        nodes: { shape: "dot", size: 20, font: { size: 14, face: "Arial" } },
+        edges: { arrows: "to", font: { align: "middle" } },
+        physics: { enabled: true },
+        interaction: { zoomView: true, dragView: true }
+      };
+      knowledgeNetwork = new vis.Network(container, data, options);
+
+      knowledgeNetwork.on("click", function (params) {
+        const nodeId = params.nodes[0];
+        const nodeInfo = document.getElementById("nodeInfo");
+        if (nodeId) {
+          const node = knowledgeNodes.get(nodeId);
+          nodeInfo.innerHTML = `<h4 class="text-lg font-semibold">${node.label}</h4><p>${node.description || "暂无描述"}</p>`;
+          document.getElementById("editNodeSelect").value = node.id;
+          document.getElementById("editNodeLabel").value = node.label;
+          document.getElementById("editNodeDescription").value = node.description || "";
+          document.getElementById("editNodeGroup").value = node.group;
+        } else {
+          nodeInfo.innerHTML = `<p>点击图谱中的节点以查看详细信息。</p>`;
+        }
+      });
+
+      updateNodeSelects();
+    }
+
+    function updateNodeSelects() {
+      const edgeFrom = document.getElementById("edgeFrom");
+      const edgeTo = document.getElementById("edgeTo");
+      const editNodeSelect = document.getElementById("editNodeSelect");
+      edgeFrom.innerHTML = "";
+      edgeTo.innerHTML = "";
+      editNodeSelect.innerHTML = "";
+      knowledgeNodes.forEach(node => {
+        const option = `<option value="${node.id}">${node.label}</option>`;
+        edgeFrom.innerHTML += option;
+        edgeTo.innerHTML += option;
+        editNodeSelect.innerHTML += option;
+      });
+    }
+
+    function addNode() {
+      const label = document.getElementById("nodeLabel").value;
+      const description = document.getElementById("nodeDescription").value;
+      const group = document.getElementById("nodeGroup").value;
+      if (label) {
+        const id = knowledgeNodes.length + 1;
+        knowledgeNodes.add({ id, label, group, description, color: group === "core" ? "#3b82f6" : group === "discipline" ? "#10b981" : "#f59e0b" });
+        updateNodeSelects();
+        document.getElementById("nodeLabel").value = "";
+        document.getElementById("nodeDescription").value = "";
+      } else {
+        alert("请输入节点名称！");
+      }
+    }
+
+    function addEdge() {
+      const from = parseInt(document.getElementById("edgeFrom").value);
+      const to = parseInt(document.getElementById("edgeTo").value);
+      const label = document.getElementById("edgeLabel").value;
+      if (from && to && label) {
+        knowledgeEdges.add({ from, to, label });
+        document.getElementById("edgeLabel").value = "";
+      } else {
+        alert("请选择起点、终点并输入关系名称！");
+      }
+    }
+
+    function updateNode() {
+      const id = parseInt(document.getElementById("editNodeSelect").value);
+      const label = document.getElementById("editNodeLabel").value;
+      const description = document.getElementById("editNodeDescription").value;
+      const group = document.getElementById("editNodeGroup").value;
+      if (id && label) {
+        knowledgeNodes.update({ id, label, description, group, color: group === "core" ? "#3b82f6" : group === "discipline" ? "#10b981" : "#f59e0b" });
+        updateNodeSelects();
+      } else {
+        alert("请选择节点并输入新名称！");
+      }
+    }
+
+    function deleteNode() {
+      const id = parseInt(document.getElementById("editNodeSelect").value);
+      if (id) {
+        knowledgeNodes.remove(id);
+        knowledgeEdges.get().forEach(edge => {
+          if (edge.from === id || edge.to === id) {
+            knowledgeEdges.remove(edge.id);
+          }
+        });
+        updateNodeSelects();
+        document.getElementById("nodeInfo").innerHTML = `<p>点击图谱中的节点以查看详细信息。</p>`;
+      } else {
+        alert("请选择要删除的节点！");
+      }
+    }
+
+    // 关键词网络
+    let keywordNodes = new vis.DataSet([]);
+    let keywordEdges = new vis.DataSet([]);
+    let batchCount = 0;
+    let selectedNodes = [];
+    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+    let keywordNetwork = null;
+
+    function initKeywordNetwork() {
+      const container = document.getElementById("keywordGraph");
+      const data = { nodes: keywordNodes, edges: keywordEdges };
+      const options = {
+        nodes: { shape: "dot", size: 20, font: { size: 14, face: "Arial" } },
+        edges: { arrows: "to", color: { color: "#6b7280" } },
+        physics: { enabled: true },
+        interaction: { zoomView: true, dragView: true, selectConnectedEdges: false }
+      };
+      keywordNetwork = new vis.Network(container, data, options);
+
+      keywordNetwork.on("click", function (params) {
+        const nodeId = params.nodes[0];
+        const nodeInfo = document.getElementById("keywordInfo");
+        if (nodeId) {
+          const node = keywordNodes.get(nodeId);
+          nodeInfo.innerHTML = `<h4 class="text-lg font-semibold">${node.label}</h4><p>批次: ${node.group + 1}</p>`;
+          selectedNodes.push(nodeId);
+          if (selectedNodes.length === 2) {
+            const [from, to] = selectedNodes;
+            const existingEdge = keywordEdges.get().find(edge => edge.from === from && edge.to === to);
+            if (existingEdge) {
+              keywordEdges.remove(existingEdge.id);
+            } else {
+              keywordEdges.add({ from, to });
+            }
+            selectedNodes = [];
+            updateKeywordSelects();
+          }
+        } else {
+          nodeInfo.innerHTML = `<p>点击节点查看详情或进行操作。</p>`;
+          selectedNodes = [];
+        }
+      });
+
+      updateKeywordSelects();
+    }
+
+    function updateKeywordSelects() {
+      const deleteNodeSelect = document.getElementById("deleteNodeSelect");
+      const deleteEdgeSelect = document.getElementById("deleteEdgeSelect");
+      deleteNodeSelect.innerHTML = '<option value="">选择节点</option>';
+      keywordNodes.forEach(node => {
+        deleteNodeSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
+      });
+      deleteEdgeSelect.innerHTML = '<option value="">选择连接</option>';
+      keywordEdges.forEach(edge => {
+        const fromNode = keywordNodes.get(edge.from).label;
+        const toNode = keywordNodes.get(edge.to).label;
+        deleteEdgeSelect.innerHTML += `<option value="${edge.id}">${fromNode} -> ${toNode}</option>`;
+      });
+    }
+
+    function addKeywords() {
+      const input = document.getElementById("keywordsInput").value.trim();
+      if (!input) {
+        alert("请输入至少一个关键词！");
+        return;
+      }
+      const keywords = input.split(" ").filter(kw => kw);
+      const color = colors[batchCount % colors.length];
+      keywords.forEach(keyword => {
+        const id = keywordNodes.length + 1;
+        keywordNodes.add({ id, label: keyword, group: batchCount, color });
+      });
+      batchCount++;
+      updateKeywordSelects();
+      document.getElementById("keywordsInput").value = "";
+    }
+
+    function deleteKeywordNode() {
+      const id = parseInt(document.getElementById("deleteNodeSelect").value);
+      if (id) {
+        keywordNodes.remove(id);
+        keywordEdges.get().forEach(edge => {
+          if (edge.from === id || edge.to === id) {
+            keywordEdges.remove(edge.id);
+          }
+        });
+        updateKeywordSelects();
+        document.getElementById("keywordInfo").innerHTML = `<p>点击节点查看详情或进行操作。</p>`;
+      } else {
+        alert("请选择要删除的节点！");
+      }
+    }
+
+    function deleteKeywordEdge() {
+      const edgeId = document.getElementById("deleteEdgeSelect").value;
+      if (edgeId) {
+        keywordEdges.remove(edgeId);
+        updateKeywordSelects();
+      } else {
+        alert("请选择要删除的连接！");
+      }
+    }
+
+    // 打字测试
+    const sampleTexts = [
+      "བོད་པའི་སྒྲ་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད་པའི་གནས་ཡོད།",
+      "བོད་པའི་སྐད་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད་པའི་གནས་ཡོད།",
+      "བོད་པའི་སྐད་ཡིག་ནི་གནས་ཡོད། བོད་ཡིག་གི་གནས་ཡོད།"
+    ];
+    let timer = null;
+    let startTime = 0;
+    let history = [];
+    let currentText = "";
+    let isTestRunning = false;
+
+    function initTypingTest() {
+      currentText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+      document.getElementById("originalText").textContent = currentText;
+      document.getElementById("inputText").value = "";
+      document.getElementById("time").textContent = "0";
+      document.getElementById("cpm").textContent = "0";
+      document.getElementById("errors").textContent = "0";
+      document.getElementById("accuracy").textContent = "0%";
+      document.getElementById("resetBtn").disabled = true;
+      isTestRunning = false;
+      document.getElementById("inputText").focus();
+
+      document.getElementById("inputText").addEventListener("input", function() {
+        if (!isTestRunning && this.value.trim()) {
+          isTestRunning = true;
+          document.getElementById("resetBtn").disabled = false;
+          startTime = Date.now();
+          timer = setInterval(updateTimer, 1000);
+        }
+        updateResults();
+      });
+
+      document.getElementById("inputText").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          endTest();
+        }
+      });
+    }
+
+    function updateTimer() {
+      const time = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById("time").textContent = time;
+      updateResults();
+    }
+
+    function updateResults() {
+      const input = document.getElementById("inputText").value;
+      const time = parseInt(document.getElementById("time").textContent);
+      const charCount = input.length;
+      const cpm = time > 0 ? Math.round((charCount / time) * 60) : 0;
+      let errors = 0;
+
+      for (let i = 0; i < Math.min(input.length, currentText.length); i++) {
+        if (input[i] !== currentText[i]) errors++;
+      }
+      errors += Math.abs(input.length - currentText.length);
+      const accuracy = currentText.length > 0 ? Math.round((1 - errors / currentText.length) * 100) : 0;
+
+      document.getElementById("cpm").textContent = cpm;
+      document.getElementById("errors").textContent = errors;
+      document.getElementById("accuracy").textContent = `${accuracy}%`;
+    }
+
+    function endTest() {
+      if (!isTestRunning) return;
+      clearInterval(timer);
+      isTestRunning = false;
+      const input = document.getElementById("inputText").value;
+      const time = parseInt(document.getElementById("time").textContent);
+      if (time > 0 && input.trim()) {
+        const cpm = document.getElementById("cpm").textContent;
+        const errors = document.getElementById("errors").textContent;
+        const accuracy = document.getElementById("accuracy").textContent;
+        history.push(`测试 ${history.length + 1}: 时间: ${time}s, 速度: ${cpm} CPM, 错误: ${errors}, 准确率: ${accuracy}`);
+        updateHistory();
+      }
+      initTypingTest();
+    }
+
+    function resetTest() {
+      if (isTestRunning) {
+        clearInterval(timer);
+        const input = document.getElementById("inputText").value;
+        const time = parseInt(document.getElementById("time").textContent);
+        if (time > 0 && input.trim()) {
+          const cpm = document.getElementById("cpm").textContent;
+          const errors = document.getElementById("errors").textContent;
+          const accuracy = document.getElementById("accuracy").textContent;
+          history.push(`测试 ${history.length + 1}: 时间: ${time}s, 速度: ${cpm} CPM, 错误: ${errors}, 准确率: ${accuracy}`);
+          updateHistory();
+        }
+      }
+      initTypingTest();
+    }
+
+    function updateHistory() {
+      const historyList = document.getElementById("history");
+      historyList.innerHTML = "";
+      history.forEach(record => {
+        const li = document.createElement("li");
+        li.textContent = record;
+        historyList.appendChild(li);
+      });
+    }
+
+    // 初始化
+    showSection("login");
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+#stringContainer {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.string-item {
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#linkCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}

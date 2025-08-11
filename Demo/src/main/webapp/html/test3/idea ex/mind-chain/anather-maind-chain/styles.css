@@ -1,0 +1,22 @@
+#stringContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    margin-top: 20px;
+}
+
+.string-item {
+    position: absolute;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+}
+
+#linkCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}

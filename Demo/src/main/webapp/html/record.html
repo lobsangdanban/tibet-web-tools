@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音录制解决方案</title>
+    <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.6.2/RecordRTC.min.js"></script>
+    <style>
+        .warning { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; }
+        .success { color: #388e3c; background: #e8f5e9; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>语音录制解决方案</h1>
+    <div id="permissionHelp" class="warning" style="display:none;">
+        <p>麦克风权限被拒绝！请按以下步骤操作：</p>
+        <ul>
+            <li>浏览器地址栏点击 <img src="camera-icon.png" alt="摄像头图标" style="height:1em"> 图标允许访问</li>
+            <li>检查系统设置中的麦克风权限</li>
+            <li>确保没有其他程序占用麦克风</li>
+        </ul>
+    </div>
+    
+    <button id="startBtn">开始录制</button>
+    <button id="stopBtn" disabled>停止并保存</button>
+    <audio id="audioPlayback" controls style="display:none;"></audio>
+
+    <script>
+        let recorder;
+        let audioStream;
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.protocol === 'https:';
+
+        // 权限错误处理
+        function handlePermissionError(err) {
+            console.error('录制失败:', err);
+            const errorMsg = document.getElementById('permissionHelp');
+            
+            if (err.name === 'NotAllowedError') {
+                errorMsg.innerHTML += `<p>错误类型：麦克风访问被用户拒绝${!isLocalhost ? '<br>⚠️ 非HTTPS环境需特殊配置' : ''}</p>:ml-citation{ref="3,9" data="citationList"}`;
+                if (!isLocalhost) {
+                    errorMsg.innerHTML += `<p>解决方案：在Chrome地址栏输入：<code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code></p>:ml-citation{ref="3,12" data="citationList"}`;
+                }
+            } else {
+                errorMsg.innerHTML = `<p>硬件错误：${err.message}<br>请检查麦克风连接和驱动:ml-citation{ref="9,13" data="citationList"}</p>`;
+            }
+            errorMsg.style.display = 'block';
+        }
+
+        // 开始录制
+        document.getElementById('startBtn').onclick = async function() {
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recorder = RecordRTC(audioStream, {
+                    type: 'audio',
+                    mimeType: 'audio/webm;codecs=opus',
+                    recorderType: RecordRTC.StereoAudioRecorder,
+                    desiredSampRate: 16000
+                });
+                
+                recorder.startRecording();
+                this.disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('permissionHelp').style.display = 'none';
+                
+            } catch (err) {
+                handlePermissionError(err);
+            }
+        };
+
+        // 停止录制
+        document.getElementById('stopBtn').onclick = function() {
+            this.disabled = true;
+            recorder.stopRecording(() => {
+                const blob = recorder.getBlob();
+                const audioURL = URL.createObjectURL(blob);
+                
+                // 音频预览
+                const audio = document.getElementById('audioPlayback');
+                audio.src = audioURL;
+                audio.style.display = 'block';
+                
+                // 下载MP3
+                const anchor = document.createElement('a');
+                anchor.href = audioURL;
+                anchor.download = `录音_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.mp3`;
+                anchor.click();
+                
+                // 释放资源
+                audioStream.getTracks().forEach(track => track.stop());
+                document.getElementById('startBtn').disabled = false;
+            });
+        };
+    </script>
+</body>
+</html>

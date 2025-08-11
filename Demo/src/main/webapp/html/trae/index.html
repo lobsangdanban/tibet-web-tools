@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文打字速度测试</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+    font-size: 32px;
+}
+
+h1 {
+    color: #333;
+}
+#text-to-type {
+    font-size: 32px; /* 增大藏文字体大小 */
+    margin: 20px 0;
+}
+
+
+#input-field {
+    width: 300px;
+    padding: 10px;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+#timer {
+    font-size: 20px;
+    color: #666;
+}
+
+#result {
+    font-size: 20px;
+    color: green;
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+</style>
+<body>
+    <h1>藏文打字速度测试</h1>
+    <p id="text-to-type">བཀྲ་ཤིས་བདེ་ལེགས།</p>
+    <input type="text" id="input-field" placeholder="请在这里输入藏文">
+    <p id="timer">0:00</p>
+    <p id="result"></p>
+    <button id="start-button">开始测试</button>
+</body>
+<script>
+         
+const textToType = document.getElementById('text-to-type');
+const inputField = document.getElementById('input-field');
+const timer = document.getElementById('timer');
+const result = document.getElementById('result');
+const startButton = document.getElementById('start-button');
+const charFrequencyResult = document.createElement('p');
+document.body.appendChild(charFrequencyResult);
+const charFrequencyTable = document.createElement('table');
+charFrequencyTable.id = 'char-frequency-table';
+document.body.appendChild(charFrequencyTable);
+
+let startTime;
+let interval;
+
+function startTest() {
+    startTime = new Date();
+    interval = setInterval(updateTimer, 1000);
+    inputField.disabled = false;
+    inputField.value = '';
+    inputField.focus();
+    startButton.disabled = true;
+}
+
+function updateTimer() {
+    const currentTime = new Date();
+    const elapsedTime = (currentTime - startTime) / 1000;
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = Math.floor(elapsedTime % 60);
+    timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function checkInput() {
+    const typedText = inputField.value;
+    const originalText = textToType.textContent;
+
+    if (typedText === originalText) {
+        clearInterval(interval);
+        const endTime = new Date();
+        const totalTime = (endTime - startTime) / 1000;
+        const words = originalText.split(' ').length;
+        const wpm = (words / (totalTime / 60)).toFixed(2);
+        result.textContent = `你的打字速度是 ${wpm} WPM`;
+        inputField.disabled = true;
+        startButton.disabled = false;
+
+        // 统计字符频率
+        const charFrequency = {};
+        for (let char of typedText) {
+            if (charFrequency[char]) {
+                charFrequency[char]++;
+            } else {
+                charFrequency[char] = 1;
+            }
+        }
+         // 清空表格内容
+         charFrequencyTable.innerHTML = '';
+
+// 创建表头
+const thead = document.createElement('thead');
+const headerRow = document.createElement('tr');
+const charHeader = document.createElement('th');
+charHeader.textContent = '字符';
+const frequencyHeader = document.createElement('th');
+frequencyHeader.textContent = '出现次数';
+headerRow.appendChild(charHeader);
+headerRow.appendChild(frequencyHeader);
+thead.appendChild(headerRow);
+charFrequencyTable.appendChild(thead);
+
+// 创建表格内容
+const tbody = document.createElement('tbody');
+for (let char in charFrequency) {
+    const row = document.createElement('tr');
+    const charCell = document.createElement('td');
+    charCell.textContent = char;
+    const frequencyCell = document.createElement('td');
+    frequencyCell.textContent = charFrequency[char];
+    row.appendChild(charCell);
+    row.appendChild(frequencyCell);
+    tbody.appendChild(row);
+}
+    charFrequencyTable.appendChild(tbody);
+        // 显示字符频率
+        // let frequencyText = '字符频率统计：';
+        // for (let char in charFrequency) {
+        //     frequencyText += `${char}: ${charFrequency[char]} 次 `;
+        // }
+        // charFrequencyResult.textContent = frequencyText;
+    }
+}
+
+startButton.addEventListener('click', startTest);
+inputField.addEventListener('input', checkInput);
+</script>
+</html>
+
+

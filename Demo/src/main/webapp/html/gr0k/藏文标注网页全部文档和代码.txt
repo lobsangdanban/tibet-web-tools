@@ -1,0 +1,842 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>藏文数据标注</title>
+  <link href="./styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/wavesurfer.js@7.7.23/dist/wavesurfer.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom, #8B0000, #FFD700);
+      font-family: 'Arial', 'Noto Serif Tibetan', sans-serif;
+    }
+    .mandala-bg {
+      background-image: url('https://via.placeholder.com/1500x1500?text=曼陀罗图案');
+      background-size: cover;
+      opacity: 0.1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    .tibetan-text {
+      font-family: 'Noto Serif Tibetan', sans-serif;
+      font-size: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="relative min-h-screen">
+    <div class="mandala-bg"></div>
+    <div class="container mx-auto p-4">
+      <h1 class="text-4xl font-bold text-center text-yellow-300 mb-6">
+        藏文数据标注
+      </h1>
+      <div class="bg-white bg-opacity-80 p-6 rounded-lg shadow-lg mb-6">
+        <p class="text-gray-700 mb-4">
+          为藏文数据（文字、语音、图片）添加标注，用于语言或文化分析。输入藏文文本、录制语音或上传图片，并为内容添加标签。
+        </p>
+        <!-- 文字标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">文字标注</h2>
+          <input
+            type="text"
+            id="text-input"
+            placeholder="输入藏文文本（例如：བཀའ་གདམས）"
+            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 tibetan-text"
+          />
+          <input
+            type="text"
+            id="text-label"
+            placeholder="添加标签（例如：祈祷文、对话）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="text-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+          >
+            标注文字
+          </button>
+        </div>
+        <!-- 语音标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">语音标注</h2>
+          <button
+            id="record-audio"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            录制语音
+          </button>
+          <div id="waveform" class="mt-2 hidden"></div>
+          <audio id="audio-playback" controls class="mt-2 hidden"></audio>
+          <input
+            type="text"
+            id="audio-label"
+            placeholder="添加标签（例如：诵经、对话）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="audio-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 hidden"
+          >
+            标注语音
+          </button>
+        </div>
+        <!-- 图片标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">图片标注</h2>
+          <input
+            type="file"
+            id="image-upload"
+            accept="image/*"
+            class="mb-2"
+          />
+          <canvas id="image-canvas" class="border max-w-full"></canvas>
+          <input
+            type="text"
+            id="image-label"
+            placeholder="为选定区域添加标签（例如：神像、经文）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="image-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 hidden"
+          >
+            标注图片
+          </button>
+        </div>
+        <p id="error" class="text-red-500 hidden"></p>
+      </div>
+      <!-- 标注历史 -->
+      <div class="bg-white bg-opacity-80 p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-yellow-600 mb-4">标注历史</h2>
+        <div id="annotation-history"></div>
+        <button
+          id="download-annotations"
+          class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          下载标注 (JSON)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('text-input');
+    const textLabel = document.getElementById('text-label');
+    const textSubmit = document.getElementById('text-submit');
+    const recordAudio = document.getElementById('record-audio');
+    const audioPlayback = document.getElementById('audio-playback');
+    const audioLabel = document.getElementById('audio-label');
+    const audioSubmit = document.getElementById('audio-submit');
+    const imageUpload = document.getElementById('image-upload');
+    const imageCanvas = document.getElementById('image-canvas');
+    const imageLabel = document.getElementById('image-label');
+    const imageSubmit = document.getElementById('image-submit');
+    const errorMsg = document.getElementById('error');
+    const annotationHistory = document.getElementById('annotation-history');
+    const downloadBtn = document.getElementById('download-annotations');
+
+    let annotations = [];
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let isDrawing = false;
+    let startX, startY;
+    const canvasCtx = imageCanvas.getContext('2d');
+    let currentImage = null;
+    let wavesurfer = null;
+
+    // 初始化 WaveSurfer
+    function initWaveSurfer(audioUrl) {
+      if (wavesurfer) wavesurfer.destroy();
+      wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#FFD700',
+        progressColor: '#8B0000',
+        height: 100,
+      });
+      wavesurfer.load(audioUrl);
+      document.getElementById('waveform').classList.remove('hidden');
+    }
+
+    // 错误处理
+    function showError(message) {
+      errorMsg.textContent = message;
+      errorMsg.classList.remove('hidden');
+    }
+
+    function clearError() {
+      errorMsg.textContent = '';
+      errorMsg.classList.add('hidden');
+    }
+
+    // 文字标注
+    textSubmit.addEventListener('click', () => {
+      const text = textInput.value.trim();
+      const label = textLabel.value.trim();
+      if (!text || !label) {
+        showError('请提供文本和标签。');
+        return;
+      }
+      clearError();
+      const annotation = { type: 'text', content: text, label: label, timestamp: new Date().toISOString() };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      textInput.value = '';
+      textLabel.value = '';
+    });
+
+    // 语音标注
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayback.src = audioUrl;
+        audioPlayback.classList.remove('hidden');
+        audioSubmit.classList.remove('hidden');
+        initWaveSurfer(audioUrl);
+        audioChunks = [];
+      };
+    }).catch(() => {
+      showError('无法访问麦克风，语音标注不可用。');
+      recordAudio.disabled = true;
+    });
+
+    recordAudio.addEventListener('click', () => {
+      if (!mediaRecorder) return;
+      if (isRecording) {
+        mediaRecorder.stop();
+        recordAudio.textContent = '录制语音';
+        isRecording = false;
+      } else {
+        mediaRecorder.start();
+        recordAudio.textContent = '停止录制';
+        isRecording = true;
+        clearError();
+      }
+    });
+
+    audioSubmit.addEventListener('click', () => {
+      const label = audioLabel.value.trim();
+      if (!label || !audioPlayback.src) {
+        showError('请录制语音并提供标签。');
+        return;
+      }
+      clearError();
+      const annotation = { type: 'audio', content: audioPlayback.src, label: label, timestamp: new Date().toISOString() };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      audioLabel.value = '';
+      audioPlayback.classList.add('hidden');
+      audioSubmit.classList.add('hidden');
+      document.getElementById('waveform').classList.add('hidden');
+      if (wavesurfer) wavesurfer.destroy();
+    });
+
+    // 图片标注
+    imageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) {
+        showError('请上传有效图片。');
+        return;
+      }
+      clearError();
+      currentImage = new Image();
+      currentImage.src = URL.createObjectURL(file);
+      currentImage.onload = () => {
+        imageCanvas.width = currentImage.width;
+        imageCanvas.height = currentImage.height;
+        canvasCtx.drawImage(currentImage, 0, 0);
+        imageSubmit.classList.remove('hidden');
+      };
+    });
+
+    imageCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = imageCanvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+    });
+
+    imageCanvas.addEventListener('mouseup', (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      const rect = imageCanvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      canvasCtx.strokeStyle = 'red';
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeRect(startX, startY, endX - startX, endY - startY);
+    });
+
+    imageCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      canvasCtx.drawImage(currentImage, 0, 0);
+      const rect = imageCanvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      canvasCtx.strokeStyle = 'red';
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeRect(startX, startY, endX - startX, endY - startY);
+    });
+
+    imageSubmit.addEventListener('click', () => {
+      const label = imageLabel.value.trim();
+      if (!label || !currentImage) {
+        showError('请上传图片、绘制区域并提供标签。');
+        return;
+      }
+      clearError();
+      const annotation = {
+        type: 'image',
+        content: imageCanvas.toDataURL(),
+        label: label,
+        region: { x: startX, y: startY, width: imageCanvas.width, height: imageCanvas.height },
+        timestamp: new Date().toISOString()
+      };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      imageLabel.value = '';
+      imageSubmit.classList.add('hidden');
+      canvasCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      currentImage = null;
+    });
+
+    // 标注历史
+    function addToHistory(annotation) {
+      const entry = document.createElement('div');
+      entry.className = 'mb-4';
+      if (annotation.type === 'text') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>文字：</strong> ${annotation.content} <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      } else if (annotation.type === 'audio') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>语音：</strong> <audio controls src="${annotation.content}"></audio> <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      } else if (annotation.type === 'image') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>图片：</strong> <img src="${annotation.content}" class="max-w-xs" /> <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>区域：</strong> x=${annotation.region.x}, y=${annotation.region.y} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      }
+      annotationHistory.appendChild(entry);
+    }
+
+    // 下载标注
+    downloadBtn.addEventListener('click', () => {
+      const json = JSON.stringify(annotations, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '藏文标注.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
+
+/**
+根据您的要求，我们将设计一个支持藏文数据标注的网页，支持文字、语音和图片的标注功能，并为音频添加波形展示功能。网页将使用纯 HTML、CSS（静态 Tailwind CSS，避免 CDN 问题）和 JavaScript 实现，不依赖外部框架（如 React），并保持藏传佛教的审美风格（曼陀罗背景，红金配色）。这是对前一个藏文数据标注网页的更新，因此将复用之前的 `artifact_id`（`26f6467a-e102-4832-b404-0c6625e22cc9`）。界面和说明将使用中文，音频标注部分将添加波形展示，使用 `WaveSurfer.js` 库生成波形可视化。
+
+### 功能特点
+1. **文字标注**：
+   - 输入藏文文本（支持 Unicode 藏文，例如 བཀའ་གདམས）。
+   - 添加标签（例如“祈祷文”“对话”）。
+   - 在历史记录中显示标注的文本。
+2. **语音标注**：
+   - 使用 MediaRecorder API 录制音频。
+   - 添加标签（例如“诵经”“对话”）。
+   - 使用 `WaveSurfer.js` 显示音频波形，增强可视化。
+   - 提供音频回放功能。
+3. **图片标注**：
+   - 上传图片（例如藏文手稿、唐卡）。
+   - 使用 canvas 绘制矩形框并添加标签（例如“神像”“经文”）。
+   - 显示标注后的图片。
+4. **文化审美**：
+   - 使用曼陀罗背景和藏传佛教配色（红色、金色、蓝色）。
+   - 确保文化元素的尊重和恰当使用。
+5. **功能实现**：
+   - 所有标注以 JSON 格式保存并可下载。
+   - 提供清晰的错误提示（例如缺少输入）。
+   - 响应式设计，适配桌面和移动设备。
+6. **语言**：
+   - 界面和提示信息使用中文。
+   - 支持藏文文本输入（使用 Noto Serif Tibetan 字体）。
+
+### 技术方法
+- **HTML**：包含文字输入框、音频录制按钮、图片上传输入和 canvas，用于标注。
+- **CSS**：使用静态 Tailwind CSS 文件（`styles.css`），通过 Tailwind CLI 生成，保持与之前相同的配色方案。
+- **JavaScript**：
+   - 处理文字输入和标注存储。
+   - 使用 MediaRecorder API 录制音频，`WaveSurfer.js` 展示波形。
+   - 实现图片上传和 canvas 标注（绘制矩形框）。
+   - 将标注存储为 JavaScript 对象，支持 JSON 导出。
+- **波形展示**：通过 CDN 引入 `WaveSurfer.js`（https://unpkg.com/wavesurfer.js），在音频录制后生成波形。
+- **藏文支持**：使用 Google Fonts 的 Noto Serif Tibetan 字体，确保藏文正确显示。
+- **假设**：
+   - `styles.css` 已通过 Tailwind CLI 生成，位于同一目录。
+   - 音频以 WebM 格式保存，波形通过 `WaveSurfer.js` 渲染。
+   - 图片标注为简单的矩形框，标签附加到框选区域。
+   - 无后端，标注数据客户端存储并以 JSON 下载。
+
+### 文物（Artifact）：网页代码
+以下是更新后的 `index.html`，包含中文界面、藏文支持和音频波形展示功能。`WaveSurfer.js` 通过 CDN 引入以简化实现，波形展示集成在音频标注部分。
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>藏文数据标注</title>
+  <link href="./styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/wavesurfer.js@7.7.23/dist/wavesurfer.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom, #8B0000, #FFD700);
+      font-family: 'Arial', 'Noto Serif Tibetan', sans-serif;
+    }
+    .mandala-bg {
+      background-image: url('https://via.placeholder.com/1500x1500?text=曼陀罗图案');
+      background-size: cover;
+      opacity: 0.1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    .tibetan-text {
+      font-family: 'Noto Serif Tibetan', sans-serif;
+      font-size: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="relative min-h-screen">
+    <div class="mandala-bg"></div>
+    <div class="container mx-auto p-4">
+      <h1 class="text-4xl font-bold text-center text-yellow-300 mb-6">
+        藏文数据标注
+      </h1>
+      <div class="bg-white bg-opacity-80 p-6 rounded-lg shadow-lg mb-6">
+        <p class="text-gray-700 mb-4">
+          为藏文数据（文字、语音、图片）添加标注，用于语言或文化分析。输入藏文文本、录制语音或上传图片，并为内容添加标签。
+        </p>
+        <!-- 文字标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">文字标注</h2>
+          <input
+            type="text"
+            id="text-input"
+            placeholder="输入藏文文本（例如：བཀའ་གདམས）"
+            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 tibetan-text"
+          />
+          <input
+            type="text"
+            id="text-label"
+            placeholder="添加标签（例如：祈祷文、对话）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="text-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+          >
+            标注文字
+          </button>
+        </div>
+        <!-- 语音标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">语音标注</h2>
+          <button
+            id="record-audio"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            录制语音
+          </button>
+          <div id="waveform" class="mt-2 hidden"></div>
+          <audio id="audio-playback" controls class="mt-2 hidden"></audio>
+          <input
+            type="text"
+            id="audio-label"
+            placeholder="添加标签（例如：诵经、对话）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="audio-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 hidden"
+          >
+            标注语音
+          </button>
+        </div>
+        <!-- 图片标注 -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-semibold text-yellow-600 mb-2">图片标注</h2>
+          <input
+            type="file"
+            id="image-upload"
+            accept="image/*"
+            class="mb-2"
+          />
+          <canvas id="image-canvas" class="border max-w-full"></canvas>
+          <input
+            type="text"
+            id="image-label"
+            placeholder="为选定区域添加标签（例如：神像、经文）"
+            class="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+          <button
+            id="image-submit"
+            class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 hidden"
+          >
+            标注图片
+          </button>
+        </div>
+        <p id="error" class="text-red-500 hidden"></p>
+      </div>
+      <!-- 标注历史 -->
+      <div class="bg-white bg-opacity-80 p-6 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-yellow-600 mb-4">标注历史</h2>
+        <div id="annotation-history"></div>
+        <button
+          id="download-annotations"
+          class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          下载标注 (JSON)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('text-input');
+    const textLabel = document.getElementById('text-label');
+    const textSubmit = document.getElementById('text-submit');
+    const recordAudio = document.getElementById('record-audio');
+    const audioPlayback = document.getElementById('audio-playback');
+    const audioLabel = document.getElementById('audio-label');
+    const audioSubmit = document.getElementById('audio-submit');
+    const imageUpload = document.getElementById('image-upload');
+    const imageCanvas = document.getElementById('image-canvas');
+    const imageLabel = document.getElementById('image-label');
+    const imageSubmit = document.getElementById('image-submit');
+    const errorMsg = document.getElementById('error');
+    const annotationHistory = document.getElementById('annotation-history');
+    const downloadBtn = document.getElementById('download-annotations');
+
+    let annotations = [];
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let isDrawing = false;
+    let startX, startY;
+    const canvasCtx = imageCanvas.getContext('2d');
+    let currentImage = null;
+    let wavesurfer = null;
+
+    // 初始化 WaveSurfer
+    function initWaveSurfer(audioUrl) {
+      if (wavesurfer) wavesurfer.destroy();
+      wavesurfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#FFD700',
+        progressColor: '#8B0000',
+        height: 100,
+      });
+      wavesurfer.load(audioUrl);
+      document.getElementById('waveform').classList.remove('hidden');
+    }
+
+    // 错误处理
+    function showError(message) {
+      errorMsg.textContent = message;
+      errorMsg.classList.remove('hidden');
+    }
+
+    function clearError() {
+      errorMsg.textContent = '';
+      errorMsg.classList.add('hidden');
+    }
+
+    // 文字标注
+    textSubmit.addEventListener('click', () => {
+      const text = textInput.value.trim();
+      const label = textLabel.value.trim();
+      if (!text || !label) {
+        showError('请提供文本和标签。');
+        return;
+      }
+      clearError();
+      const annotation = { type: 'text', content: text, label: label, timestamp: new Date().toISOString() };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      textInput.value = '';
+      textLabel.value = '';
+    });
+
+    // 语音标注
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        audioChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayback.src = audioUrl;
+        audioPlayback.classList.remove('hidden');
+        audioSubmit.classList.remove('hidden');
+        initWaveSurfer(audioUrl);
+        audioChunks = [];
+      };
+    }).catch(() => {
+      showError('无法访问麦克风，语音标注不可用。');
+      recordAudio.disabled = true;
+    });
+
+    recordAudio.addEventListener('click', () => {
+      if (!mediaRecorder) return;
+      if (isRecording) {
+        mediaRecorder.stop();
+        recordAudio.textContent = '录制语音';
+        isRecording = false;
+      } else {
+        mediaRecorder.start();
+        recordAudio.textContent = '停止录制';
+        isRecording = true;
+        clearError();
+      }
+    });
+
+    audioSubmit.addEventListener('click', () => {
+      const label = audioLabel.value.trim();
+      if (!label || !audioPlayback.src) {
+        showError('请录制语音并提供标签。');
+        return;
+      }
+      clearError();
+      const annotation = { type: 'audio', content: audioPlayback.src, label: label, timestamp: new Date().toISOString() };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      audioLabel.value = '';
+      audioPlayback.classList.add('hidden');
+      audioSubmit.classList.add('hidden');
+      document.getElementById('waveform').classList.add('hidden');
+      if (wavesurfer) wavesurfer.destroy();
+    });
+
+    // 图片标注
+    imageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) {
+        showError('请上传有效图片。');
+        return;
+      }
+      clearError();
+      currentImage = new Image();
+      currentImage.src = URL.createObjectURL(file);
+      currentImage.onload = () => {
+        imageCanvas.width = currentImage.width;
+        imageCanvas.height = currentImage.height;
+        canvasCtx.drawImage(currentImage, 0, 0);
+        imageSubmit.classList.remove('hidden');
+      };
+    });
+
+    imageCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = imageCanvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+    });
+
+    imageCanvas.addEventListener('mouseup', (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      const rect = imageCanvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      canvasCtx.strokeStyle = 'red';
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeRect(startX, startY, endX - startX, endY - startY);
+    });
+
+    imageCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      canvasCtx.drawImage(currentImage, 0, 0);
+      const rect = imageCanvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      canvasCtx.strokeStyle = 'red';
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeRect(startX, startY, endX - startX, endY - startY);
+    });
+
+    imageSubmit.addEventListener('click', () => {
+      const label = imageLabel.value.trim();
+      if (!label || !currentImage) {
+        showError('请上传图片、绘制区域并提供标签。');
+        return;
+      }
+      clearError();
+      const annotation = {
+        type: 'image',
+        content: imageCanvas.toDataURL(),
+        label: label,
+        region: { x: startX, y: startY, width: imageCanvas.width, height: imageCanvas.height },
+        timestamp: new Date().toISOString()
+      };
+      annotations.push(annotation);
+      addToHistory(annotation);
+      imageLabel.value = '';
+      imageSubmit.classList.add('hidden');
+      canvasCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      currentImage = null;
+    });
+
+    // 标注历史
+    function addToHistory(annotation) {
+      const entry = document.createElement('div');
+      entry.className = 'mb-4';
+      if (annotation.type === 'text') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>文字：</strong> ${annotation.content} <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      } else if (annotation.type === 'audio') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>语音：</strong> <audio controls src="${annotation.content}"></audio> <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      } else if (annotation.type === 'image') {
+        entry.innerHTML = `
+          <p class="text-gray-800">
+            <strong>图片：</strong> <img src="${annotation.content}" class="max-w-xs" /> <br>
+            <strong>标签：</strong> ${annotation.label} <br>
+            <strong>区域：</strong> x=${annotation.region.x}, y=${annotation.region.y} <br>
+            <strong>时间：</strong> ${annotation.timestamp}
+          </p>
+        `;
+      }
+      annotationHistory.appendChild(entry);
+    }
+
+    // 下载标注
+    downloadBtn.addEventListener('click', () => {
+      const json = JSON.stringify(annotations, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '藏文标注.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
+```
+
+### Tailwind CSS 设置说明
+与前述一致，生成 `styles.css` 文件的步骤如下：
+1. **安装 Tailwind CLI**：
+   ```bash
+   npm install -g tailwindcss
+   ```
+2. **创建 `tailwind.config.js`**：
+   ```javascript
+   /** @type {import('tailwindcss').Config} */
+   module.exports = {
+     content: ['./index.html'],
+     theme: {
+       extend: {
+         colors: {
+           yellow: { 300: '#FFD700', 500: '#EAB308', 600: '#D97706' },
+           red: { 600: '#DC2626', 700: '#B91C1C' },
+           gray: { 400: '#9CA3AF', 700: '#4B5563', 800: '#1F2937' },
+           blue: { 600: '#2563EB', 700: '#1E40AF' },
+         },
+       },
+     },
+     plugins: [],
+   };
+   ```
+3. **创建 `input.css`**：
+   ```css
+   @tailwind base;
+   @tailwind components;
+   @tailwind utilities;
+   ```
+4. **生成 `styles.css`**：
+   ```bash
+   npx tailwindcss -i ./input.css -o ./styles.css --minify
+   ```
+5. **文件结构**：
+   ```
+   project/
+   ├── index.html
+   ├── styles.css
+   ├── tailwind.config.js
+   ├── input.css
+   ```
+
+### 使用说明
+1. **保存文件**：将 `index.html` 和 `styles.css` 放入同一目录。
+2. **在浏览器中打开**：直接在浏览器（推荐 Chrome 以支持 MediaRecorder 和 WaveSurfer.js）中打开 `index.html`。
+3. **数据标注**：
+   - **文字**：输入藏文（如 བཀའ་གདམས），添加标签（如“祈祷文”），点击“标注文字”。
+   - **语音**：点击“录制语音”开始/停止录制，查看波形，添加标签（如“诵经”），点击“标注语音”。
+   - **图片**：上传图片，在 canvas 上拖动绘制矩形框，添加标签（如“神像”），点击“标注图片”。
+4. **查看历史**：标注记录显示在“标注历史”部分，包含文字、音频（带播放控件）或图片。
+5. **下载**：点击“下载标注 (JSON)”保存所有标注为 JSON 文件。
+
+### 变更说明
+- **中文界面**：所有文本（标题、提示、按钮等）已改为中文，符合要求。
+- **音频波形**：新增 `WaveSurfer.js`（通过 CDN 引入），在录制音频后显示波形，波形颜色与藏传佛教审美一致（金色 #FFD700，红色 #8B0000）。
+- **复用 artifact_id**：使用之前的 `artifact_id`（`26f6467a-e102-4832-b404-0c6625e22cc9`），表示这是对前一文物的更新。
+- **保留功能**：文字、语音、图片标注功能与之前一致，保持藏文支持（Noto Serif Tibetan 字体）和曼陀罗背景。
+- **静态 Tailwind CSS**：继续使用 `styles.css`，避免 CDN 运行时错误。
+
+### 注意事项
+- **藏文支持**：Noto Serif Tibetan 字体确保藏文正确显示，输入法需支持藏文（例如藏文键盘）。
+- **波形展示**：WaveSurfer.js 提供简单的波形可视化，CDN 引入适合快速开发，生产环境可考虑本地化。
+- **浏览器兼容性**：Chrome 提供最佳支持（MediaRecorder、WaveSurfer.js、canvas）。在 Firefox 或 Safari 中测试可能需要调整。
+- **文化敏感性**：曼陀罗背景为占位图，生产环境应替换为真实、尊重文化的藏传佛教图案。
+- **数据存储**：标注数据存储在客户端，JSON 下载适合简单使用。生产环境可添加后端存储。
+- **可访问性**：生产环境应为输入框和 canvas 添加 ARIA 属性（如 `aria-label`），提升屏幕阅读器支持。
+- **语音支持**：MediaRecorder 保存 WebM 格式音频，WaveSurfer.js 支持回放和波形展示。若需藏文语音识别，可考虑第三方 API（如 Google Speech-to-Text），因 Web Speech API 对藏文支持有限。
+
+此网页提供了一个纯 HTML 的藏文数据标注解决方案，支持文字、语音（含波形展示）和图片标注，使用中文界面，保持藏传佛教审美，并避免运行时错误。
+**/

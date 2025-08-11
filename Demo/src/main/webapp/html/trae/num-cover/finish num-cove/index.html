@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏文数字转换器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .converter-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .convert-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-width: 120px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result.has-content {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .tibetan-text {
+            font-family: 'Microsoft Himalaya', 'Tibetan Machine Uni', monospace;
+            font-size: 1.8em;
+            color: #d63384;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .test-cases {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .test-cases h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+
+        .test-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-number {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .test-result {
+            font-family: 'Microsoft Himalaya', 'Tibetan Machine Uni', monospace;
+            color: #d63384;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        .batch-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #fff3cd;
+            border-radius: 15px;
+            border-left: 5px solid #ffc107;
+        }
+
+        .batch-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .info-section {
+            background: #d1ecf1;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .info-section h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #0c5460;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>藏文数字转换器</h1>
+            <p class="subtitle">将阿拉伯数字转换为藏文文字形式</p>
+        </div>
+
+        <div class="converter-section">
+            <div class="input-group">
+                <div class="input-field">
+                    <label for="numberInput">输入数字：</label>
+                    <input type="number" id="numberInput" placeholder="请输入要转换的数字" min="0">
+                </div>
+                <div style="display: flex; align-items: end;">
+                    <button class="convert-btn" onclick="convertSingle()">转换</button>
+                </div>
+            </div>
+            
+            <div class="result" id="singleResult">
+                <span style="color: #999;">转换结果将显示在这里...</span>
+            </div>
+        </div>
+
+        <div class="batch-section">
+            <h3 style="color: #856404; margin-bottom: 15px;">批量转换</h3>
+            <label for="batchInput">输入多个数字（用逗号分隔）：</label>
+            <textarea class="batch-input" id="batchInput" placeholder="例如: 1, 10, 123, 1000"></textarea>
+            <button class="convert-btn" onclick="convertBatch()">批量转换</button>
+            <div class="result" id="batchResult">
+                <span style="color: #999;">批量转换结果将显示在这里...</span>
+            </div>
+        </div>
+
+        <div class="test-cases">
+            <h3>测试用例</h3>
+            <div class="test-grid" id="testGrid">
+                <!-- 测试用例将在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h4>使用说明</h4>
+            <p>
+                此转换器严格按照藏文数字规则实现，支持从1到极大数字的转换。
+                特殊处理了10、100的读法，以及十位数的特殊形式。
+                转换结果末尾会自动添加藏文结束符号 ། 。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 藏文数字转换器
+         */
+        class TibetanNumberConverter {
+            constructor() {
+                // 基础数字 1-9
+                this.basicNumbers = {
+                    1: 'གཅིག',
+                    2: 'གཉིས', 
+                    3: 'གསུམ',
+                    4: 'བཞི',
+                    5: 'ལྔ',
+                    6: 'དྲུག',
+                    7: 'བདུན',
+                    8: 'བརྒྱད',
+                    9: 'དགུ'
+                };
+
+                // 十位数的特殊读法
+                this.tensSpecial = {
+                    20: 'རྩ',
+                    30: 'སོ',
+                    40: 'ཞེ',
+                    50: 'ང',
+                    60: 'རེ',
+                    70: 'དོན',
+                    80: 'གྱ',
+                    90: 'གོ'
+                };
+
+                // 大数位单位表
+                this.units = [
+                    { value: 1, name: '' },
+                    { value: 10, name: 'བཅུ' },
+                    { value: 100, name: 'བརྒྱ' },
+                    { value: 1000, name: 'སྟོང' },
+                    { value: 10000, name: 'ཁྲི' },
+                    { value: 100000, name: 'འབུམ' },
+                    { value: 1000000, name: 'ས་ཡ' },
+                    { value: 10000000, name: 'བྱེ་བ' },
+                    { value: 100000000, name: 'དུང་ཕྱུར' }
+                ];
+            }
+
+            convert(number) {
+                const num = parseInt(number);
+                if (isNaN(num) || num < 0) {
+                    return 'གྲངས་མེད';
+                }
+
+                if (num === 0) {
+                    return 'གྲངས་མེད';
+                }
+
+                return this._convertNumber(num) + '།';
+            }
+
+            _convertNumber(num) {
+                if (num === 0) return '';
+                
+                if (num <= 9) {
+                    return this.basicNumbers[num];
+                }
+
+                if (num === 10) {
+                    return 'བཅུ་ཐམ་པ';
+                }
+                if (num === 100) {
+                    return 'བརྒྱ་ཐམ་པ';
+                }
+
+                if (num < 100) {
+                    return this._convertTens(num);
+                }
+
+                return this._convertLargeNumber(num);
+            }
+
+            _convertTens(num) {
+                const tens = Math.floor(num / 10);
+                const ones = num % 10;
+
+                if (tens === 1) {
+                    // 11-19: 只有10才能用ཐམ་པ，11-19都用བཅུ་
+                    if (ones === 5) return 'བཅོ་ལྔ';
+                    if (ones === 8) return 'བཅོ་བརྒྱད';
+                    return 'བཅུ་' + this.basicNumbers[ones];
+                } else if (tens === 2) {
+                    // 20-29: 20用ཉི་ཤུ，21-29用ཉི་ཤུ་རྩ་
+                    if (ones === 0) {
+                        return 'ཉི་ཤུ';
+                    } else {
+                        return 'ཉི་ཤུ་རྩ་' + this.basicNumbers[ones];
+                    }
+                } else {
+                    // 30-99: 其他十位数
+                    const tensName = this.basicNumbers[tens] + '་བཅུ';
+                    if (ones === 0) {
+                        return tensName;
+                    } else {
+                        const specialTens = this.tensSpecial[tens * 10];
+                        return tensName + '་' + specialTens + '་' + this.basicNumbers[ones];
+                    }
+                }
+            }
+
+            _convertLargeNumber(num) {
+                let unitIndex = this.units.length - 1;
+                while (unitIndex > 0 && num < this.units[unitIndex].value) {
+                    unitIndex--;
+                }
+
+                const unit = this.units[unitIndex];
+                const quotient = Math.floor(num / unit.value);
+                const remainder = num % unit.value;
+
+                let result = '';
+
+                if (unit.value >= 1000) {
+                    result = unit.name + '་' + this.basicNumbers[quotient];
+                } else if (unit.value === 100) {
+                    if (quotient === 1) {
+                        // 只有整百才用ཐམ་པ
+                        if (remainder === 0) {
+                            result = 'བརྒྱ་ཐམ་པ';
+                        } else {
+                            result = 'བརྒྱ';
+                        }
+                    } else {
+                        result = this._getHundredPrefix(quotient) + '་བརྒྱ';
+                    }
+                } else if (unit.value === 10) {
+                    return this._convertTens(num);
+                }
+
+                // 处理余数部分
+                if (remainder > 0) {
+                    // 检查是否需要使用དང་
+                    if (this._needsDang(num, unit.value, remainder)) {
+                        result += '་དང་' + this._convertNumber(remainder);
+                    } else {
+                        result += '་' + this._convertNumber(remainder);
+                    }
+                }
+
+                return result;
+            }
+
+            _getHundredPrefix(hundreds) {
+                const prefixMap = {
+                    2: 'ཉིས',
+                    3: 'སུམ',
+                    4: 'བཞི',
+                    5: 'ལྔ',
+                    6: 'དྲུག',
+                    7: 'བདུན',
+                    8: 'བརྒྱད',
+                    9: 'དགུ'
+                };
+                return prefixMap[hundreds] || this.basicNumbers[hundreds];
+            }
+
+            _needsDang(num, unitValue, remainder) {
+                // 检查数字中是否包含0，需要使用དང་连接
+                const numStr = num.toString();
+                
+                // 101-199之间的所有数字都要加དང་
+                if (num >= 101 && num <= 199) {
+                    return true;
+                }
+                
+                // 检查是否有跳跃的零位
+                // 例如：1003, 40003等包含零的数字
+                for (let i = 1; i < numStr.length - 1; i++) {
+                    if (numStr[i] === '0') {
+                        return true;
+                    }
+                }
+                
+                // 检查末尾是否有零但不在最后一位
+                // 例如：1020, 3040等
+                const lastNonZeroIndex = numStr.length - 1;
+                for (let i = lastNonZeroIndex - 1; i >= 0; i--) {
+                    if (numStr[i] === '0') {
+                        // 如果在中间位置有0，需要དང་
+                        const beforeZero = numStr.substring(0, i);
+                        const afterZero = numStr.substring(i + 1);
+                        if (beforeZero && afterZero && afterZero !== '0'.repeat(afterZero.length)) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+
+            convertBatch(numbers) {
+                return numbers.map(num => this.convert(num));
+            }
+        }
+
+        // 创建转换器实例
+        const converter = new TibetanNumberConverter();
+
+        // 单个数字转换
+        function convertSingle() {
+            const input = document.getElementById('numberInput');
+            const result = document.getElementById('singleResult');
+            
+            const number = input.value.trim();
+            if (!number) {
+                result.innerHTML = '<span style="color: #dc3545;">请输入一个数字</span>';
+                result.className = 'result';
+                return;
+            }
+
+            try {
+                const tibetan = converter.convert(number);
+                result.innerHTML = `<span class="tibetan-text">${tibetan}</span>`;
+                result.className = 'result has-content';
+            } catch (error) {
+                result.innerHTML = '<span style="color: #dc3545;">转换出错，请检查输入</span>';
+                result.className = 'result';
+            }
+        }
+
+        // 批量转换
+        function convertBatch() {
+            const input = document.getElementById('batchInput');
+            const result = document.getElementById('batchResult');
+            
+            const text = input.value.trim();
+            if (!text) {
+                result.innerHTML = '<span style="color: #dc3545;">请输入数字</span>';
+                result.className = 'result';
+                return;
+            }
+
+            try {
+                const numbers = text.split(',').map(n => n.trim()).filter(n => n);
+                const results = numbers.map(num => {
+                    const tibetan = converter.convert(num);
+                    return `${num}: <span class="tibetan-text">${tibetan}</span>`;
+                }).join('<br>');
+                
+                result.innerHTML = results;
+                result.className = 'result has-content';
+            } catch (error) {
+                result.innerHTML = '<span style="color: #dc3545;">转换出错，请检查输入格式</span>';
+                result.className = 'result';
+            }
+        }
+
+        // 生成测试用例
+        function generateTestCases() {
+            const testNumbers = [1, 10, 20, 21, 22, 29, 42, 99, 100, 101, 123, 199, 456, 1000, 1003, 1234, 10000, 40003];
+            const testGrid = document.getElementById('testGrid');
+            
+            testGrid.innerHTML = testNumbers.map(num => {
+                const tibetan = converter.convert(num);
+                return `
+                    <div class="test-item">
+                        <span class="test-number">${num}</span>
+                        <span class="test-result">${tibetan}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 回车键转换
+        document.getElementById('numberInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertSingle();
+            }
+        });
+
+        // 页面加载完成后生成测试用例
+        document.addEventListener('DOMContentLoaded', function() {
+            generateTestCases();
+        });
+    </script>
+</body>
+</html>

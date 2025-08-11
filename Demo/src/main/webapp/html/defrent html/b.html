@@ -1,0 +1,277 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtisanLabel - 智能数据标注平台</title>
+    <style>
+        :root {
+            --primary: #2A3B4D;
+            --secondary: #F5F7F9;
+            --accent: #FF6B35;
+            --text-dark: #1A1E23;
+            --text-light: #EFF2F5;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 基础框架 */
+        body {
+            font-family: 'Inter', system-ui;
+            margin: 0;
+            background: var(--secondary);
+            color: var(--text-dark);
+            display: grid;
+            grid-template-rows: 60px 1fr;
+            min-height: 100vh;
+        }
+
+        /* 导航系统 */
+        .nav-container {
+            background: var(--primary);
+            height: 60px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            color: var(--text-light);
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 主工作区 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 240px 1fr 240px;
+            height: calc(100vh - 60px);
+        }
+
+        /* 标注工具面板 */
+        .tool-panel {
+            padding: 1.5rem;
+            background: white;
+            border-right: 1px solid rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        /* 标注画布区 */
+        .canvas-area {
+            position: relative;
+            background: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* 动态标注卡片 */
+        .annotation-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: var(--transition);
+        }
+
+        .annotation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        /* 智能控件样式 */
+        .smart-control {
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin: 0.75rem 0;
+            position: relative;
+            background: white;
+        }
+
+        .smart-control:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(255,107,53,0.2);
+        }
+
+        /* 标注状态指示器 */
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-active {
+            background: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255,107,53,0.3);
+        }
+
+        /* 波形图容器 */
+        .waveform-container {
+            height: 120px;
+            background: linear-gradient(180deg, #2A3B4D 0%, #1A1E23 100%);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        /* 3D标注视图 */
+        .point-cloud-viewer {
+            width: 100%;
+            height: 200px;
+            background: 
+                radial-gradient(circle at center, #3A4C5F 0%, #1A1E23 100%);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 1200px) {
+            .workspace {
+                grid-template-columns: 200px 1fr;
+            }
+            .right-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="nav-container">
+        <div class="nav-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right:12px">
+                <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M3 12L12 17L21 12" stroke="currentColor" stroke-width="2"/>
+                <path d="M3 17L12 22L21 17" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            ArtisanLabel
+        </div>
+    </nav>
+
+    <!-- 主工作区 -->
+    <div class="workspace">
+        <!-- 左侧工具面板 -->
+        <aside class="tool-panel left-panel">
+            <div class="annotation-card">
+                <h3 style="margin-top:0">标注模式</h3>
+                <div class="smart-control">
+                    <label>语音标注</label>
+                    <select>
+                        <option>单段落标注</option>
+                        <option selected>多段落标注</option>
+                        <option>情感分析</option>
+                    </select>
+                </div>
+                <div class="smart-control">
+                    <label>文本标注</label>
+                    <select>
+                        <option>实体识别</option>
+                        <option>关系抽取</option>
+                        <option>语义角色</option>
+                    </select>
+                </div>
+                <div class="smart-control">
+                    <label>图像标注</label>
+                    <select>
+                        <option>2D标注框</option>
+                        <option>3D标注框</option>
+                        <option>关键点标注</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="annotation-card">
+                <h3>智能辅助</h3>
+                <div class="smart-control">
+                    <label>
+                        <span class="status-indicator status-active"></span>
+                        AI预标注
+                    </label>
+                    <input type="range" min="0" max="100" value="75">
+                </div>
+                <div class="smart-control">
+                    <label>自动质量检查</label>
+                    <div style="display:flex;gap:8px">
+                        <button style="flex:1">运行</button>
+                        <button style="flex:1">配置</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中央标注画布 -->
+        <main class="canvas-area">
+            <!-- 动态标签页 -->
+            <div style="position:absolute;top:16px;left:16px;display:flex;gap:8px">
+                <button style="background:white;padding:6px 12px;border-radius:4px">语音标注</button>
+                <button style="background:rgba(255,255,255,0.2);color:white;padding:6px 12px;border-radius:4px">文本标注</button>
+                <button style="background:rgba(255,255,255,0.2);color:white;padding:6px 12px;border-radius:4px">图像标注</button>
+            </div>
+
+            <!-- 语音标注视图 -->
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80%">
+                <div class="waveform-container">
+                    <!-- 波形图将通过WebGL渲染 -->
+                </div>
+                
+                <div style="display:flex;justify-content:center;margin-top:24px">
+                    <button style="background:var(--accent);color:white;padding:10px 24px;border-radius:24px">
+                        开始标注 (F2)
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3D标注视图 (隐藏状态) -->
+            <div class="point-cloud-viewer" style="display:none">
+                <!-- Three.js渲染器将在此初始化 -->
+            </div>
+        </main>
+
+        <!-- 右侧属性面板 -->
+        <aside class="tool-panel right-panel">
+            <div class="annotation-card">
+                <h3 style="margin-top:0">标签管理</h3>
+                <div class="smart-control">
+                    <label>说话人标签</label>
+                    <div style="display:flex;gap:4px;margin-top:8px">
+                        <span style="background:#4A90E2;color:white;padding:4px 8px;border-radius:4px">男声</span>
+                        <span style="background:#FF5A5F;color:white;padding:4px 8px;border-radius:4px">女声</span>
+                        <span style="background:#8E44AD;color:white;padding:4px 8px;border-radius:4px">儿童</span>
+                    </div>
+                </div>
+                <div class="smart-control">
+                    <label>情感标签</label>
+                    <input type="text" placeholder="创建新标签">
+                </div>
+            </div>
+
+            <div class="annotation-card">
+                <h3>标注统计</h3>
+                <div style="font-size:13px;color:var(--text-dark);opacity:0.7">
+                    <div style="display:flex;justify-content:space-between">
+                        <span>已标注段落</span>
+                        <span>24/120</span>
+                    </div>
+                    <div style="height:4px;background:rgba(0,0,0,0.05);border-radius:2px;margin:8px 0">
+                        <div style="width:20%;height:100%;background:var(--accent);border-radius:2px"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span>一致性评分</span>
+                        <span>92%</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // 这里将集成标注引擎初始化代码
+        // 包括WebGL波形渲染器、Three.js点云查看器等
+    </script>
+</body>
+</html>

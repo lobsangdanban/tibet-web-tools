@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>辩论模拟器 Pro</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f6f6f6;
+        margin: 0;
+        display: flex;
+        height: 100vh;
+        color: #222;
+        font-size: 21px;
+    }
+    /* 左侧面板 */
+    .sidebar {
+        width: 300px;
+        background: #ececec;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    .input-area {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    /* 名称输入框：正常高度，30px 字体 */
+    .name-input {
+        font-size: 30px;
+        padding: 6px;
+        height: auto;
+    }
+    /* 观点输入框：拉高，高度90px，29px 字体 */
+    .opinion-input {
+        font-size: 29px;
+        padding: 6px;
+        resize: vertical;
+        min-height: 90px;
+        line-height: 1.4;
+    }
+	#inputA,#inputB{
+	height:183px;
+}
+    button {
+        padding: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        background-color: #333;
+        color: white;
+        border-radius: 5px;
+    }
+    .history-list {
+        flex: 1;
+        overflow-y: auto;
+        background: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    .history-item {
+        padding: 6px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        cursor: pointer; /* 悬停手型 */
+    }
+    .history-item:hover {
+        background-color: #e3e3e3;
+    }
+    .history-title {
+        font-weight: bold;
+        font-size: 21px;
+    }
+    .history-meta {
+        font-size: 14px;
+        color: #666;
+    }
+    .history-actions {
+        display: flex;
+        gap: 5px;
+        margin-top: 4px;
+    }
+    .action-btn {
+        font-size: 12px;
+        background: #666;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+    }
+
+    /* 右侧对话区分两列 */
+    .main {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        padding: 15px;
+        gap: 15px;
+    }
+    .chat-panel {
+        flex: 1;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        line-height: 1.5;
+        overflow-y: auto;
+    }
+    .line {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+    .name {
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        color: white;
+        font-size: 30px; /* 正反方字体大小 30px */
+    }
+    .nameA { background-color: #2f6b2f; }
+    .nameB { background-color: #a63d1d; }
+    .tag {
+        display: inline-block;
+        padding: 4px 10px;
+        margin: 2px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #222;
+        font-size: 31px;
+    }
+    .tagA { background-color: #a7d3a7; }
+    .tagB { background-color: #e7b39d; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="input-area">
+        <input type="text" id="nameAInput" class="name-input" placeholder="正方A名称" value="正方A">
+        <textarea id="inputA" class="opinion-input" placeholder="正方 A 的观点" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitA();}"></textarea>
+        <button onclick="submitA()">提交A</button>
+
+        <input type="text" id="nameBInput" class="name-input" placeholder="反方B名称" value="反方B">
+        <textarea id="inputB" class="opinion-input" placeholder="反方 B 的观点" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitB();}"></textarea>
+        <button onclick="submitB()">提交B</button>
+
+        <button onclick="clearAll()">清空当前对话</button>
+        <button onclick="saveCurrent()">保存当前对话</button>
+    </div>
+
+    <div class="history-list" id="historyList"></div>
+</div>
+
+<div class="main">
+    <div id="currentDebateArea" class="chat-panel"></div>
+    <div id="savedDebateArea" class="chat-panel"></div>
+</div>
+
+<script>
+let currentDebateArea = document.getElementById("currentDebateArea");
+let savedDebateArea = document.getElementById("savedDebateArea");
+let historyList = document.getElementById("historyList");
+let waitingForB = false;
+let currentDebate = [];
+
+function createTag(word, side, lineIndex, wordIndex, isSaved=false) {
+    let tag = document.createElement("span");
+    tag.className = side === 'A' ? "tag tagA" : "tag tagB";
+    tag.textContent = word;
+    if (!isSaved) {
+        tag.onclick = () => editTag(lineIndex, wordIndex);
+    }
+    return tag;
+}
+
+function submitA() {
+    let text = document.getElementById("inputA").value.trim();
+    if (!text) return;
+    let words = text.split(/\s+/);
+    currentDebate.push({ side: 'A', words });
+    renderCurrent();
+    document.getElementById("inputA").value = "";
+    waitingForB = true;
+    document.getElementById("inputB").focus();
+}
+
+function submitB() {
+    if (!waitingForB) {
+        alert("请先让A发言，再让B回应");
+        return;
+    }
+    let text = document.getElementById("inputB").value.trim();
+    if (!text) return;
+    let words = text.split(/\s+/);
+    currentDebate.push({ side: 'B', words });
+    renderCurrent();
+    document.getElementById("inputB").value = "";
+    waitingForB = false;
+    document.getElementById("inputA").focus();
+}
+
+function renderCurrent() {
+    currentDebateArea.innerHTML = "";
+    let nameA = document.getElementById("nameAInput").value || "正方A";
+    let nameB = document.getElementById("nameBInput").value || "反方B";
+    currentDebate.forEach((line, i) => {
+        let div = document.createElement("div");
+        div.className = "line";
+        if (line.side === 'B') div.style.paddingLeft = "40px";
+
+        let nameLabel = document.createElement("span");
+        nameLabel.className = line.side === 'A' ? "name nameA" : "name nameB";
+        nameLabel.textContent = line.side === 'A' ? nameA : nameB;
+        div.appendChild(nameLabel);
+
+        line.words.forEach((w, wi) => {
+            div.appendChild(createTag(w, line.side, i, wi));
+        });
+
+        currentDebateArea.appendChild(div);
+    });
+    localStorage.setItem("currentDebate", JSON.stringify(currentDebate));
+}
+
+function renderSaved(data) {
+    savedDebateArea.innerHTML = "";
+    let nameA = document.getElementById("nameAInput").value || "正方A";
+    let nameB = document.getElementById("nameBInput").value || "反方B";
+    data.forEach(line => {
+        let div = document.createElement("div");
+        div.className = "line";
+        if (line.side === 'B') div.style.paddingLeft = "40px";
+
+        let nameLabel = document.createElement("span");
+        nameLabel.className = line.side === 'A' ? "name nameA" : "name nameB";
+        nameLabel.textContent = line.side === 'A' ? nameA : nameB;
+        div.appendChild(nameLabel);
+
+        line.words.forEach(w => {
+            div.appendChild(createTag(w, line.side, null, null, true));
+        });
+
+        savedDebateArea.appendChild(div);
+    });
+}
+
+function editTag(lineIndex, wordIndex) {
+    let newWord = prompt("修改标签内容", currentDebate[lineIndex].words[wordIndex]);
+    if (newWord === null) return;
+    if (newWord.trim() === "") {
+        currentDebate[lineIndex].words.splice(wordIndex, 1);
+    } else {
+        currentDebate[lineIndex].words[wordIndex] = newWord.trim();
+    }
+    renderCurrent();
+}
+
+function clearAll() {
+    if (confirm("确定要清空所有对话吗？")) {
+        currentDebate = [];
+        renderCurrent();
+    }
+}
+
+function saveCurrent() {
+    let name = prompt("请输入保存名称：");
+    if (!name) return;
+    let history = JSON.parse(localStorage.getItem("debateHistory") || "{}");
+    history[name] = {
+        data: currentDebate,
+        time: new Date().toLocaleString(),
+        tagCount: currentDebate.reduce((sum, l) => sum + l.words.length, 0)
+    };
+    localStorage.setItem("debateHistory", JSON.stringify(history));
+    updateHistoryList();
+}
+
+function renameHistory(key) {
+    let history = JSON.parse(localStorage.getItem("debateHistory") || "{}");
+    let newName = prompt("请输入新名称", key);
+    if (!newName || newName === key) return;
+    history[newName] = history[key];
+    delete history[key];
+    localStorage.setItem("debateHistory", JSON.stringify(history));
+    updateHistoryList();
+}
+
+function deleteHistory(key) {
+    if (!confirm("确定要删除该记录吗？")) return;
+    let history = JSON.parse(localStorage.getItem("debateHistory") || "{}");
+    delete history[key];
+    localStorage.setItem("debateHistory", JSON.stringify(history));
+    updateHistoryList();
+}
+
+function updateHistoryList() {
+    historyList.innerHTML = "";
+    let history = JSON.parse(localStorage.getItem("debateHistory") || "{}");
+    Object.keys(history).forEach(k => {
+        let item = document.createElement("div");
+        item.className = "history-item";
+        item.onclick = () => {
+            renderSaved(history[k].data);
+        };
+
+        let title = document.createElement("div");
+        title.className = "history-title";
+        title.textContent = k;
+
+        let meta = document.createElement("div");
+        meta.className = "history-meta";
+        meta.textContent = `标签数: ${history[k].tagCount} | ${history[k].time}`;
+
+        let actions = document.createElement("div");
+        actions.className = "history-actions";
+
+        let renameBtn = document.createElement("button");
+        renameBtn.className = "action-btn";
+        renameBtn.textContent = "重命名";
+        renameBtn.onclick = (e) => { e.stopPropagation(); renameHistory(k); };
+
+        let deleteBtn = document.createElement("button");
+        deleteBtn.className = "action-btn";
+        deleteBtn.textContent = "删除";
+        deleteBtn.onclick = (e) => { e.stopPropagation(); deleteHistory(k); };
+
+        actions.appendChild(renameBtn);
+        actions.appendChild(deleteBtn);
+
+        item.appendChild(title);
+        item.appendChild(meta);
+        item.appendChild(actions);
+        historyList.appendChild(item);
+    });
+}
+
+(function init() {
+    let saved = localStorage.getItem("currentDebate");
+    if (saved) currentDebate = JSON.parse(saved);
+    renderCurrent();
+    updateHistoryList();
+})();
+</script>
+</body>
+</html>

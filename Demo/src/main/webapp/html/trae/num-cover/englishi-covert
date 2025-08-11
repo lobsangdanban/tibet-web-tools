@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number to Words Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            font-size: 16px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Number to Words Converter</h2>
+        <input type="number" id="numberInput" placeholder="Enter a number" />
+        <button onclick="convertNumber()">Convert</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function numberToWords(num) {
+            if (num === 0) return 'zero';
+
+            const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 
+                         'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 
+                         'eighteen', 'nineteen'];
+            const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+            const thousands = ['','thousand', 'million', 'billion', 'trillion'];
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+                if (n < 20) return ones[n];
+                if (n < 100) {
+                    return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+                }
+                return ones[Math.floor(n / 100)] + ' hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
+            }
+
+            if (num < 0) return 'negative ' + numberToWords(Math.abs(num));
+
+            let result = '';
+            let groupIndex = 0;
+
+            while (num > 0) {
+                let threeDigits = num % 1000;
+                if (threeDigits !== 0) {
+                    let part = convertLessThanThousand(threeDigits);
+                    result = part + (thousands[groupIndex] ? ' ' + thousands[groupIndex] : '') + (result ? ' ' + result : '');
+                }
+                num = Math.floor(num / 1000);
+                groupIndex++;
+            }
+
+            return result.trim();
+        }
+
+        function convertNumber() {
+            const input = document.getElementById('numberInput').value;
+            const resultDiv = document.getElementById('result');
+            if (input === '') {
+                resultDiv.textContent = 'Please enter a number.';
+                return;
+            }
+            const num = parseInt(input);
+            if (isNaN(num)) {
+                resultDiv.textContent = 'Invalid number.';
+                return;
+            }
+            resultDiv.textContent = numberToWords(num);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>aaa</title>
+  <style type="text/css">
+	html,body{
+		margin:0 auto;
+		height:auto;
+		background:url(bg02.png);
+		background-repeat:no-repeat;
+		background-size:400px;
+		background-attachment:fixed;
+	}
+  </style>
+ </head>
+ <body>
+  <div>
+	
+		
+  </div>
+ </body>
+</html>

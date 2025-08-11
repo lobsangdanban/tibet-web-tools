@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ring Task Label Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    #controls {
+      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    label {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    input[type="number"] {
+      padding: 5px;
+      margin-right: 10px;
+      width: 60px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    canvas {
+      border: 1px solid #ccc;
+    }
+    #taskInputs {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 600px;
+    }
+    .task-row {
+      margin-bottom: 10px;
+    }
+    .task-row label {
+      margin-right: 10px;
+    }
+    .task-row input[type="text"] {
+      padding: 5px;
+      width: 150px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label for="sectors">Number of Sectors:</label>
+    <input type="number" id="sectors" value="8" min="1" max="20">
+    <label for="layers">Number of Layers:</label>
+    <input type="number" id="layers" value="3" min="1" max="10">
+    <button onclick="updateCanvas()">Update</button>
+  </div>
+  <div id="canvas-container"></div>
+  <div id="taskInputs"></div>
+
+  <script>
+    let sectors = 8;
+    let layers = 3;
+    let canvas;
+    let taskNames = [];
+
+    function setup() {
+      canvas = createCanvas(600, 600);
+      canvas.parent('canvas-container');
+      updateTaskInputs();
+      drawRing();
+    }
+
+    function updateCanvas() {
+      sectors = int(document.getElementById('sectors').value);
+      layers = int(document.getElementById('layers').value);
+      sectors = constrain(sectors, 1, 20);
+      layers = constrain(layers, 1, 10);
+      document.getElementById('sectors').value = sectors;
+      document.getElementById('layers').value = layers;
+      updateTaskInputs();
+      drawRing();
+    }
+
+    function updateTaskInputs() {
+      let totalSectors = sectors === 1 ? 2 : (sectors === 2 ? 4 : sectors);
+      let inputsDiv = document.getElementById('taskInputs');
+      inputsDiv.innerHTML = '';
+      taskNames = [];
+
+      for (let layer = 1; layer <= layers; layer++) {
+        let row = document.createElement('div');
+        row.className = 'task-row';
+        for (let i = 1; i <= totalSectors; i++) {
+          let label = document.createElement('label');
+          label.innerText = `Task ${layer}-${i}: `;
+          let input = document.createElement('input');
+          input.type = 'text';
+          input.id = `task-${layer}-${i}`;
+          input.value = `Task ${layer}-${i}`;
+          input.onchange = drawRing; // Update canvas when input changes
+          row.appendChild(label);
+          row.appendChild(input);
+          taskNames.push(input.value);
+        }
+        inputsDiv.appendChild(row);
+      }
+    }
+
+    function drawRing() {
+      background(255);
+      push();
+      translate(width / 2, height / 2);
+      let maxRadius = 250;
+      let layerSpacing = maxRadius / layers;
+
+      // Generate unique colors for each sector-layer combination
+      let totalSectors = sectors === 1 ? 2 : (sectors === 2 ? 4 : sectors);
+      let colors = [];
+      for (let layer = 0; layer < layers; layer++) {
+        colors[layer] = [];
+        for (let i = 0; i < totalSectors; i++) {
+          colors[layer][i] = color(random(255), random(255), random(255));
+        }
+      }
+
+      // Draw filled sectors for each layer
+      for (let layer = 0; layer < layers; layer++) {
+        let innerRadius = layer * layerSpacing;
+        let outerRadius = (layer + 1) * layerSpacing;
+        for (let i = 0; i < totalSectors; i++) {
+          let startAngle = (TWO_PI / totalSectors) * i;
+          let endAngle = (TWO_PI / totalSectors) * (i + 1);
+          fill(colors[layer][i]);
+          noStroke();
+          arc(0, 0, outerRadius * 2, outerRadius * 2, startAngle, endAngle, PIE);
+        }
+      }
+
+      // Draw rings to outline layers
+      for (let layer = 1; layer < layers; layer++) {
+        let radius = layer * layerSpacing;
+        noFill();
+        stroke(0);
+        strokeWeight(1);
+        ellipse(0, 0, radius * 2);
+      }
+
+      // Draw diameter lines
+      let lineCount = sectors === 1 ? 1 : (sectors === 2 ? 2 : sectors);
+      for (let i = 0; i < lineCount; i++) {
+        let angle = sectors === 1 ? 0 : (sectors === 2 ? (PI / 2) * i : (TWO_PI / sectors) * i);
+        let x1 = maxRadius * cos(angle);
+        let y1 = maxRadius * sin(angle);
+        let x2 = maxRadius * cos(angle + PI);
+        let y2 = maxRadius * sin(angle + PI);
+        stroke(0);
+        strokeWeight(1);
+        line(x1, y1, x2, y2);
+        if (sectors === 2 && i === 0) {
+          let x3 = maxRadius * cos(PI / 2);
+          let y3 = maxRadius * sin(PI / 2);
+          let x4 = maxRadius * cos(PI / 2 + PI);
+          let y4 = maxRadius * sin(PI / 2 + PI);
+          line(x3, y3, x4, y4);
+        }
+      }
+
+      // Draw labels with high contrast
+      let index = 0;
+      for (let layer = 0; layer < layers; layer++) {
+        let radius = (layer + 0.5) * layerSpacing;
+        for (let i = 0; i < totalSectors; i++) {
+          let angle = (TWO_PI / totalSectors) * i;
+          let labelX = radius * cos(angle + TWO_PI / totalSectors / 2);
+          let labelY = radius * sin(angle + TWO_PI / totalSectors / 2);
+          fill(0); // Black font
+          textStyle(BOLD); // Bold text
+          noStroke();
+          textAlign(CENTER, CENTER);
+          textSize(18); // Maintain large font size
+          let taskInput = document.getElementById(`task-${layer + 1}-${i + 1}`);
+          text(taskInput ? taskInput.value : `Task ${layer + 1}-${i + 1}`, labelX, labelY);
+          index++;
+        }
+      }
+      pop();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>状态机游戏</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; font-family: Arial, 'Microsoft YaHei', sans-serif; }
+        canvas { border: 1px solid black; }
+        .controls, .fsm-builder { margin: 10px; }
+        button, select, input { margin: 5px; padding: 8px; font-size: 14px; }
+        #status { margin: 10px; font-size: 16px; }
+        table { border-collapse: collapse; margin: 10px; }
+        th, td { border: 1px solid black; padding: 5px; text-align: center; }
+        h3, p { margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>状态机游戏</h1>
+    <canvas id="gameCanvas" width="250" height="250"></canvas>
+    <div class="controls">
+        <button onclick="startSimulation()">开始</button>
+        <button onclick="pauseSimulation()">暂停</button>
+        <button onclick="stepSimulation()">单步</button>
+        <button onclick="resetSimulation()">重置</button>
+        <button onclick="randomizeGrid()">随机网格</button>
+    </div>
+    <div id="status">状态: 无 | 输入: 无 | 步数: 0 | 星星: 3</div>
+    <div class="fsm-builder">
+        <h3>构建状态机</h3>
+        <div>
+            <label>添加状态: <input type="text" id="newState" placeholder="例如：前进"></label>
+            <button onclick="addState()">添加</button>
+        </div>
+        <div>
+            <label>添加转换: </label>
+            <select id="currentState"></select>
+            <select id="input">
+                <option value="前方有墙">前方有墙</option>
+                <option value="前方有星星">前方有星星</option>
+                <option value="前方为空">前方为空</option>
+            </select>
+            <select id="nextState"></select>
+            <select id="action">
+                <option value="前进">前进</option>
+                <option value="左转">左转</option>
+                <option value="等待">等待</option>
+            </select>
+            <button onclick="addTransition()">添加转换</button>
+        </div>
+        <table id="transitionTable">
+            <tr><th>当前状态</th><th>输入</th><th>下一状态</th><th>动作</th></tr>
+        </table>
+    </div>
+    <p>为机器人（蓝色）设计状态机，收集所有星星（黄色），避开墙（灰色）。添加状态（最多3个），定义转换，然后点击“开始”或“单步”运行。目标：用最少步数收集所有星星。</p>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 5;
+        const cellSize = canvas.width / gridSize;
+        let grid = [];
+        let robot = { x: 0, y: 0, direction: 0 }; // 0: 右, 1: 下, 2: 左, 3: 上
+        let stars = [];
+        let states = ['前进', '左转'];
+        let transitions = {
+            '前进:前方为空': { nextState: '前进', action: '前进' },
+            '前进:前方有星星': { nextState: '前进', action: '前进' },
+            '前进:前方有墙': { nextState: '左转', action: '左转' },
+            '左转:前方为空': { nextState: '前进', action: '前进' },
+            '左转:前方有星星': { nextState: '前进', action: '前进' },
+            '左转:前方有墙': { nextState: '左转', action: '左转' }
+        };
+        let currentState = '前进';
+        let isRunning = false;
+        let steps = 0;
+        let animationId;
+
+        // 初始化网格
+        function initGrid() {
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill('empty'));
+            stars = [];
+            grid[2][2] = 'wall';
+            grid[3][4] = 'wall';
+            stars.push({ x: 4, y: 0 }, { x: 1, y: 3 }, { x: 4, y: 4 });
+            for (let star of stars) grid[star.x][star.y] = 'star';
+            robot = { x: 0, y: 0, direction: 0 };
+            steps = 0;
+            updateStatus();
+            updateTransitionTable();
+            updateStateDropdowns();
+        }
+
+        // 随机网格
+        function randomizeGrid() {
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill('empty'));
+            stars = [];
+            let placed = 0;
+            while (placed < 3) {
+                const x = Math.floor(Math.random() * gridSize);
+                const y = Math.floor(Math.random() * gridSize);
+                if ((x !== 0 || y !== 0) && grid[x][y] === 'empty') {
+                    stars.push({ x, y });
+                    grid[x][y] = 'star';
+                    placed++;
+                }
+            }
+            placed = 0;
+            while (placed < 2) {
+                const x = Math.floor(Math.random() * gridSize);
+                const y = Math.floor(Math.random() * gridSize);
+                if ((x !== 0 || y !== 0) && grid[x][y] === 'empty') {
+                    grid[x][y] = 'wall';
+                    placed++;
+                }
+            }
+            robot = { x: 0, y: 0, direction: 0 };
+            steps = 0;
+            drawGrid();
+            updateStatus();
+        }
+
+        // 绘制网格
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 绘制网格线
+            ctx.strokeStyle = 'black';
+            for (let i = 0; i <= gridSize; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * cellSize, 0);
+                ctx.lineTo(i * cellSize, canvas.height);
+                ctx.moveTo(0, i * cellSize);
+                ctx.lineTo(canvas.width, i * cellSize);
+                ctx.stroke();
+            }
+            // 绘制墙和星星
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    if (grid[i][j] === 'wall') {
+                        ctx.fillStyle = 'gray';
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    } else if (grid[i][j] === 'star') {
+                        ctx.fillStyle = 'yellow';
+                        ctx.beginPath();
+                        ctx.moveTo(j * cellSize + cellSize / 2, i * cellSize + cellSize / 4);
+                        for (let k = 1; k < 5; k++) {
+                            ctx.lineTo(
+                                j * cellSize + cellSize / 2 + (cellSize / 3) * Math.cos((k * 2 * Math.PI) / 5 + Math.PI / 2),
+                                i * cellSize + cellSize / 2 + (cellSize / 3) * Math.sin((k * 2 * Math.PI) / 5 + Math.PI / 2)
+                            );
+                            ctx.lineTo(
+                                j * cellSize + cellSize / 2 + (cellSize / 6) * Math.cos(((k + 0.5) * 2 * Math.PI) / 5 + Math.PI / 2),
+                                i * cellSize + cellSize / 2 + (cellSize / 6) * Math.sin(((k + 0.5) * 2 * Math.PI) / 5 + Math.PI / 2)
+                            );
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+            // 绘制机器人
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(robot.x * cellSize + 2, robot.y * cellSize + 2, cellSize - 4, cellSize - 4);
+            ctx.fillStyle = 'white';
+            const arrowSize = cellSize / 3;
+            ctx.beginPath();
+            ctx.moveTo(
+                robot.x * cellSize + cellSize / 2 + (arrowSize * Math.cos(robot.direction * Math.PI / 2)),
+                robot.y * cellSize + cellSize / 2 + (arrowSize * Math.sin(robot.direction * Math.PI / 2))
+            );
+            ctx.lineTo(
+                robot.x * cellSize + cellSize / 2 - (arrowSize * Math.cos(robot.direction * Math.PI / 2)),
+                robot.y * cellSize + cellSize / 2 - (arrowSize * Math.sin(robot.direction * Math.PI / 2))
+            );
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+        }
+
+        // 获取输入
+        function getInput() {
+            const { x, y, direction } = robot;
+            let nx = x, ny = y;
+            if (direction === 0) ny++; // 右
+            else if (direction === 1) nx++; // 下
+            else if (direction === 2) ny--; // 左
+            else if (direction === 3) nx--; // 上
+            if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize || grid[nx][ny] === 'wall') {
+                return '前方有墙';
+            } else if (grid[nx][ny] === 'star') {
+                return '前方有星星';
+            }
+            return '前方为空';
+        }
+
+        // 执行一步
+        function executeStep() {
+            if (!currentState || stars.length === 0) {
+                pauseSimulation();
+                alert(stars.length === 0 ? '胜利！所有星星已收集！' : '请设置初始状态！');
+                return;
+            }
+            const input = getInput();
+            const transition = transitions[`${currentState}:${input}`];
+            if (transition) {
+                const { nextState, action } = transition;
+                currentState = nextState;
+                steps++;
+                if (action === '前进') {
+                    let nx = robot.x, ny = robot.y;
+                    if (robot.direction === 0) ny++;
+                    else if (robot.direction === 1) nx++;
+                    else if (robot.direction === 2) ny--;
+                    else if (robot.direction === 3) nx--;
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && grid[nx][ny] !== 'wall') {
+                        robot.x = nx;
+                        robot.y = ny;
+                        if (grid[nx][ny] === 'star') {
+                            stars = stars.filter(star => star.x !== nx || star.y !== ny);
+                            grid[nx][ny] = 'empty';
+                        }
+                    }
+                } else if (action === '左转') {
+                    robot.direction = (robot.direction + 3) % 4;
+                }
+                // 等待无动作
+            }
+            drawGrid();
+            updateStatus();
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            document.getElementById('status').textContent = `状态: ${currentState || '无'} | 输入: ${getInput()} | 步数: ${steps} | 星星: ${stars.length}`;
+        }
+
+        // 添加状态
+        function addState() {
+            const stateInput = document.getElementById('newState');
+            const state = stateInput.value.trim();
+            if (state && !states.includes(state) && states.length < 3) {
+                states.push(state);
+                if (!currentState) currentState = state;
+                updateStateDropdowns();
+                stateInput.value = '';
+            } else if (states.length >= 3) {
+                alert('最多允许3个状态！');
+            }
+        }
+
+        // 更新状态下拉菜单
+        function updateStateDropdowns() {
+            const currentStateSelect = document.getElementById('currentState');
+            const nextStateSelect = document.getElementById('nextState');
+            currentStateSelect.innerHTML = '';
+            nextStateSelect.innerHTML = '';
+            states.forEach(state => {
+                const option1 = document.createElement('option');
+                option1.value = state;
+                option1.text = state;
+                currentStateSelect.appendChild(option1);
+                const option2 = document.createElement('option');
+                option2.value = state;
+                option2.text = state;
+                nextStateSelect.appendChild(option2);
+            });
+        }
+
+        // 添加转换
+        function addTransition() {
+            const currentState = document.getElementById('currentState').value;
+            const input = document.getElementById('input').value;
+            const nextState = document.getElementById('nextState').value;
+            const action = document.getElementById('action').value;
+            if (currentState && nextState) {
+                transitions[`${currentState}:${input}`] = { nextState, action };
+                updateTransitionTable();
+            }
+        }
+
+        // 更新转换表
+        function updateTransitionTable() {
+            const table = document.getElementById('transitionTable');
+            while (table.rows.length > 1) table.deleteRow(1);
+            for (let key in transitions) {
+                const [state, input] = key.split(':');
+                const { nextState, action } = transitions[key];
+                const row = table.insertRow();
+                row.insertCell().textContent = state;
+                row.insertCell().textContent = input;
+                row.insertCell().textContent = nextState;
+                row.insertCell().textContent = action;
+            }
+        }
+
+        // 开始模拟
+        function startSimulation() {
+            if (!isRunning && currentState && Object.keys(transitions).length > 0) {
+                isRunning = true;
+                animate();
+            } else {
+                alert(currentState ? '请至少定义一个转换！' : '请添加至少一个状态！');
+            }
+        }
+
+        // 动画循环
+        function animate() {
+            if (isRunning && stars.length > 0) {
+                executeStep();
+                animationId = setTimeout(animate, 1000);
+            } else {
+                pauseSimulation();
+                if (stars.length === 0) alert('胜利！所有星星已收集！');
+            }
+        }
+
+        // 暂停模拟
+        function pauseSimulation() {
+            isRunning = false;
+            clearTimeout(animationId);
+        }
+
+        // 单步执行
+        function stepSimulation() {
+            if (currentState && Object.keys(transitions).length > 0 && stars.length > 0) {
+                executeStep();
+            }
+        }
+
+        // 重置模拟
+        function resetSimulation() {
+            pauseSimulation();
+            initGrid();
+            drawGrid();
+            updateStatus();
+        }
+
+        // 初始化
+        initGrid();
+        drawGrid();
+    </script>
+    <!--
+    如何玩
+
+打开网页：将代码保存为 index.html，在浏览器中打开。
+构建状态机：
+
+添加状态：在输入框中输入状态名（例如“前进”），点击“添加”（最多3个状态）。第一个状态自动成为初始状态。
+添加转换：选择当前状态、输入（前方有墙、前方有星星、前方为空）、下一状态和动作（前进、左转、等待），然后点击“添加转换”。转换会显示在表格中。
+
+
+运行模拟：
+
+开始：以每秒一步的速度运行状态机。
+单步：执行一步，方便观察状态变化。
+暂停：停止模拟。
+重置：恢复初始网格（机器人位于(0,0)，2堵墙，3颗星星）。
+随机网格：生成新的随机网格（3颗星星，2堵墙）。
+
+
+目标：设计状态机，让机器人收集所有星星，用最少步数。游戏在收集所有星星后停止。
+视觉效果：
+
+机器人：蓝色方块，带白色箭头指示方向。
+星星：黄色星形。
+墙：灰色方块。
+状态显示：显示当前状态、输入、步数和剩余星星数。
+
+
+
+默认状态机示例
+游戏提供一个默认状态机：
+
+状态：“前进”, “左转”。
+转换：
+
+前进:前方为空 → 前进，前进
+前进:前方有星星 → 前进，前进
+前进:前方有墙 → 左转，左转
+左转:前方为空 → 前进，前进
+左转:前方有星星 → 前进，前进
+左转:前方有墙 → 左转，左转
+此状态机让机器人向前移动收集星星，遇到墙时左转。
+
+
+
+为什么这个版本更易理解
+
+简化的设计：
+
+限制为3个状态，减少初学者的认知负担。
+默认状态机让玩家立即开始实验，无需从头构建。
+单步按钮和慢速动画（1秒/步）帮助理解状态转换。
+
+
+清晰的中文界面：
+
+所有标签、按钮和说明使用简洁的中文（如“前进”、“前方有墙”）。
+直观的表格显示所有转换，易于跟踪。
+
+
+直观的游戏目标：
+
+收集星星的任务简单明了，适合初学者。
+小型5x5网格和少量元素（3颗星星，2堵墙）降低复杂性。
+
+
+教育性：
+
+通过交互式构建和运行状态机，玩家直观理解状态、输入、转换和动作的概念。
+视觉反馈（机器人移动、状态显示）清晰展示状态机的执行过程。
+
+
+
+此版本适合初学者和希望快速理解FSM概念的用户。你可以通过调整状态数、添加更多动作（如“右转”）或增加网格复杂性来进一步扩展，但当前设计在易用性和教育价值之间取得了良好平衡。
+    -->
+</body>
+</html>

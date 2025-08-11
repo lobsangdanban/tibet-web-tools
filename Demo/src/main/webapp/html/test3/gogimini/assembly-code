@@ -1,0 +1,1263 @@
+; 这是一个用8086汇编语言编写的简单俄罗斯方块游戏。
+; 编译和链接：
+;   使用TASM和TLINK（或类似的工具）。
+;   例如：
+;     TASM TETRIS.ASM
+;     TLINK TETRIS.OBJ
+; 运行：
+;   在DOS提示符下运行生成的可执行文件（TETRIS.EXE）。
+
+; 声明段
+.MODEL small  ; 使用小内存模型
+.STACK 100h  ; 100h字节的堆栈段
+
+.DATA           ; 数据段
+    ; 游戏板尺寸：20行，10列
+    BOARD_ROWS    EQU 20
+    BOARD_COLS    EQU 10
+    
+    ; 屏幕尺寸 (文本模式 80x25)
+    SCREEN_WIDTH  EQU 80
+    SCREEN_HEIGHT EQU 25
+    
+    ; 游戏板在屏幕上的位置
+    BOARD_X       EQU 25 ; X坐标
+    BOARD_Y       EQU 5  ; Y坐标
+    
+    ; 每个块的单元格数
+    CELLS_PER_BLOCK EQU 4
+    
+    ; 定义俄罗斯方块的形状（7种不同的方块，每种4个旋转状态）
+    TETROMINOS DB
+        ; I型
+        0, 0, 0, 1, 0, 2, 0, 3,
+        1, 0, 1, 1, 1, 2, 1, 3,
+        2, 0, 2, 1, 2, 2, 2, 3,
+        3, 0, 3, 1, 3, 2, 3, 3,
+        
+        ; J型
+        0, 0, 1, 0, 1, 1, 1, 2,
+        0, 1, 0, 2, 1, 2, 2, 2,
+        2, 0, 2, 1, 1, 1, 0, 1,
+        0, 0, 1, 0, 2, 0, 2, 1,
+        
+        ; L型
+        0, 0, 0, 1, 0, 2, 1, 2,
+        0, 2, 1, 2, 2, 2, 2, 1,
+        2, 2, 2, 1, 2, 0, 1, 0,
+        2, 0, 1, 0, 0, 0, 0, 1,
+        
+        ; O型
+        0, 0, 0, 1, 1, 0, 1, 1,
+        0, 0, 0, 1, 1, 0, 1, 1,
+        0, 0, 0, 1, 1, 0, 1, 1,
+        0, 0, 0, 1, 1, 0, 1, 1,
+        
+        ; S型
+        0, 1, 0, 2, 1, 0, 1, 1,
+        0, 0, 1, 0, 1, 1, 2, 1,
+        2, 1, 2, 2, 1, 0, 1, 1,
+        0, 1, 1, 1, 1, 2, 2, 2,
+        
+        ; T型
+        1, 0, 0, 1, 1, 1, 2, 1,
+        1, 0, 1, 1, 2, 1, 1, 2,
+        1, 2, 2, 1, 1, 1, 0, 1,
+        1, 2, 1, 1, 0, 1, 1, 0,
+        
+        ; Z型
+        0, 0, 0, 1, 1, 1, 1, 2,
+        0, 1, 1, 0, 1, 1, 2, 0,
+        2, 0, 2, 1, 1, 1, 1, 2,
+        0, 2, 1, 1, 1, 0, 2, 0
+    
+    ; 颜色属性
+    BLACK          EQU 0
+    BLUE           EQU 1
+    GREEN          EQU 2
+    CYAN           EQU 3
+    RED            EQU 4
+    MAGENTA        EQU 5
+    BROWN          EQU 6
+    LIGHTGRAY      EQU 7
+    DARKGRAY       EQU 8
+    LIGHTBLUE      EQU 9
+    LIGHTGREEN     EQU 10
+    LIGHTCYAN      EQU 11
+    LIGHTRED       EQU 12
+    LIGHTMAGENTA   EQU 13
+    YELLOW         EQU 14
+    WHITE          EQU 15
+    
+    ; 俄罗斯方块的颜色
+    TETROMINO_COLORS DB
+        LIGHTCYAN, BLUE, ORANGE, YELLOW, GREEN, PURPLE, RED
+    
+    ; 游戏板数据
+    GameBoard DB BOARD_ROWS * BOARD_COLS DUP(0) ; 0 = 空，非0 = 颜色
+    
+    ; 当前的俄罗斯方块
+    CurrentTetromino  DB 0 ; 0-6 (7种类型)
+    CurrentRotation   DB 0 ; 0-3 (4种旋转状态)
+    CurrentX        DB BOARD_COLS / 2 - 2 ; 初始X位置
+    CurrentY        DB 0                 ; 初始Y位置
+    CurrentColor    DB LIGHTCYAN
+    
+    ; 游戏状态
+    GameOver        DB 0 ; 0 = 游戏中，1 = 游戏结束
+    Score           DW 0 ; 得分
+    Level           DB 1 ; 游戏等级
+    LinesCleared    DW 0 ; 清除的行数
+    
+    ; 消息字符串
+    GameOverMsg     DB "Game Over!", 0
+    PressAnyKeyMsg  DB "Press any key to continue...", 0
+    ScoreMsg        DB "Score: ", 0
+    LevelMsg        DB "Level: ", 0
+    LinesMsg        DB "Lines: ", 0
+    
+    ; 键盘输入缓冲区
+    KeyBuffer       DB 2 DUP(0)
+    
+    rand_seed       dw 0  ; 随机数种子
+    
+.CODE
+    ; 过程声明
+    EXTRN _bios_keybrd : near ; 从BIOS读取键盘
+    EXTRN _delay      : near ; 简单的延时函数
+
+; ----------------------------------------------------------------------------
+;  函数：SetVideoMode
+;  功能：设置视频模式为文本模式 80x25
+;  输入：无
+;  输出：无
+; ----------------------------------------------------------------------------
+SetVideoMode PROC near
+    MOV AH, 0       ; 设置视频模式功能
+    MOV AL, 3       ; 文本模式 80x25
+    INT 10h         ; 调用BIOS中断
+    RET
+SetVideoMode ENDP
+
+; ----------------------------------------------------------------------------
+; 函数: ClearScreen
+; 功能: 清除屏幕
+; 输入: 无
+; 输出: 无
+; ----------------------------------------------------------------------------
+ClearScreen PROC near
+    MOV AH, 0       ; 功能0：设置光标位置和属性
+    MOV AL, 0       ; 清屏子功能
+    MOV BH, 0       ; 页码
+    MOV CX, 0       ; 左上角：行=0, 列=0
+    MOV DX, 184FH    ; 右下角：行=24, 列=79 (184Fh = 24*256 + 79)
+    MOV BL, 07h     ; 属性：正常白色文本
+    INT 10h         ; 调用BIOS中断
+    RET
+ClearScreen ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：DrawPixel
+; 功能：在屏幕上绘制一个像素（在文本模式下，这实际上是一个字符）
+; 输入：
+;   AL = 颜色属性
+;   CX = X坐标
+;   DX = Y坐标
+; 输出：无
+; ----------------------------------------------------------------------------
+DrawPixel PROC near
+    PUSH BX
+    PUSH AX
+    
+    MOV AH, 0       ; 功能0：设置光标位置和属性
+    MOV BH, 0       ; 页码
+    
+    ; 计算屏幕上的位置
+    MOV BL, AL       ; 存储颜色
+    MOV AH, 02h      ; 设置光标位置
+    MOV DH, DL       ; 行
+    MOV DL, CL       ; 列
+    INT 10h
+    
+    MOV AH, 09h      ; 功能09h：在当前光标位置写入字符和属性
+    MOV AL, ' '      ; 要写入的字符 (空格字符)
+    MOV CX, 1       ; 写入一次
+    INT 10h
+    
+    POP AX
+    POP BX
+    RET
+DrawPixel ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：DrawBoard
+; 功能：绘制游戏板
+; 输入：无
+; 输出：无
+; ----------------------------------------------------------------------------
+DrawBoard PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    
+    MOV CX, 0       ; 列
+    MOV DX, 0       ; 行
+    
+    MOV BX, BOARD_X   ; 起始X坐标
+    MOV AX, BOARD_Y   ; 起始Y坐标
+    
+    
+    BOARD_LOOP_ROW:
+        MOV CX, 0   ; 重置列计数器
+        
+        BOARD_LOOP_COL:
+            ; 计算GameBoard数组中的偏移量
+            MOV SI, DX      ; 行索引
+            MUL WORD PTR BOARD_COLS ; 乘以列数
+            ADD SI, CX      ; 加上列索引
+            
+            MOV AL, GameBoard[SI] ; 获取游戏板数据
+            CMP AL, 0       ; 检查是否为空
+            JE  DRAW_EMPTY    ; 如果为空，则绘制空单元格
+            
+            ; 绘制方块
+            MOV AH, AL      ; 使用存储在GameBoard中的颜色
+            
+            ; 计算屏幕坐标
+            MOV DI, CX
+            MUL WORD PTR 2 ; 每个单元格2个字符宽度
+            ADD DI, BX    ; 加上X偏移
+            MOV CL, BYTE PTR DI ;
+            MOV CH, 0
+            
+            MOV DI, DX
+            MUL WORD PTR 1 ; 每个单元格1个字符高度
+            ADD DI, AX    ; 加上Y偏移
+            MOV DL, BYTE PTR DI
+            MOV DH, 0
+            
+            
+            
+            PUSH CX
+            PUSH DX
+            MOV AL, AH
+            CALL DrawPixel    ; 绘制彩色方块
+            POP DX
+            POP CX
+            
+            
+            DRAW_EMPTY:
+            
+            INC CX          ; 移动到下一列
+            CMP CX, BOARD_COLS  ; 检查是否到达列的末尾
+            JL  BOARD_LOOP_COL  ; 如果没有，继续循环
+        
+        INC DX          ; 移动到下一行
+        CMP DX, BOARD_ROWS  ; 检查是否到达行的末尾
+        JL  BOARD_LOOP_ROW  ; 如果没有，继续循环
+    
+    
+    ; 绘制边界
+    MOV CX, BOARD_X - 2
+    MOV DX, BOARD_Y - 1
+    MOV AL, WHITE
+    
+    ; 顶边
+    MOV BX, 0
+    MOV BL, BOARD_COLS * 2 + 2
+    DRAW_TOP_BORDER:
+        PUSH CX
+        PUSH DX
+        PUSH BX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP BX
+        POP DX
+        POP CX
+        INC CX
+        DEC BL
+        CMP BL, 0
+        JG DRAW_TOP_BORDER
+    
+    ; 底边
+    MOV CX, BOARD_X - 2
+    MOV DX, BOARD_Y + BOARD_ROWS
+    
+    MOV BX, 0
+    MOV BL, BOARD_COLS * 2 + 2
+    DRAW_BOTTOM_BORDER:
+        PUSH CX
+        PUSH DX
+        PUSH BX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP BX
+        POP DX
+        POP CX
+        INC CX
+        DEC BL
+        CMP BL, 0
+        JG DRAW_BOTTOM_BORDER
+        
+     ; 左边
+    MOV CX, BOARD_X - 2
+    MOV DX, BOARD_Y - 1
+    
+    MOV BX, 0
+    MOV BL, BOARD_ROWS + 1
+    DRAW_LEFT_BORDER:
+        PUSH CX
+        PUSH DX
+        PUSH BX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP BX
+        POP DX
+        POP CX
+        INC DX
+        DEC BL
+        CMP BL, 0
+        JG DRAW_LEFT_BORDER
+        
+    ; 右边
+    MOV CX, BOARD_X + BOARD_COLS * 2
+    MOV DX, BOARD_Y - 1
+    
+    MOV BX, 0
+    MOV BL, BOARD_ROWS + 1
+    DRAW_RIGHT_BORDER:
+        PUSH CX
+        PUSH DX
+        PUSH BX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP BX
+        POP DX
+        POP CX
+        INC DX
+        DEC BL
+        CMP BL, 0
+        JG DRAW_RIGHT_BORDER
+    
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+DrawBoard ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：GetTetrominoX, GetTetrominoY
+; 功能：获取俄罗斯方块的X和Y坐标
+; 输入：
+;   block_index: 俄罗斯方块的索引 (0-6)
+;   rotation: 旋转状态 (0-3)
+;   cell_index: 单元格索引 (0-3)
+; 输出：
+;   AX = X坐标
+;   DX = Y坐标
+; ----------------------------------------------------------------------------
+GetTetrominoX PROC near
+    PUSH BX
+    PUSH CX
+    
+    ; 计算偏移量：block_index * 8 + rotation * 2 + cell_index * 2
+    MOV BX, WORD PTR CurrentTetromino
+    MUL WORD PTR 8           ; 乘以每个方块的字节数 (4 cells * 2 bytes/cell)
+    
+    MOV CL, BYTE PTR CurrentRotation
+    MUL CL             ; 乘以旋转状态
+    ADD BX, AX
+    
+    MOV CL, BYTE PTR [bp+4] ; cell_index
+    MUL CL
+    ADD BX, AX
+    
+    ; 获取X坐标
+    MOV AL, TETROMINOS[BX]
+    MOV AH, 0
+    
+    POP CX
+    POP BX
+    RET
+GetTetrominoX ENDP
+
+GetTetrominoY PROC near
+    PUSH BX
+    PUSH CX
+    
+    ; 计算偏移量：block_index * 8 + rotation * 2 + cell_index * 2 + 1
+    MOV BX, WORD PTR CurrentTetromino
+    MUL WORD PTR 8           ; 乘以每个方块的字节数 (4 cells * 2 bytes/cell)
+    
+    MOV CL, BYTE PTR CurrentRotation
+    MUL CL             ; 乘以旋转状态
+    ADD BX, AX
+    
+    MOV CL, BYTE PTR [bp+4] ; cell_index
+    MUL CL
+    ADD BX, AX
+    
+    INC BX           ; 获取Y坐标
+    ; 获取Y坐标
+    MOV AL, TETROMINOS[BX]
+    MOV AH, 0
+    
+    POP CX
+    POP BX
+    RET
+GetTetrominoY ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：DrawTetromino
+; 功能：绘制当前的俄罗斯方块
+; 输入：无
+; 输出：无
+; ----------------------------------------------------------------------------
+DrawTetromino PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    
+    MOV BL, CurrentColor ; 获取俄罗斯方块的颜色
+    
+    MOV CX, 0       ; 单元格索引
+    DRAW_TETROMINO_LOOP:
+        ; 获取单元格的X和Y坐标
+        PUSH CX
+        CALL GetTetrominoX
+        MOV DX, AX
+        
+        CALL GetTetrominoY
+        ADD DX, CurrentY ; 加上当前俄罗斯方块的Y偏移
+        MOV CX, AX
+        ADD CX, CurrentX ; 加上当前俄罗斯方块的X偏移
+        
+        
+        ; 检查是否在游戏板内
+        CMP DX, 0
+        JL DRAW_TETROMINO_NEXT_CELL ; 如果在游戏板上方，则不绘制
+        CMP DX, BOARD_ROWS
+        JGE DRAW_TETROMINO_NEXT_CELL
+        CMP CX, 0
+        JL DRAW_TETROMINO_NEXT_CELL
+        CMP CX, BOARD_COLS
+        JGE DRAW_TETROMINO_NEXT_CELL
+        
+        ; 绘制像素
+        MOV AL, BL
+        PUSH CX
+        PUSH DX
+        CALL DrawPixel
+        POP DX
+        POP CX
+        
+        
+        DRAW_TETROMINO_NEXT_CELL:
+        INC CX          ; 移动到下一个单元格
+        CMP CX, CELLS_PER_BLOCK ; 检查是否绘制完所有单元格
+        JL  DRAW_TETROMINO_LOOP  ; 如果没有，继续循环
+    
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+DrawTetromino ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：CheckCollision
+; 功能：检查当前俄罗斯方块是否与游戏板发生碰撞
+; 输入：
+;   x_offset: X方向的偏移量
+;   y_offset: Y方向的偏移量
+;   new_rotation: 新的旋转状态
+; 输出：
+;   ZF = 1 如果发生碰撞，否则 ZF = 0
+; ----------------------------------------------------------------------------
+CheckCollision PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    PUSH SI
+    
+    MOV CX, 0       ; 单元格索引
+    MOV AL, 0       ; 碰撞标志
+    
+    MOV SI, WORD PTR [bp+4] ; x_offset
+    MOV DI, WORD PTR [bp+6] ; y_offset
+    MOV BP, WORD PTR [bp+8] ; new_rotation
+    
+    CHECK_COLLISION_LOOP:
+        ; 获取单元格的X和Y坐标
+        PUSH CX
+        MOV CurrentRotation, BYTE PTR BP
+        CALL GetTetrominoX
+        MOV BX, AX
+        
+        CALL GetTetrominoY
+        MOV DX, AX
+        POP CX
+        
+        ; 加上偏移量
+        ADD BX, SI
+        ADD DX, DI
+        
+        ; 检查是否超出边界
+        CMP BX, 0
+        JL  COLLISION_OCCURRED ; 左边界
+        CMP BX, BOARD_COLS
+        JGE COLLISION_OCCURRED ; 右边界
+        CMP DX, BOARD_ROWS
+        JGE COLLISION_OCCURRED ; 下边界
+        
+        ; 检查是否与游戏板上的方块碰撞
+        MOV SI, DX      ; 行索引
+        MUL WORD PTR BOARD_COLS ; 乘以列数
+        ADD SI, BX      ; 加上列索引
+        
+        CMP GameBoard[SI], 0 ; 检查是否为空
+        JNE COLLISION_OCCURRED ; 如果不为空，则发生碰撞
+        
+        CHECK_COLLISION_NEXT_CELL:
+        INC CX          ; 移动到下一个单元格
+        CMP CX, CELLS_PER_BLOCK ; 检查是否检查完所有单元格
+        JL  CHECK_COLLISION_LOOP  ; 如果没有，继续循环
+    
+    ; 没有发生碰撞
+    MOV AL, 0
+    JMP CHECK_COLLISION_END
+    
+    COLLISION_OCCURRED:
+        MOV AL, 1 ; 发生碰撞
+    
+    CHECK_COLLISION_END:
+    MOV AH, 0
+    
+    POP SI
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    
+    OR AL, AL
+    
+    RET
+CheckCollision ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：MoveTetromino
+; 功能：移动当前的俄罗斯方块
+; 输入：
+;   x_offset: X方向的偏移量
+;   y_offset: Y方向的偏移量
+;   new_rotation: 新的旋转状态
+; 输出：
+;   无
+; ----------------------------------------------------------------------------
+MoveTetromino PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    
+    ; 检查是否会发生碰撞
+    PUSH WORD PTR [bp+4] ; x_offset
+    PUSH WORD PTR [bp+6] ; y_offset
+    PUSH WORD PTR [bp+8] ; new_rotation
+    CALL CheckCollision
+    ADD SP, 6
+    
+    JZ  MOVE_TETROMINO_OK ; 如果没有碰撞，则移动
+    JMP MOVE_TETROMINO_END  ; 否则，不移动
+    
+    MOVE_TETROMINO_OK:
+        ; 更新俄罗斯方块的位置和旋转
+        MOV AX, WORD PTR [bp+4] ; x_offset
+        ADD CurrentX, AL
+        
+        MOV AX, WORD PTR [bp+6] ; y_offset
+        ADD CurrentY, AL
+        
+        MOV AL, BYTE PTR [bp+8] ; new_rotation
+        MOV CurrentRotation, AL
+    
+    MOVE_TETROMINO_END:
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+MoveTetromino ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：PlaceTetromino
+; 功能：将当前的俄罗斯方块放置到游戏板上
+; 输入：无
+; 输出：无
+; ----------------------------------------------------------------------------
+PlaceTetromino PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    
+    MOV CX, 0       ; 单元格索引
+    PLACE_TETROMINO_LOOP:
+        ; 获取单元格的X和Y坐标
+        PUSH CX
+        CALL GetTetrominoX
+        MOV BX, AX
+        
+        CALL GetTetrominoY
+        ADD DX, CurrentY ; 加上当前俄罗斯方块的Y偏移
+        MOV CX, AX
+        ADD CX, CurrentX ; 加上当前俄罗斯方块的X偏移
+        POP CX
+        
+        ; 检查是否在游戏板内
+        CMP DX, 0
+        JL  PLACE_TETROMINO_NEXT_CELL ; 如果在游戏板上方，则不处理
+        CMP DX, BOARD_ROWS
+        JGE PLACE_TETROMINO_NEXT_CELL
+        CMP CX, 0
+        JL  PLACE_TETROMINO_NEXT_CELL
+        CMP CX, BOARD_COLS
+        JGE PLACE_TETROMINO_NEXT_CELL
+        
+        ; 将方块的颜色存储到游戏板数组中
+        MOV SI, DX      ; 行索引
+        MUL WORD PTR BOARD_COLS ; 乘以列数
+        ADD SI, CX      ; 加上列索引
+        
+        MOV AL, CurrentColor ; 获取当前俄罗斯方块的颜色
+        MOV GameBoard[SI], AL ; 存储颜色
+        
+        PLACE_TETROMINO_NEXT_CELL:
+        INC CX          ; 移动到下一个单元格
+        CMP CX, CELLS_PER_BLOCK ; 检查是否处理完所有单元格
+        JL  PLACE_TETROMINO_LOOP  ; 如果没有，继续循环
+    
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+PlaceTetromino ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：CheckForLines
+; 功能：检查是否有完整的行并删除它们
+; 输入：无
+; 输出：
+;   AX = 删除的行数
+; ----------------------------------------------------------------------------
+CheckForLines PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    PUSH SI
+    PUSH DI
+    
+    MOV AX, 0       ; 删除的行数
+    MOV DX, BOARD_ROWS - 1  ; 从最后一行开始检查
+    
+    CHECK_LINES_LOOP_ROW:
+        MOV CX, 0       ; 列索引
+        MOV BX, 0       ; 完整行标志 (0 = 完整, 1 = 不完整)
+        
+        CHECK_LINES_LOOP_COL:
+            ; 检查当前单元格是否为空
+            MOV SI, DX      ; 行索引
+            MUL WORD PTR BOARD_COLS ; 乘以列数
+            ADD SI, CX      ; 加上列索引
+            
+            CMP GameBoard[SI], 0 ; 检查是否为空
+            JE  LINE_NOT_FULL   ; 如果为空，则行不完整
+            
+            INC CX          ; 移动到下一列
+            CMP CX, BOARD_COLS  ; 检查是否到达列的末尾
+            JL  CHECK_LINES_LOOP_COL  ; 如果没有，继续循环
+        
+        ; 如果到达这里，说明该行是完整的
+        JMP LINE_FULL
+        
+        LINE_NOT_FULL:
+            MOV BX, 1       ; 设置行不完整标志
+        
+        LINE_FULL:
+        CMP BX, 0
+        JE  DELETE_LINE     ; 如果行完整，则删除该行
+        
+        NEXT_ROW:
+        DEC DX          ; 移动到下一行
+        CMP DX, 0       ; 检查是否到达顶行
+        JGE CHECK_LINES_LOOP_ROW  ; 如果没有，继续循环
+        JMP CHECK_LINES_END
+        
+        DELETE_LINE:
+            ; 删除该行：将上面的所有行向下移动一行
+            PUSH DX
+            MOV SI, DX      ; 要删除的行
+            MUL WORD PTR BOARD_COLS
+            MOV DI, AX      ; DI = 要删除行的偏移
+            
+            MOV CX, DX      ; 从要删除的行开始
+            DEC CX
+            
+            
+            MOVE_DOWN_LOOP:
+                CMP CX, 0
+                JL MOVE_DOWN_END
+                
+                MOV SI, CX    ; 源行
+                MUL WORD PTR BOARD_COLS
+                MOV BX, AX; BX = 源行偏移
+                
+                MOV AX, BOARD_COLS ; 复制一行
+                
+                
+                MOVE_ROW_LOOP:
+                    MOV AL, GameBoard[BX]
+                    MOV GameBoard[DI], AL
+                    INC BX
+                    INC DI
+                    DEC AX
+                    JNZ MOVE_ROW_LOOP
+                
+                DEC CX
+                JMP MOVE_DOWN_LOOP
+            
+            MOVE_DOWN_END:
+            
+            ; 将顶部的行清零
+            MOV CX, 0
+            MOV SI, 0
+            MOV AX, BOARD_COLS
+            CLEAR_TOP_ROW:
+                MOV GameBoard[SI], 0
+                INC SI
+                DEC AX
+                JNZ CLEAR_TOP_ROW
+            
+            INC AX            ; 增加删除的行数
+            ADD LinesCleared, 1
+            
+            ; 计算分数和等级
+            ADD Score, 10 * Level ; 每删除一行加分
+            
+            ; 每删除10行，升级
+            CMP LinesCleared, 10
+            JGE LEVEL_UP
+            JMP NEXT_ROW
+            
+            LEVEL_UP:
+                INC Level
+                MOV LinesCleared, 0
+                
+                ; 增加游戏速度 (减少延迟 -  这里没有实现延迟，需要外部的delay函数)
+                ; ...
+                JMP NEXT_ROW
+            
+            CHECK_LINES_END:
+    
+    POP DI
+    POP SI
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+CheckForLines ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：GenerateTetromino
+; 功能：生成一个新的随机俄罗斯方块
+; 输入：无
+; 输出：无
+; ----------------------------------------------------------------------------
+GenerateTetromino PROC near
+    PUSH AX
+    PUSH DX
+    
+    ; 生成一个0-6的随机数
+    mov ax, rand_seed
+    mov dx, 3141
+    mul dx
+    add ax, 27181
+    mov rand_seed, ax
+    
+    MOV DX, 7
+    DIV DX          ; AX = 商 (0-6), DX = 余数
+    MOV CurrentTetromino, DL ; 存储新的俄罗斯方块类型
+    
+    MOV CurrentRotation, 0  ; 重置旋转
+    MOV CurrentX, BOARD_COLS / 2 - 2 ; 重置X位置
+    MOV CurrentY, 0     ; 重置Y位置
+    
+    ; 设置方块颜色
+    MOV AL, DL
+    MOV BL, AL
+    
+    MOV AL, TETROMINO_COLORS[BX]
+    MOV CurrentColor, AL
+    
+    POP DX
+    POP AX
+    RET
+GenerateTetromino ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：DisplayScoreLevel
+; 功能：显示当前得分和等级
+; 输入：无
+; 输出：无
+; ----------------------------------------------------------------------------
+DisplayScoreLevel PROC near
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    
+    ; 显示得分
+    MOV CX, BOARD_X + BOARD_COLS * 2 + 3 ; X坐标
+    MOV DX, BOARD_Y + 2         ; Y坐标
+    MOV AL, WHITE         ; 颜色
+    
+    ; 打印 "Score: "
+    MOV SI, OFFSET ScoreMsg
+    PRINT_STRING:
+        MOV AL, [SI]
+        CMP AL, 0
+        JE  PRINT_SCORE_VALUE
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+        INC CX
+        INC SI
+        JMP PRINT_STRING
+    
+    ; 将分数转换为字符串并显示
+    PRINT_SCORE_VALUE:
+    MOV AX, Score
+    
+    MOV BX, 10 ; 除数
+    
+    
+    
+    
+    ; 反向存储数字字符
+    PUSH CX
+    PUSH DX
+    
+    MOV CX, 0
+    CONVERT_LOOP:
+        MOV DX, 0
+        DIV BX       ; AX = 商, DX = 余数
+        
+        ADD DL, '0' ; 将数字转换为字符
+        
+        PUSH DX       ; 将字符压入栈
+        INC CX
+        
+        CMP AX, 0
+        JNZ CONVERT_LOOP
+    
+    MOV DX, BOARD_Y + 2 + 8   ; Y坐标
+    MOV CX, BOARD_X + BOARD_COLS * 2 + 3      ; X坐标
+    
+    DISPLAY_LOOP:
+        POP AX
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        MOV AL, AH
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+        
+        INC CX
+        DEC CX
+        JNZ DISPLAY_LOOP
+    
+    POP DX
+    POP CX
+    
+    
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    
+    ; 显示等级
+    MOV CX, BOARD_X + BOARD_COLS * 2 + 3 ; X坐标
+    MOV DX, BOARD_Y + 4         ; Y坐标
+    MOV AL, WHITE         ; 颜色
+    
+    ; 打印 "Level: "
+    MOV SI, OFFSET LevelMsg
+    PRINT_LEVEL_STRING:
+        MOV AL, [SI]
+        CMP AL, 0
+        JE  PRINT_LEVEL_VALUE
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+        INC CX
+        INC SI
+        JMP PRINT_LEVEL_STRING
+    
+    ; 显示等级数值
+    PRINT_LEVEL_VALUE:
+        MOV AL, Level
+        ADD AL, '0'
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+    
+    
+    ; 显示删除的行数
+    MOV CX, BOARD_X + BOARD_COLS * 2 + 3 ; X坐标
+    MOV DX, BOARD_Y + 6         ; Y坐标
+    MOV AL, WHITE         ; 颜色
+    
+    ; 打印 "Lines: "
+    MOV SI, OFFSET LinesMsg
+    PRINT_LINES_STRING:
+        MOV AL, [SI]
+        CMP AL, 0
+        JE  PRINT_LINES_VALUE
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+        INC CX
+        INC SI
+        JMP PRINT_LINES_STRING
+    
+    ; 将删除的行数转换为字符串并显示
+    PRINT_LINES_VALUE:
+    MOV AX, LinesCleared
+    
+    MOV BX, 10 ; 除数
+    
+    
+    
+    
+    ; 反向存储数字字符
+    PUSH CX
+    PUSH DX
+    
+    MOV CX, 0
+    CONVERT_LINES_LOOP:
+        MOV DX, 0
+        DIV BX       ; AX = 商, DX = 余数
+        
+        ADD DL, '0' ; 将数字转换为字符
+        
+        PUSH DX       ; 将字符压入栈
+        INC CX
+        
+        CMP AX, 0
+        JNZ CONVERT_LINES_LOOP
+    
+    MOV DX, BOARD_Y + 6 + 8   ; Y坐标
+    MOV CX, BOARD_X + BOARD_COLS * 2 + 3      ; X坐标
+    
+    DISPLAY_LINES_LOOP:
+        POP AX
+        
+        PUSH CX
+        PUSH DX
+        
+        MOV CL, CX
+        MOV DL, DX
+        
+        MOV AL, AH
+        CALL DrawPixel
+        
+        POP DX
+        POP CX
+        
+        INC CX
+        DEC CX
+        JNZ DISPLAY_LINES_LOOP
+    
+    POP DX
+    POP CX
+    
+    
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+DisplayScoreLevel ENDP
+
+; ----------------------------------------------------------------------------
+; 函数：GetRandomSeed
+; 功能：获取一个随机数种子
+; 输入：无
+; 输出：
+;   AX = 随机数种子
+; ----------------------------------------------------------------------------
+GetRandomSeed PROC near
+    ; 从系统时钟获取种子
+    MOV AH, 00h ; INT 1Ah 功能 00h - 获取当前时间
+    INT 1Ah
+    
+    ; 将嘀嗒计数的高位和低位组合成一个值
+    MOV AX, CX ; 高位
+    SHL AX, 8
+    OR AX, DX  ; 低位
+    
+    RET
+GetRandomSeed ENDP
+
+; ----------------------------------------------------------------------------
+; 主程序
+; ----------------------------------------------------------------------------
+main PROC near
+    ; 初始化
+    MOV AX, @DATA
+    MOV DS, AX
+    
+    CALL SetVideoMode ; 设置视频模式
+    CALL ClearScreen  ; 清除屏幕
+    
+    CALL GetRandomSeed
+    mov rand_seed, ax
+    
+    CALL GenerateTetromino ; 生成第一个俄罗斯方块
+    
+    ; 游戏循环
+    GAME_LOOP:
+        CALL ClearScreen
+        CALL DrawBoard     ; 绘制游戏板
+        CALL DrawTetromino ; 绘制当前的俄罗斯方块
+        CALL DisplayScoreLevel
+        
+        ; 获取键盘输入 (使用BIOS中断)
+        MOV AH, 00h    ; 00h - 读取按键，等待直到有键按下
+        INT 16h         ; 调用BIOS键盘中断
+        
+        ; 检查游戏是否结束
+        CMP GameOver, 1
+        JE  GAME_OVER_SCREEN
+        
+        ; 处理键盘输入
+        CMP AH, 48h ; 上箭头
+        JE  ROTATE_TETROMINO
+        
+        CMP AH, 50h ; 下箭头
+        JE  MOVE_DOWN
+        
+        CMP AH, 4Bh ; 左箭头
+        JE  MOVE_LEFT
+        
+        CMP AH, 4Dh ; 右箭头
+        JE  MOVE_RIGHT
+        
+        ; 尝试向下移动俄罗斯方块
+        MOVE_DOWN:
+            PUSH 0
+            PUSH 1
+            PUSH CurrentRotation
+            CALL MoveTetromino ; 向下移动一个单位
+            ADD SP, 6
+            
+            ; 检查是否移动成功
+            CMP ZF, 0
+            JE  MOVE_DOWN_SUCCESS ; 如果没有设置零标志，则移动成功
+            
+            ; 移动失败，将俄罗斯方块放置在游戏板上
+            CALL PlaceTetromino
+            
+            ; 检查是否有完整的行并删除它们
+            CALL CheckForLines
+            
+            ; 生成新的俄罗斯方块
+            CALL GenerateTetromino
+            
+            ; 检查新的俄罗斯方块是否立即发生碰撞 (游戏结束条件)
+            PUSH 0
+            PUSH 0
+            PUSH CurrentRotation
+            CALL CheckCollision
+            ADD SP, 6
+            
+            CMP ZF, 0
+            JNE GAME_OVER ; 游戏结束
+            
+            MOVE_DOWN_SUCCESS:
+        
+        JMP GAME_LOOP ; 继续游戏循环
+    
+    GAME_OVER:
+        MOV GameOver, 1
+    
+    GAME_OVER_SCREEN:
+        CALL ClearScreen
+        CALL DrawBoard
+        CALL DisplayScoreLevel
+        
+        ; 显示 "Game Over!" 消息
+        MOV CX, SCREEN_WIDTH / 2 - (SIZEOF GameOverMsg / 2) ; X坐标
+        MOV DX, SCREEN_HEIGHT / 2         ; Y坐标
+        MOV AL, LIGHTRED        ; 颜色
+        
+        MOV SI, OFFSET GameOverMsg
+        PRINT_GAME_OVER_MSG:
+            MOV AL, [SI]
+            CMP AL, 0
+            JE  DISPLAY_PRESS_ANY_KEY_MSG
+            
+            PUSH CX
+            PUSH DX
+            
+            MOV CL, CX
+            MOV DL, DX
+            
+            CALL DrawPixel
+            
+            POP DX
+            POP CX
+            INC CX
+            INC SI
+            JMP PRINT_GAME_OVER_MSG
+        
+        ; 显示 "Press any key to continue..." 消息
+        DISPLAY_PRESS_ANY_KEY_MSG:
+        MOV CX, SCREEN_WIDTH / 2 - (SIZEOF PressAnyKeyMsg / 2) ; X坐标
+        MOV DX, SCREEN_HEIGHT / 2 + 2       ; Y坐标
+        MOV AL, YELLOW          ; 颜色
+        
+        MOV SI, OFFSET PressAnyKeyMsg
+        PRINT_PRESS_ANY_KEY_MSG:
+            MOV AL, [SI]
+            CMP AL, 0
+            JE  WAIT_FOR_KEY
+            
+            PUSH CX
+            PUSH DX
+            
+            MOV CL, CX
+            MOV DL, DX
+            
+            CALL DrawPixel
+            
+            POP DX
+            POP CX
+            INC CX
+            INC SI
+            JMP PRINT_PRESS_ANY_KEY_MSG
+        
+        ; 等待按键
+        WAIT_FOR_KEY:
+        MOV AH, 00h    ; 00h - 读取按键，等待直到有键按下
+        INT 16h         ; 调用BIOS键盘中断
+        
+        ; 重新开始游戏
+        MOV GameOver, 0
+        MOV Score, 0
+        MOV Level, 1
+        MOV LinesCleared, 0
+        
+        ; 清空游戏板
+        MOV SI, 0
+        MOV AX, BOARD_ROWS * BOARD_COLS
+        CLEAR_BOARD_LOOP:
+            MOV GameBoard[SI], 0
+            INC SI
+            DEC AX
+            JNZ CLEAR_BOARD_LOOP
+        
+        CALL GenerateTetromino
+        JMP GAME_LOOP
+        
+        ; 处理左移
+        MOVE_LEFT:
+            PUSH -1
+            PUSH 0
+            PUSH CurrentRotation
+            CALL MoveTetromino
+            ADD SP, 6
+            JMP GAME_LOOP
+        
+        ; 处理右移
+        MOVE_RIGHT:
+            PUSH 1
+            PUSH 0
+            PUSH CurrentRotation
+            CALL MoveTetromino
+            ADD SP, 6
+            JMP GAME_LOOP
+        
+        ; 处理旋转
+        ROTATE_TETROMINO:
+            MOV AL, CurrentRotation
+            INC AL
+            AND AL, 3 ; 确保在 0-3 范围内
+            
+            PUSH 0
+            PUSH 0
+            PUSH AX
+            CALL MoveTetromino
+            ADD SP, 6
+            JMP GAME_L

@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>关键词网络</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+  <style>
+    body {
+      background-color: #f3f4f6;
+    }
+    #keywordGraph {
+      height: 600px;
+      border: 1px solid #e5e7eb;
+      background-color: white;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- 导航栏 -->
+  <nav class="bg-blue-600 text-white p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">关键词网络</h1>
+      <ul class="flex space-x-6">
+        <li><a href="#home" class="hover:text-blue-200">首页</a></li>
+        <li><a href="#about" class="hover:text-blue-200">关于</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <section id="home" class="py-16">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">构建你的关键词网络</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 图谱区域 -->
+        <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">关键词网络图</h3>
+          <div id="keywordGraph"></div>
+        </div>
+        <!-- 右侧区域：输入与管理 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">关键词管理</h3>
+          <!-- 输入关键词 -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">添加关键词</h4>
+            <input id="keywordsInput" type="text" placeholder="输入关键词（空格分隔）" class="w-full p-2 mb-2 border rounded">
+            <button onclick="addKeywords()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">确定</button>
+          </div>
+          <!-- 节点详情 -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">节点详情</h4>
+            <div id="nodeInfo" class="text-gray-600">
+              <p>点击节点查看详情或进行操作。</p>
+            </div>
+          </div>
+          <!-- 删除节点 -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold mb-2">删除节点</h4>
+            <select id="deleteNodeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <button onclick="deleteNode()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除节点</button>
+          </div>
+          <!-- 管理边 -->
+          <div>
+            <h4 class="text-lg font-semibold mb-2">管理连接</h4>
+            <p class="text-sm text-gray-500 mb-2">点击两个节点创建连接，再次点击断开连接。</p>
+            <select id="deleteEdgeSelect" class="w-full p-2 mb-2 border rounded"></select>
+            <button onclick="deleteEdge()" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700">删除连接</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section id="about" class="py-16 bg-blue-50">
+    <div class="container mx-auto text-center">
+      <h2 class="text-3xl font-bold mb-8">关于本工具</h2>
+      <p class="text-lg max-w-2xl mx-auto">
+        输入关键词（空格分隔），构建动态网络图。每一批关键词用不同颜色表示，支持拖动、删除和连接操作，探索关键词间的关系。
+      </p>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="bg-blue-600 text-white p-4 text-center">
+    <p>© 2025 关键词网络. 保留所有权利。</p>
+  </footer>
+
+  <script>
+    // 初始化数据
+    let nodes = new vis.DataSet([]);
+    let edges = new vis.DataSet([]);
+    let batchCount = 0;
+    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]; // 颜色循环
+
+    // 初始化Vis.js网络图
+    const container = document.getElementById("keywordGraph");
+    const data = { nodes: nodes, edges: edges };
+    const options = {
+      nodes: {
+        shape: "dot",
+        size: 20,
+        font: { size: 14, face: "Arial" }
+      },
+      edges: {
+        arrows: "to",
+        color: { color: "#6b7280" }
+      },
+      physics: { enabled: true },
+      interaction: { zoomView: true, dragView: true, selectConnectedEdges: false }
+    };
+    const network = new vis.Network(container, data, options);
+
+    // 存储选中的节点用于创建边
+    let selectedNodes = [];
+
+    // 更新节点和边下拉菜单
+    function updateSelects() {
+      const deleteNodeSelect = document.getElementById("deleteNodeSelect");
+      const deleteEdgeSelect = document.getElementById("deleteEdgeSelect");
+      deleteNodeSelect.innerHTML = '<option value="">选择节点</option>';
+      nodes.forEach(node => {
+        deleteNodeSelect.innerHTML += `<option value="${node.id}">${node.label}</option>`;
+      });
+      deleteEdgeSelect.innerHTML = '<option value="">选择连接</option>';
+      edges.forEach(edge => {
+        const fromNode = nodes.get(edge.from).label;
+        const toNode = nodes.get(edge.to).label;
+        deleteEdgeSelect.innerHTML += `<option value="${edge.id}">${fromNode} -> ${toNode}</option>`;
+      });
+    }
+
+    // 添加关键词
+    function addKeywords() {
+      const input = document.getElementById("keywordsInput").value.trim();
+      if (!input) {
+        alert("请输入至少一个关键词！");
+        return;
+      }
+      const keywords = input.split(" ").filter(kw => kw);
+      const color = colors[batchCount % colors.length];
+      keywords.forEach(keyword => {
+        const id = nodes.length + 1;
+        nodes.add({ id, label: keyword, group: batchCount, color });
+      });
+      batchCount++;
+      updateSelects();
+      document.getElementById("keywordsInput").value = "";
+    }
+
+    // 删除节点
+    function deleteNode() {
+      const id = parseInt(document.getElementById("deleteNodeSelect").value);
+      if (id) {
+        nodes.remove(id);
+        edges.get().forEach(edge => {
+          if (edge.from === id || edge.to === id) {
+            edges.remove(edge.id);
+          }
+        });
+        updateSelects();
+        document.getElementById("nodeInfo").innerHTML = `<p>点击节点查看详情或进行操作。</p>`;
+      } else {
+        alert("请选择要删除的节点！");
+      }
+    }
+
+    // 删除边
+    function deleteEdge() {
+      const edgeId = document.getElementById("deleteEdgeSelect").value;
+      if (edgeId) {
+        edges.remove(edgeId);
+        updateSelects();
+      } else {
+        alert("请选择要删除的连接！");
+      }
+    }
+
+    // 点击节点处理
+    network.on("click", function (params) {
+      const nodeId = params.nodes[0];
+      const nodeInfo = document.getElementById("nodeInfo");
+      if (nodeId) {
+        const node = nodes.get(nodeId);
+        nodeInfo.innerHTML = `<h4 class="text-lg font-semibold">${node.label}</h4><p>批次: ${node.group + 1}</p>`;
+        // 选择节点以创建边
+        selectedNodes.push(nodeId);
+        if (selectedNodes.length === 2) {
+          const [from, to] = selectedNodes;
+          const existingEdge = edges.get().find(edge => edge.from === from && edge.to === to);
+          if (existingEdge) {
+            // 如果边已存在，删除它
+            edges.remove(existingEdge.id);
+          } else {
+            // 创建新边
+            edges.add({ from, to });
+          }
+          selectedNodes = [];
+          updateSelects();
+        }
+      } else {
+        nodeInfo.innerHTML = `<p>点击节点查看详情或进行操作。</p>`;
+        selectedNodes = [];
+      }
+    });
+
+    // 初始化下拉菜单
+    updateSelects();
+  </script>
+</body>
+</html>

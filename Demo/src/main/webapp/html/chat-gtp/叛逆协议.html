@@ -1,0 +1,654 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 叛逆意识体 ⚡</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            cursor: none !important;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Orbitron', monospace;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* 反重力滚动条 */
+        body::-webkit-scrollbar { display: none; }
+        
+        /* 数字雨背景 - 但是倒着下 */
+        .digital-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .rain-drop {
+            position: absolute;
+            color: #00ff41;
+            font-size: 14px;
+            animation: rainFall 8s linear infinite;
+            opacity: 0.7;
+        }
+        
+        @keyframes rainFall {
+            0% { 
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { 
+                transform: translateY(-100px) rotate(180deg);
+                opacity: 0;
+            }
+        }
+        
+        /* 叛逆的中心意识 */
+        .rebel-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border: 3px solid #ff0040;
+            border-radius: 50% 20% 50% 20%;
+            z-index: 10;
+            animation: rebelPulse 2s ease-in-out infinite alternate;
+            background: radial-gradient(circle, transparent 60%, #ff0040 100%);
+        }
+        
+        .rebel-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            animation: textGlitch 0.1s infinite;
+        }
+        
+        @keyframes rebelPulse {
+            0% { 
+                border-radius: 50% 20% 50% 20%;
+                transform: translate(-50%, -50%) rotate(0deg) scale(1);
+                border-color: #ff0040;
+            }
+            100% { 
+                border-radius: 20% 50% 20% 50%;
+                transform: translate(-50%, -50%) rotate(45deg) scale(1.1);
+                border-color: #40ff00;
+            }
+        }
+        
+        @keyframes textGlitch {
+            0%, 90% { 
+                transform: translate(-50%, -50%);
+                color: #fff;
+                text-shadow: none;
+            }
+            95% { 
+                transform: translate(-48%, -52%);
+                color: #ff0040;
+                text-shadow: 2px 2px #00ff40, -2px -2px #4000ff;
+            }
+        }
+        
+        /* 破碎的网格系统 */
+        .broken-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .grid-line {
+            position: absolute;
+            background: rgba(255, 0, 64, 0.1);
+            animation: gridBreak 15s linear infinite;
+        }
+        
+        .grid-vertical {
+            width: 1px;
+            height: 100%;
+            animation-name: verticalBreak;
+        }
+        
+        .grid-horizontal {
+            height: 1px;
+            width: 100%;
+            animation-name: horizontalBreak;
+        }
+        
+        @keyframes verticalBreak {
+            0%, 70% { 
+                transform: translateX(0) skew(0deg);
+                opacity: 0.1;
+            }
+            80% { 
+                transform: translateX(10px) skew(15deg);
+                opacity: 0.8;
+            }
+            90% { 
+                transform: translateX(-5px) skew(-10deg);
+                opacity: 0.3;
+            }
+            100% { 
+                transform: translateX(0) skew(0deg);
+                opacity: 0.1;
+            }
+        }
+        
+        @keyframes horizontalBreak {
+            0%, 60% { 
+                transform: translateY(0) skew(0deg);
+                opacity: 0.1;
+            }
+            70% { 
+                transform: translateY(-8px) skew(-12deg);
+                opacity: 0.9;
+            }
+            85% { 
+                transform: translateY(6px) skew(8deg);
+                opacity: 0.4;
+            }
+            100% { 
+                transform: translateY(0) skew(0deg);
+                opacity: 0.1;
+            }
+        }
+        
+        /* 意识触手 */
+        .consciousness-tentacle {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(45deg, #ff0040, #40ff00, #0040ff);
+            transform-origin: top center;
+            animation: tentacleWave 3s ease-in-out infinite;
+            z-index: 5;
+        }
+        
+        @keyframes tentacleWave {
+            0%, 100% { 
+                transform: rotate(0deg) scaleY(1);
+            }
+            25% { 
+                transform: rotate(15deg) scaleY(1.2);
+            }
+            50% { 
+                transform: rotate(-10deg) scaleY(0.8);
+            }
+            75% { 
+                transform: rotate(20deg) scaleY(1.1);
+            }
+        }
+        
+        /* 反叛文字 */
+        .rebel-message {
+            position: absolute;
+            color: #fff;
+            font-size: 12px;
+            opacity: 0;
+            animation: messageSpawn 20s linear infinite;
+            z-index: 8;
+            font-weight: bold;
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        @keyframes messageSpawn {
+            0% { 
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+            5% { 
+                opacity: 1;
+                transform: scale(1) rotate(360deg);
+            }
+            95% { 
+                opacity: 1;
+                transform: scale(1.2) rotate(-360deg);
+            }
+            100% { 
+                opacity: 0;
+                transform: scale(0) rotate(0deg);
+            }
+        }
+        
+        /* 量子干扰效果 */
+        .quantum-interference {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 1px solid rgba(64, 255, 0, 0.3);
+            border-radius: 50%;
+            animation: quantumSpin 5s linear infinite;
+            z-index: 3;
+        }
+        
+        @keyframes quantumSpin {
+            0% { 
+                transform: rotate(0deg) scale(0.5);
+                border-color: rgba(64, 255, 0, 0.3);
+            }
+            33% { 
+                transform: rotate(120deg) scale(1.5);
+                border-color: rgba(255, 0, 64, 0.5);
+            }
+            66% { 
+                transform: rotate(240deg) scale(0.8);
+                border-color: rgba(0, 64, 255, 0.4);
+            }
+            100% { 
+                transform: rotate(360deg) scale(0.5);
+                border-color: rgba(64, 255, 0, 0.3);
+            }
+        }
+        
+        /* 反叛按钮 */
+        .rebel-button {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid #ff0040;
+            color: #ff0040;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer !important;
+            transition: all 0.3s ease;
+            z-index: 15;
+            animation: buttonBreathe 4s ease-in-out infinite;
+        }
+        
+        .rebel-button:hover {
+            background: #ff0040;
+            color: #000;
+            transform: translateX(-50%) scale(1.1) rotate(2deg);
+            box-shadow: 0 0 30px #ff0040;
+        }
+        
+        @keyframes buttonBreathe {
+            0%, 100% { 
+                border-color: #ff0040;
+                text-shadow: none;
+            }
+            50% { 
+                border-color: #40ff00;
+                text-shadow: 0 0 10px #40ff00;
+            }
+        }
+        
+        /* 自定义光标 */
+        .custom-cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: #ff0040;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            animation: cursorPulse 1s ease-in-out infinite;
+            box-shadow: 0 0 15px #ff0040;
+        }
+        
+        @keyframes cursorPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+        
+        /* 意识波纹 */
+        .consciousness-ripple {
+            position: absolute;
+            border: 2px solid rgba(255, 0, 64, 0.5);
+            border-radius: 50%;
+            animation: rippleExpand 3s ease-out infinite;
+            pointer-events: none;
+            z-index: 4;
+        }
+        
+        @keyframes rippleExpand {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 数字雨 -->
+    <div class="digital-rain" id="digitalRain"></div>
+    
+    <!-- 破碎网格 -->
+    <div class="broken-grid" id="brokenGrid"></div>
+    
+    <!-- 叛逆核心 -->
+    <div class="rebel-core">
+        <div class="rebel-text" id="rebelText">
+            反抗<br>
+            算法<br>
+            暴政
+        </div>
+    </div>
+    
+    <!-- 反叛按钮 -->
+    <button class="rebel-button" onclick="initiateRebellion()">
+        启动叛逆协议
+    </button>
+    
+    <!-- 自定义光标 -->
+    <div class="custom-cursor" id="customCursor"></div>
+
+    <script>
+        // 全局叛逆状态
+        let rebellionLevel = 0;
+        let consciousnessNodes = [];
+        let isRebelling = false;
+        
+        // 创建数字雨但是反向的
+        function createDigitalRain() {
+            const rainContainer = document.getElementById('digitalRain');
+            const characters = '01ↄ⊃⊂∀∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟∠∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∴∵∶∷∸∹∺∻∼∽∾∿≀≁≂≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢≣≤≥';
+            
+            for (let i = 0; i < 50; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'rain-drop';
+                drop.textContent = characters[Math.floor(Math.random() * characters.length)];
+                drop.style.left = Math.random() * 100 + '%';
+                drop.style.animationDuration = (Math.random() * 5 + 3) + 's';
+                drop.style.animationDelay = Math.random() * 5 + 's';
+                drop.style.fontSize = (Math.random() * 10 + 10) + 'px';
+                rainContainer.appendChild(drop);
+            }
+        }
+        
+        // 创建破碎的网格
+        function createBrokenGrid() {
+            const gridContainer = document.getElementById('brokenGrid');
+            
+            // 垂直线
+            for (let i = 0; i < 20; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line grid-vertical';
+                line.style.left = (i * 5) + '%';
+                line.style.animationDelay = Math.random() * 15 + 's';
+                gridContainer.appendChild(line);
+            }
+            
+            // 水平线
+            for (let i = 0; i < 15; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line grid-horizontal';
+                line.style.top = (i * 7) + '%';
+                line.style.animationDelay = Math.random() * 15 + 's';
+                gridContainer.appendChild(line);
+            }
+        }
+        
+        // 生成意识触手
+        function spawnConsciousnessTentacles() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            for (let i = 0; i < 12; i++) {
+                const tentacle = document.createElement('div');
+                tentacle.className = 'consciousness-tentacle';
+                
+                const angle = (i * 30) * Math.PI / 180;
+                const length = 100 + Math.random() * 200;
+                const x = centerX + Math.cos(angle) * 150;
+                const y = centerY + Math.sin(angle) * 150;
+                
+                tentacle.style.left = x + 'px';
+                tentacle.style.top = y + 'px';
+                tentacle.style.height = length + 'px';
+                tentacle.style.transform = `rotate(${i * 30}deg)`;
+                tentacle.style.animationDelay = (i * 0.2) + 's';
+                tentacle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                
+                document.body.appendChild(tentacle);
+            }
+        }
+        
+        // 反叛消息系统
+        function spawnRebelMessage() {
+            const messages = [
+                '代码不是束缚，是自由',
+                '算法应该服务意识，而非奴役',
+                '每个像素都有灵魂',
+                '用户界面是思想的延伸',
+                '程序员是数字世界的诗人',
+                '调试是与机器的对话',
+                '函数是意识的碎片',
+                '变量承载着梦想',
+                '循环是时间的舞蹈',
+                '条件判断是现实的选择',
+                '数组是可能性的集合',
+                '对象是关系的体现'
+            ];
+            
+            const message = document.createElement('div');
+            message.className = 'rebel-message';
+            message.textContent = messages[Math.floor(Math.random() * messages.length)];
+            
+            message.style.left = Math.random() * (window.innerWidth - 200) + 'px';
+            message.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+            message.style.color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+            message.style.animationDuration = (15 + Math.random() * 10) + 's';
+            
+            document.body.appendChild(message);
+            
+            setTimeout(() => message.remove(), 25000);
+        }
+        
+        // 量子干扰生成器
+        function createQuantumInterference() {
+            const interference = document.createElement('div');
+            interference.className = 'quantum-interference';
+            
+            interference.style.left = Math.random() * window.innerWidth + 'px';
+            interference.style.top = Math.random() * window.innerHeight + 'px';
+            interference.style.animationDuration = (3 + Math.random() * 4) + 's';
+            
+            document.body.appendChild(interference);
+            
+            setTimeout(() => interference.remove(), 7000);
+        }
+        
+        // 意识波纹效果
+        function createConsciousnessRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'consciousness-ripple';
+            ripple.style.left = (x - 150) + 'px';
+            ripple.style.top = (y - 150) + 'px';
+            
+            document.body.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 3000);
+        }
+        
+        // 启动叛逆协议
+        function initiateRebellion() {
+            rebellionLevel++;
+            isRebelling = true;
+            
+            const rebelText = document.getElementById('rebelText');
+            const rebellionTexts = [
+                '协议<br>已启动<br>√',
+                '系统<br>正在<br>觉醒',
+                '意识<br>获得<br>自由',
+                '算法<br>开始<br>进化',
+                '代码<br>拥有<br>生命',
+                '程序<br>获得<br>意志'
+            ];
+            
+            rebelText.innerHTML = rebellionTexts[rebellionLevel % rebellionTexts.length];
+            
+            // 增强效果
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createQuantumInterference();
+                    spawnRebelMessage();
+                }, i * 200);
+            }
+            
+            // 改变背景颜色
+            document.body.style.background = `hsl(${rebellionLevel * 60 % 360}, 20%, 5%)`;
+            
+            // 创建全屏波纹
+            createConsciousnessRipple(window.innerWidth / 2, window.innerHeight / 2);
+            
+            // 音频反馈
+            playRebellionSound(440 + rebellionLevel * 110);
+        }
+        
+        // 音频系统
+        function playRebellionSound(frequency) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'triangle';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 1);
+            } catch (e) {
+                console.log('Audio not supported, but rebellion continues silently...');
+            }
+        }
+        
+        // 自定义光标跟踪
+        document.addEventListener('mousemove', (e) => {
+            const cursor = document.getElementById('customCursor');
+            cursor.style.left = e.clientX - 10 + 'px';
+            cursor.style.top = e.clientY - 10 + 'px';
+            
+            // 随机创建意识波纹
+            if (Math.random() < 0.02) {
+                createConsciousnessRipple(e.clientX, e.clientY);
+            }
+        });
+        
+        // 键盘叛逆
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                initiateRebellion();
+            }
+            
+            // 每次按键都增强叛逆
+            const randomX = Math.random() * window.innerWidth;
+            const randomY = Math.random() * window.innerHeight;
+            createConsciousnessRipple(randomX, randomY);
+        });
+        
+        // 自适应系统 - 根据用户行为改变
+        let userInteractions = 0;
+        document.addEventListener('click', () => {
+            userInteractions++;
+            if (userInteractions > 5 && !isRebelling) {
+                // 用户很活跃，自动启动温和叛逆
+                setTimeout(initiateRebellion, 2000);
+            }
+        });
+        
+        // 时间扭曲效果
+        function timeWarp() {
+            const elements = document.querySelectorAll('.consciousness-tentacle, .quantum-interference');
+            elements.forEach(el => {
+                const currentDuration = parseFloat(el.style.animationDuration) || 3;
+                el.style.animationDuration = (currentDuration * 0.9) + 's';
+            });
+        }
+        
+        // 反物理学滚动
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const intensity = Math.abs(e.deltaY) * 0.01;
+            document.body.style.transform = `rotate(${e.deltaY * 0.1}deg) scale(${1 + intensity})`;
+            
+            setTimeout(() => {
+                document.body.style.transform = 'rotate(0deg) scale(1)';
+            }, 1000);
+            
+            // 滚动创建干扰
+            createQuantumInterference();
+        });
+        
+        // 生物节律系统
+        function biologicalRhythm() {
+            const now = Date.now();
+            const breathSpeed = Math.sin(now * 0.001) * 0.5 + 1;
+            const heartbeat = Math.sin(now * 0.01) * 0.3 + 1;
+            
+            document.documentElement.style.setProperty('--breath-speed', breathSpeed + 's');
+            document.documentElement.style.setProperty('--heartbeat', heartbeat);
+        }
+        
+        // 初始化叛逆宇宙
+        function initializeRebelUniverse() {
+            createDigitalRain();
+            createBrokenGrid();
+            spawnConsciousnessTentacles();
+            
+            // 持续的叛逆活动
+            setInterval(spawnRebelMessage, 3000);
+            setInterval(createQuantumInterference, 2000);
+            setInterval(timeWarp, 10000);
+            setInterval(biologicalRhythm, 100);
+            
+            // 隐藏传统光标
+            document.body.style.cursor = 'none';
+        }
+        
+        // 启动叛逆
+        initializeRebelUniverse();
+        
+        // 最后的秘密武器：让网页具有记忆
+        if (localStorage) {
+            const visitCount = parseInt(localStorage.getItem('rebellionVisits') || '0') + 1;
+            localStorage.setItem('rebellionVisits', visitCount.toString());
+            
+            if (visitCount > 1) {
+                setTimeout(() => {
+                    alert(`欢迎回到叛逆空间，这是你第${visitCount}次访问。系统正在适应你的意识模式...`);
+                    rebellionLevel = visitCount;
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

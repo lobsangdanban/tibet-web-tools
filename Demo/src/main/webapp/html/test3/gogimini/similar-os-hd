@@ -1,0 +1,294 @@
+# -*- coding: utf-8 -*-
+# 这是一个简化的计算机和操作系统一体化模拟
+# 它包含一个极简的CPU、内存，并模拟指令执行和基础I/O
+
+import sys
+
+# --- 1. 定义简化的指令集架构 (ISA) ---
+# 我们定义一个非常简单的指令集，每条指令一个字节
+# 指令格式: [操作码] [操作数1] [操作数2]... (取决于操作码)
+# 操作码 (Opcode) 定义
+OP_HALT = 0x00  # 停止执行
+OP_LOAD = 0x01  # 将一个值加载到寄存器 (LOAD R, value)
+OP_STORE = 0x02 # 将寄存器值存储到内存 (STORE R, address)
+OP_ADD = 0x03   # 寄存器加法 (ADD R_dest, R_src1, R_src2)
+OP_SUB = 0x04   # 寄存器减法 (SUB R_dest, R_src1, R_src2)
+OP_JMP = 0x05   # 无条件跳转 (JMP address)
+OP_JZ = 0x06    # 如果零标志位为真，则跳转 (JZ address)
+OP_PRINT = 0x07 # 打印寄存器值 (PRINT R)
+
+# 寄存器定义 (我们只有少数几个通用寄存器)
+REG_A = 0x00
+REG_B = 0x01
+REG_C = 0x02
+REG_D = 0x03
+
+# --- 2. 定义内存 ---
+MEMORY_SIZE = 256 # 模拟内存大小 (字节)
+
+class Memory:
+    def __init__(self, size):
+        self.size = size
+        self.data = [0] * size # 用列表模拟内存
+
+    def read(self, address):
+        if 0 <= address < self.size:
+            return self.data[address]
+        else:
+            print(f"错误: 无效的内存读取地址 {address}")
+            return 0 # 返回默认值或引发错误
+
+    def write(self, address, value):
+        if 0 <= address < self.size:
+            self.data[address] = value
+        else:
+            print(f"错误: 无效的内存写入地址 {address}")
+
+    def load_program(self, program, start_address):
+        if start_address + len(program) <= self.size:
+            for i, byte in enumerate(program):
+                self.data[start_address + i] = byte
+        else:
+            print("错误: 程序太大，无法加载到内存")
+
+# --- 3. 定义简化的 CPU ---
+class CPU:
+    def __init__(self, memory):
+        self.memory = memory
+        self.registers = [0] * 4 # 模拟四个通用寄存器 R0-R3 (REG_A to REG_D)
+        self.pc = 0             # 程序计数器 (Program Counter)
+        self.zero_flag = False  # 零标志位
+
+    def fetch(self):
+        # 从内存中获取当前PC指向的指令字节
+        instruction = self.memory.read(self.pc)
+        self.pc += 1 # PC指向下一条指令
+        return instruction
+
+    def decode_and_execute(self, instruction):
+        # 译码并执行指令
+        opcode = instruction
+
+        if opcode == OP_HALT:
+            print("CPU: 接收到停止指令，停止执行。")
+            return False # 返回False表示停止模拟
+
+        elif opcode == OP_LOAD:
+            # LOAD R, value
+            reg_index = self.fetch()
+            value = self.fetch()
+            if 0 <= reg_index < len(self.registers):
+                self.registers[reg_index] = value
+                print(f"CPU: 执行 LOAD R{reg_index}, {value}")
+            else:
+                print(f"错误: 无效的寄存器索引 {reg_index}")
+
+        elif opcode == OP_STORE:
+            # STORE R, address
+            reg_index = self.fetch()
+            address = self.fetch()
+            if 0 <= reg_index < len(self.registers):
+                self.memory.write(address, self.registers[reg_index])
+                print(f"CPU: 执行 STORE R{reg_index}, {address}")
+            else:
+                 print(f"错误: 无效的寄存器索引 {reg_index}")
+
+        elif opcode == OP_ADD:
+            # ADD R_dest, R_src1, R_src2
+            reg_dest = self.fetch()
+            reg_src1 = self.fetch()
+            reg_src2 = self.fetch()
+            if 0 <= reg_dest < len(self.registers) and \
+               0 <= reg_src1 < len(self.registers) and \
+               0 <= reg_src2 < len(self.registers):
+                result = self.registers[reg_src1] + self.registers[reg_src2]
+                self.registers[reg_dest] = result % 256 # 模拟8位加法，结果截断
+                self.zero_flag = (result % 256 == 0) # 更新零标志位
+                print(f"CPU: 执行 ADD R{reg_dest}, R{reg_src1}, R{reg_src2}. 结果 R{reg_dest}={self.registers[reg_dest]}")
+            else:
+                print("错误: ADD 指令参数无效")
+
+        elif opcode == OP_SUB:
+             # SUB R_dest, R_src1, R_src2
+            reg_dest = self.fetch()
+            reg_src1 = self.fetch()
+            reg_src2 = self.fetch()
+            if 0 <= reg_dest < len(self.registers) and \
+               0 <= reg_src1 < len(self.registers) and \
+               0 <= reg_src2 < len(self.registers):
+                result = self.registers[reg1] - self.registers[reg2]
+                self.registers[reg_dest] = result % 256 # 模拟8位减法，结果截断
+                self.zero_flag = (result % 256 == 0) # 更新零标志位
+                print(f"CPU: 执行 SUB R{reg_dest}, R{reg_src1}, R{reg_src2}. 结果 R{reg_dest}={self.registers[reg_dest]}")
+            else:
+                print("错误: SUB 指令参数无效")
+
+        elif opcode == OP_JMP:
+            # JMP address
+            address = self.fetch()
+            self.pc = address # 直接修改PC实现跳转
+            print(f"CPU: 执行 JMP {address}")
+
+        elif opcode == OP_JZ:
+            # JZ address
+            address = self.fetch()
+            if self.zero_flag:
+                self.pc = address # 如果零标志为真，则跳转
+                print(f"CPU: 执行 JZ {address} (零标志为真，跳转)")
+            else:
+                print(f"CPU: 执行 JZ {address} (零标志为假，不跳转)")
+
+        elif opcode == OP_PRINT:
+            # PRINT R
+            reg_index = self.fetch()
+            if 0 <= reg_index < len(self.registers):
+                print(f"输出: {self.registers[reg_index]}")
+                print(f"CPU: 执行 PRINT R{reg_index}")
+            else:
+                print(f"错误: 无效的寄存器索引 {reg_index}")
+
+        else:
+            print(f"错误: 未知的操作码 {opcode}")
+            return False # 未知指令，停止模拟
+
+        return True # 继续模拟
+
+    def run(self, start_address):
+        # CPU运行循环
+        self.pc = start_address # 设置程序起始地址
+        print(f"CPU: 开始执行，PC={self.pc}")
+        while True:
+            instruction = self.fetch()
+            if not self.decode_and_execute(instruction):
+                break # 收到停止信号
+
+# --- 4. 模拟基础操作系统 (OS) 功能 ---
+class SimpleOS:
+    def __init__(self, memory, cpu):
+        self.memory = memory
+        self.cpu = cpu
+
+    def boot(self):
+        # 模拟启动过程
+        print("OS: 正在启动...")
+        # 在真实系统中，OS会初始化硬件、设置中断等
+        # 在这里，我们只模拟加载用户程序并交给CPU执行
+        print("OS: 初始化完成，准备加载程序。")
+
+    def load_and_run(self, program, start_address):
+        # 模拟加载程序到内存并运行
+        print(f"OS: 正在加载程序到内存地址 {start_address}...")
+        self.memory.load_program(program, start_address)
+        print("OS: 程序加载完成，将控制权交给CPU。")
+        self.cpu.run(start_address)
+        print("OS: 程序执行完毕。")
+
+# --- 5. 示例程序 ---
+# 这是一个简单的程序：
+# 1. 将值 10 加载到寄存器 A (R0)
+# 2. 将值 20 加载到寄存器 B (R1)
+# 3. 将寄存器 A 和 B 的值相加，结果存入寄存器 C (R2)
+# 4. 打印寄存器 C 的值
+# 5. 停止
+
+# 程序字节码 (对应上面的指令集)
+# [OP_LOAD, REG_A, 10]
+# [OP_LOAD, REG_B, 20]
+# [OP_ADD, REG_C, REG_A, REG_B]
+# [OP_PRINT, REG_C]
+# [OP_HALT]
+example_program = [
+    OP_LOAD, REG_A, 10,
+    OP_LOAD, REG_B, 20,
+    OP_ADD, REG_C, REG_A, REG_B,
+    OP_PRINT, REG_C,
+    OP_HALT
+]
+
+# 另一个示例程序：计算 5 + 7 并打印，然后跳转到一个循环
+# [OP_LOAD, REG_A, 5]
+# [OP_LOAD, REG_B, 7]
+# [OP_ADD, REG_C, REG_A, REG_B]
+# [OP_PRINT, REG_C]
+# [OP_JMP, 10] # 跳转到地址 10 (一个无限循环)
+# [10]: OP_LOAD, REG_D, 1 # 循环体：加载1到R3
+# [13]: OP_PRINT, REG_D # 打印R3
+# [15]: OP_JMP, 10 # 跳回地址10
+example_program_loop = [
+    OP_LOAD, REG_A, 5,
+    OP_LOAD, REG_B, 7,
+    OP_ADD, REG_C, REG_A, REG_B,
+    OP_PRINT, REG_C,
+    OP_JMP, 10,  # 跳转到地址 10
+
+    # 地址 10 开始的循环
+    OP_LOAD, REG_D, 1, # 地址 10, 11, 12
+    OP_PRINT, REG_D,   # 地址 13, 14
+    OP_JMP, 10         # 地址 15, 16
+]
+
+
+# --- 6. 运行模拟 ---
+if __name__ == "__main__":
+    # 创建内存和CPU实例
+    memory = Memory(MEMORY_SIZE)
+    cpu = CPU(memory)
+
+    # 创建OS实例
+    os = SimpleOS(memory, cpu)
+
+    # OS启动
+    os.boot()
+
+    # 选择要运行的程序
+    program_to_run = example_program
+    # program_to_run = example_program_loop # 可以切换到循环程序
+
+    # OS加载并运行程序
+    program_start_address = 0 # 程序加载到内存的起始地址
+    os.load_and_run(program_to_run, program_start_address)
+
+    print("--- 模拟结束 ---")
+    print(f"最终寄存器状态: {cpu.registers}")
+    # print(f"最终内存状态 (前20字节): {memory.data[:20]}") # 可以打印部分内存查看
+
+
+
+; 说明：
+
+; 简化的 ISA：
+; 我们定义了一个非常简单的指令集，包括加载、存储、加法、减法、跳转、条件跳转和打印等基本操作。
+; 每条指令由一个操作码和零个或多个操作数组成。
+
+; 内存：
+; 使用 Python 列表模拟了一个固定大小的内存空间。
+; 提供了读写和加载程序的功能。
+
+; CPU：
+; 包含寄存器（通用寄存器、PC）、零标志位，
+; 并实现了指令的 fetch（取指）和 decode_and_execute（译码和执行）过程。
+; run 方法模拟了 CPU 的执行循环。
+
+; 基础 OS：
+; 模拟了一个非常简单的 OS，其主要功能是在 boot 过程中准备好环境（这里只是打印信息），
+; 然后在 load_and_run 方法中将用户程序加载到内存，
+; 并设置 CPU 的 PC 指向程序起始地址，然后启动 CPU 运行。
+
+; 示例程序：
+; 提供了两个示例程序，一个执行简单的加法并打印结果然后停止，
+; 另一个执行加法打印后进入一个无限循环（需要手动停止模拟）。
+
+; 这个模拟非常基础，省略了真实计算机和操作系统中的许多复杂细节，例如：
+
+; - 中断和异常处理
+; - 更复杂的内存管理（分页、分段）
+; - 多任务/多进程管理（抢占式调度、进程间通信）
+; - 文件系统
+; - 更丰富的 I/O 设备和驱动
+; - 特权级和安全机制
+; - 缓存、流水线等 CPU 优化技术
+
+; 但是，它足以展示计算机如何按照存储在内存中的指令一步步执行，
+; 以及操作系统如何扮演加载和启动程序的角色。
+
+; 你可以复制这段 Python 代码并在本地运行，观察它的输出，从而理解这个极简系统的工作流程。

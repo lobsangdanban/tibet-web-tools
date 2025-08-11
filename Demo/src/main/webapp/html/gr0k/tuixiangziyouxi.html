@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推箱子计算机模拟</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">推箱子计算机模拟：寄存器、图灵机和状态机</h1>
+
+        <!-- 寄存器运算 -->
+        <div class="mb-8 p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">寄存器运算（推箱子）</h2>
+            <div class="flex space-x-4 mb-4">
+                <div>
+                    <label class="block">寄存器 A（箱子数量）：</label>
+                    <input id="regA" type="number" value="1" min="0" max="5" class="border p-2 rounded w-24">
+                </div>
+                <div>
+                    <label class="block">寄存器 B（箱子数量）：</label>
+                    <input id="regB" type="number" value="1" min="0" max="5" class="border p-2 rounded w-24">
+                </div>
+            </div>
+            <div class="space-x-2">
+                <button onclick="startRegisterGame('add')" class="bg-blue-500 text-white px-4 py-2 rounded">加法 (A + B)</button>
+                <button onclick="startRegisterGame('subtract')" class="bg-blue-500 text-white px-4 py-2 rounded">减法 (A - B)</button>
+                <button onclick="startRegisterGame('shift')" class="bg-blue-500 text-white px-4 py-2 rounded">左移 A</button>
+            </div>
+            <p id="registerResult" class="mt-4">结果：推箱子到目标区域以完成运算</p>
+            <div id="registerCanvas" class="mt-4"></div>
+        </div>
+
+        <!-- 图灵机模拟 -->
+        <div class="mb-8 p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">图灵机（二进制反转推箱子）</h2>
+            <div class="mb-4">
+                <label class="block">磁带输入（例如：0011）：</label>
+                <input id="tapeInput" type="text" value="0011" class="border p-2 rounded w-48">
+                <button onclick="startTuringGame()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">运行图灵机</button>
+            </div>
+            <p id="turingResult" class="mt-2">磁带：推箱子以反转0和1</p>
+            <div id="turingCanvas" class="mt-4"></div>
+        </div>
+
+        <!-- 状态机模拟 -->
+        <div class="p-4 bg-white rounded shadow">
+            <h2 class="text-2xl font-semibold mb-4">状态机（接受以“ab”结尾的字符串）</h2>
+            <div class="mb-4">
+                <label class="block">输入字符串（例如：aabbab）：</label>
+                <input id="stateInput" type="text" value="aabbab" class="border p-2 rounded w-48">
+                <button onclick="startStateGame()" class="bg-purple-500 text-white px-4 py-2 rounded ml-2">运行状态机</button>
+            </div>
+            <p id="stateResult" class="mt-2">结果：推箱子到接受状态</p>
+            <div id="stateCanvas" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let player = { x: 0, y: 0 };
+        let boxes = [];
+        let targets = [];
+        let gameMode = null;
+        let gridSize = 50;
+        let gridWidth = 8, gridHeight = 4;
+        let regA = 0, regB = 0;
+        let tape = [], head = 0, state = 'q0';
+        let currentState = 'q0';
+        let turingInterval = null;
+
+        // p5.js 设置
+        function setup() {
+            let registerCanvas = createCanvas(gridWidth * gridSize, gridHeight * gridSize);
+            registerCanvas.parent('registerCanvas');
+            let turingCanvas = createCanvas(gridWidth * gridSize, gridHeight * gridSize);
+            turingCanvas.parent('turingCanvas');
+            let stateCanvas = createCanvas(gridWidth * gridSize, gridHeight * gridSize);
+            stateCanvas.parent('stateCanvas');
+        }
+
+        // 键盘控制
+        function keyPressed() {
+            let dx = 0, dy = 0;
+            if (key === 'w' || keyCode === UP_ARROW) dy = -1;
+            if (key === 's' || keyCode === DOWN_ARROW) dy = 1;
+            if (key === 'a' || keyCode === LEFT_ARROW) dx = -1;
+            if (key === 'd' || keyCode === RIGHT_ARROW) dx = 1;
+
+            let newX = player.x + dx;
+            let newY = player.y + dy;
+
+            // 检查边界
+            if (newX < 0 || newX >= gridWidth || newY < 0 || newY >= gridHeight) return;
+
+            // 检查箱子
+            let boxIndex = boxes.findIndex(b => b.x === newX && b.y === newY);
+            if (boxIndex !== -1) {
+                let boxNewX = newX + dx;
+                let boxNewY = newY + dy;
+                if (boxNewX < 0 || boxNewX >= gridWidth || boxNewY < 0 || boxNewY >= gridHeight) return;
+                if (boxes.some(b => b.x === boxNewX && b.y === boxNewY)) return;
+                boxes[boxIndex].x = boxNewX;
+                boxes[boxIndex].y = boxNewY;
+            }
+
+            player.x = newX;
+            player.y = newY;
+
+            // 根据模式处理逻辑
+            if (gameMode === 'register') checkRegisterResult();
+            if (gameMode === 'turing') checkTuringStep();
+            if (gameMode === 'state') checkStateStep();
+        }
+
+        // 寄存器游戏
+        function startRegisterGame(mode) {
+            gameMode = 'register';
+            regA = parseInt(document.getElementById('regA').value) || 0;
+            regB = parseInt(document.getElementById('regB').value) || 0;
+            if (regA < 0 || regA > 5 || regB < 0 || regB > 5) {
+                document.getElementById('registerResult').innerText = '错误：寄存器值必须在0到5之间';
+                return;
+            }
+            player = { x: 0, y: 0 };
+            boxes = [];
+            targets = [];
+            if (mode === 'add') {
+                for (let i = 0; i < regA; i++) boxes.push({ x: 1 + i, y: 1 });
+                for (let i = 0; i < regB; i++) boxes.push({ x: 1 + i, y: 2 });
+                for (let i = 0; i < regA + regB; i++) targets.push({ x: gridWidth - 1 - i, y: 1 });
+            } else if (mode === 'subtract') {
+                for (let i = 0; i < regA; i++) boxes.push({ x: 1 + i, y: 1 });
+                for (let i = 0; i < Math.max(0, regA - regB); i++) targets.push({ x: gridWidth - 1 - i, y: 1 });
+            } else if (mode === 'shift') {
+                for (let i = 0; i < regA; i++) boxes.push({ x: 1 + i, y: 1 });
+                for (let i = 0; i < regA * 2; i++) targets.push({ x: gridWidth - 1 - i, y: 1 });
+            }
+            document.getElementById('registerResult').innerText = `结果：推${boxes.length}个箱子到目标区域（右侧）`;
+        }
+
+        function checkRegisterResult() {
+            let allInPlace = targets.every(t => boxes.some(b => b.x === t.x && b.y === t.y));
+            if (allInPlace) {
+                let result = 0;
+                if (targets.length === regA + regB) result = regA + regB;
+                else if (targets.length === Math.max(0, regA - regB)) result = Math.max(0, regA - regB);
+                else if (targets.length === regA * 2) result = regA * 2;
+                document.getElementById('registerResult').innerText = `结果：运算完成！值 = ${result}`;
+            }
+        }
+
+        // 图灵机游戏
+        function startTuringGame() {
+            if (turingInterval) clearInterval(turingInterval);
+            let input = document.getElementById('tapeInput').value;
+            if (!/^[01]*$/.test(input)) {
+                document.getElementById('turingResult').innerText = '错误：输入只能包含0和1';
+                return;
+            }
+            if (input.length === 0) {
+                document.getElementById('turingResult').innerText = '错误：输入磁带不能为空';
+                return;
+            }
+            tape = input.split('').map(c => c === '0' ? '0' : '1');
+            head = 0;
+            state = 'q0';
+            player = { x: 0, y: 1 };
+            boxes = tape.map((val, i) => ({ x: i + 1, y: 1, value: val }));
+            targets = [{ x: head + 1, y: 1 }];
+            document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (读写头位置：${head}, 状态：${state})`;
+            turingInterval = setInterval(checkTuringStep, 500);
+        }
+
+        function checkTuringStep() {
+            if (state === 'halt') {
+                document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (已停止)`;
+                clearInterval(turingInterval);
+                return;
+            }
+            let boxAtHead = boxes.find(b => b.x === head + 1 && b.y === 1);
+            if (boxAtHead) {
+                if (state === 'q0') {
+                    if (boxAtHead.value === '0') {
+                        boxAtHead.value = '1';
+                        tape[head] = '1';
+                        head++;
+                    } else if (boxAtHead.value === '1') {
+                        boxAtHead.value = '0';
+                        tape[head] = '0';
+                        head++;
+                    }
+                    if (head >= tape.length) state = 'halt';
+                    targets = [{ x: head + 1, y: 1 }];
+                }
+                document.getElementById('turingResult').innerText = `磁带：${tape.join('')} (读写头位置：${head}, 状态：${state})`;
+            }
+        }
+
+        // 状态机游戏
+        function startStateGame() {
+            let input = document.getElementById('stateInput').value;
+            if (!/^[ab]*$/.test(input)) {
+                document.getElementById('stateResult').innerText = '错误：输入只能包含 a 和 b';
+                return;
+            }
+            currentState = 'q0';
+            player = { x: 0, y: 0 };
+            boxes = input.split('').map((char, i) => ({ x: 1 + i, y: 2, value: char }));
+            targets = [{ x: currentState === 'q0' ? 3 : currentState === 'q1' ? 4 : 5, y: 1 }];
+            document.getElementById('stateResult').innerText = `结果：推箱子到状态区域（q0: x=3, q1: x=4, q2: x=5）`;
+        }
+
+        function checkStateStep() {
+            let boxAtTarget = boxes.find(b => b.x === (currentState === 'q0' ? 3 : currentState === 'q1' ? 4 : 5) && b.y === 1);
+            if (boxAtTarget) {
+                let char = boxAtTarget.value;
+                if (currentState === 'q0') {
+                    currentState = char === 'a' ? 'q1' : 'q0';
+                } else if (currentState === 'q1') {
+                    currentState = char === 'b' ? 'q2' : 'q0';
+                } else if (currentState === 'q2') {
+                    currentState = char === 'a' ? 'q1' : 'q0';
+                }
+                boxes = boxes.filter(b => b !== boxAtTarget);
+                targets = [{ x: currentState === 'q0' ? 3 : currentState === 'q1' ? 4 : 5, y: 1 }];
+                let accepted = currentState === 'q2' && boxes.length === 0 ? '接受' : '拒绝';
+                document.getElementById('stateResult').innerText = `结果：${accepted} (当前状态：${currentState})`;
+            }
+        }
+
+        // p5.js 绘制
+        function draw() {
+            background(255);
+            // 绘制网格
+            for (let x = 0; x < gridWidth; x++) {
+                for (let y = 0; y < gridHeight; y++) {
+                    stroke(200);
+                    noFill();
+                    rect(x * gridSize, y * gridSize, gridSize, gridSize);
+                }
+            }
+            // 绘制玩家
+            fill(0, 0, 255);
+            ellipse(player.x * gridSize + gridSize / 2, player.y * gridSize + gridSize / 2, gridSize / 2);
+            // 绘制箱子
+            boxes.forEach(b => {
+                fill(b.value === '1' || b.value === 'b' ? 255 : 0, 255, 0);
+                rect(b.x * gridSize, b.y * gridSize, gridSize, gridSize);
+                fill(0);
+                text(b.value || '', b.x * gridSize + 20, b.y * gridSize + 30);
+            });
+            // 绘制目标
+            targets.forEach(t => {
+                fill(255, 0, 0, 100);
+                rect(t.x * gridSize, t.y * gridSize, gridSize, gridSize);
+            });
+            // 绘制状态机提示
+            if (gameMode === 'state') {
+                fill(0);
+                text('q0', 3 * gridSize + 20, gridSize + 30);
+                text('q1', 4 * gridSize + 20, gridSize + 30);
+                text('q2', 5 * gridSize + 20, gridSize + 30);
+            }
+        }
+    </script>
+</body>
+</html>

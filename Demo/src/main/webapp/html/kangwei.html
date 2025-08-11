@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game {
+            display: grid;
+            grid-template-columns: repeat(50, 10px);
+            grid-gap: 1px;
+        }
+        .cell {
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+        .alive {
+            background-color: #000;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div id="controls">
+            <button onclick="startGame()">Start</button>
+            <button onclick="pauseGame()">Pause</button>
+            <button onclick="clearGame()">Clear</button>
+            <button onclick="randomize()">Randomize</button>
+        </div>
+        <div id="game"></div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game');
+        const rows = 50;
+        const cols = 50;
+        let grid = Array.from({ length: rows }, () => Array(cols).fill(0));
+        let interval;
+        let isRunning = false;
+
+        function createGrid() {
+            gameContainer.innerHTML = '';
+            for (let i = 0; i < rows * cols; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.addEventListener('click', () => toggleCell(i));
+                gameContainer.appendChild(cell);
+            }
+        }
+
+        function toggleCell(index) {
+            const row = Math.floor(index / cols);
+            const col = index % cols;
+            grid[row][col] = grid[row][col] ? 0 : 1;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const cells = document.querySelectorAll('.cell');
+            for (let i = 0; i < rows * cols; i++) {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                cells[i].classList.toggle('alive', grid[row][col] === 1);
+            }
+        }
+
+        function getNeighborsCount(row, col) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    const newRow = row + i;
+                    const newCol = col + j;
+                    if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                        count += grid[newRow][newCol];
+                    }
+                }
+            }
+            return count;
+        }
+
+        function nextGeneration() {
+            const newGrid = grid.map(row => [...row]);
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const neighbors = getNeighborsCount(row, col);
+                    if (grid[row][col] === 1) {
+                        if (neighbors < 2 || neighbors > 3) {
+                            newGrid[row][col] = 0;
+                        }
+                    } else {
+                        if (neighbors === 3) {
+                            newGrid[row][col] = 1;
+                        }
+                    }
+                }
+            }
+            grid = newGrid;
+            updateDisplay();
+        }
+
+        function startGame() {
+            if (isRunning) return;
+            isRunning = true;
+            interval = setInterval(nextGeneration, 100);
+        }
+
+        function pauseGame() {
+            clearInterval(interval);
+            isRunning = false;
+        }
+
+        function clearGame() {
+            pauseGame();
+            grid = Array.from({ length: rows }, () => Array(cols).fill(0));
+            updateDisplay();
+        }
+
+        function randomize() {
+            pauseGame();
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    grid[row][col] = Math.random() > 0.8 ? 1 : 0; // 20% ¸ÅÂÊ»îÏ¸°û
+                }
+            }
+            updateDisplay();
+        }
+
+        createGrid();
+    </script>
+</body>
+</html>

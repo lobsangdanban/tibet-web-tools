@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 音频转波形图</title>
+    <!-- 引入 wavesurfer.js 库 -->
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+    <!-- 引入频谱分析插件 -->
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugins/spectrogram.min.js"></script>
+    <!-- 引入 region 插件 -->
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugins/regions.min.js"></script>
+    <style>
+        #waveform {
+            height: 400px;
+        }
+        #zoomSlider {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 文件选择按钮 -->
+    <input type="file" id="audioFileInput" accept="audio/mp3">
+    <!-- 播放和暂停按钮 -->
+    <button id="playPauseButton">播放/暂停</button>
+    <!-- 缩放滑块 -->
+    <input type="range" id="zoomSlider" min="50" max="2000" value="50">
+    <!-- 波形图容器 -->
+    <div id="waveform"></div>
+
+    <script>
+        // 初始化 Wavesurfer 实例并添加频谱分析和 region 插件
+        const spectrogramPlugin = WaveSurfer.spectrogram ? WaveSurfer.spectrogram.create({
+            container: '#waveform',
+            labels: true
+        }) : null;
+        const regionsPlugin = WaveSurfer.regions ? WaveSurfer.regions.create() : null;
+
+        const wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: 'violet',
+            progressColor: 'purple',
+            minPxPerSec: 50,
+            maxPxPerSec: 2000,
+            plugins: [spectrogramPlugin, regionsPlugin].filter(Boolean)
+        });
+
+        // 获取文件输入元素
+        const audioFileInput = document.getElementById('audioFileInput');
+
+        // 监听文件选择事件
+        audioFileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                // 加载音频文件并绘制波形图
+                wavesurfer.load(fileURL);
+            }
+        });
+
+        // 获取播放/暂停按钮元素
+        const playPauseButton = document.getElementById('playPauseButton');
+        playPauseButton.addEventListener('click', function() {
+            wavesurfer.playPause();
+        });
+
+        // 获取缩放滑块元素
+        const zoomSlider = document.getElementById('zoomSlider');
+
+        // 监听滑块值变化事件
+        zoomSlider.addEventListener('input', function() {
+            const newZoom = parseInt(zoomSlider.value);
+            wavesurfer.zoom(newZoom);
+        });
+
+        // 监听波形图上的点击、拖动开始和拖动过程事件
+        wavesurfer.on('region-update-end', function(region) {
+            const start = region.start;
+            wavesurfer.seekTo(start / wavesurfer.getDuration());
+        });
+
+        wavesurfer.on('region-click', function(region, e) {
+            e.stopPropagation();
+            const start = region.start;
+            wavesurfer.seekTo(start / wavesurfer.getDuration());
+        });
+
+        // 监听拖动开始事件
+        wavesurfer.on('region-update-start', function(region) {
+            // 记录拖动开始时的状态
+        });
+
+        // 监听拖动过程事件
+        wavesurfer.on('region-updated', function(region) {
+            const start = region.start;
+            wavesurfer.seekTo(start / wavesurfer.getDuration());
+        });
+    </script>
+</body>
+</html>

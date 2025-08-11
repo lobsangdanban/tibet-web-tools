@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清空输入框示例</title>
+    <style>
+        #myInput, #redoButton {
+            font-size: 28px;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="myInput" placeholder="ཡི་གེ་འགའ་གཏགས་རོགས།">
+    <button id="redoButton">བསུབ་པ།</button>
+
+    <script>
+        // 获取输入框和按钮元素
+        const inputElement = document.getElementById('myInput');
+        const redoButton = document.getElementById('redoButton');
+
+        // 为按钮添加点击事件监听器
+        redoButton.addEventListener('click', function() {
+            // 清空输入框的内容
+            inputElement.value = '';
+        });
+    </script>
+</body>
+</html>

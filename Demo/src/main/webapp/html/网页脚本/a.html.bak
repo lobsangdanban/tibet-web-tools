@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <style>
+  body,html{
+	margin:0 auto;
+  }
+	.containter{
+		width:200px;
+		height:auto;
+		margin:0 auto;
+		background:blue;
+		float:left;
+		display:block;
+	}
+	.content{
+		height:300px;
+		background:lightblue;
+		width:100%;
+	}
+	 #first{
+		height:200px;
+		background:green;
+		width:50%;
+		display:block;
+	}
+  </style>
+ </head>
+ <body>
+	<div class="containter">
+		<div class="content">
+			
+		</div>
+	</div>
+	<div id="first">
+				
+			</div>
+ </body>
+</html>

@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>四人聊天室</title>
+  <style>
+    #chat { height: 300px; border: 1px solid #ccc; overflow-y: auto; padding: 10px; }
+    #users { color: #666; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div id="users">在线用户：<span id="user-list"></span></div>
+  <div id="chat"></div>
+  <input id="input" placeholder="输入消息..." />
+  <button onclick="sendMessage()">发送</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const userList = document.getElementById('user-list');
+    const chatDiv = document.getElementById('chat');
+    const input = document.getElementById('input');
+
+    // 加入聊天室
+    const username = prompt('请输入你的昵称:');
+    socket.emit('join', username);
+
+    // 接收消息
+    socket.on('message', (msg) => {
+      const p = document.createElement('p');
+      p.textContent = msg;
+      chatDiv.appendChild(p);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+
+    // 更新用户列表
+    socket.on('user-list', (users) => {
+      userList.textContent = users.join(', ');
+    });
+
+    // 错误处理
+    socket.on('error', (err) => {
+      alert(err);
+      window.location.reload();
+    });
+
+    // 发送消息
+    function sendMessage() {
+      if (input.value.trim()) {
+        socket.emit('message', input.value);
+        input.value = '';
+      }
+    }
+
+    // 回车发送
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
